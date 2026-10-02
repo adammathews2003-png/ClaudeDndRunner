@@ -35,7 +35,7 @@ Bounds: x 0–45 · y 0–35 · z 0–10 · origin (0,0,0) = inside the front do
 |----------|-------|-------------------|-----------|------------|--------------------------------------------|
 | door     | d     | front door        | (0,0,0)   | (0,0,0)    | exit → village square                      |
 | bar      | b     | bar counter       | (15,25,0) | (35,25,0)  | half cover; crossing = difficult           |
-| trapdoor | x     | cellar trapdoor   | (25,30,0) | (25,30,0)  | behind the bar; locked                     |
+| trapdoor | x     | cellar trapdoor   | (25,30,0) | (25,30,0)  | behind the bar; locked; secret             |
 | tables-w | t     | tables & benches  | (10,10,0) | (15,15,0)  | difficult                                  |
 | tables-e | t     | tables & benches  | (30,5,0)  | (35,10,0)  | difficult                                  |
 | hearth   | h     | hearth            | (45,15,0) | (45,20,0)  | entering = 1d10 fire                       |

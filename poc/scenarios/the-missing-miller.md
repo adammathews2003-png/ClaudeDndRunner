@@ -30,7 +30,7 @@ remove Harl — and the contraband — permanently.
 - WHEN party enters the mill → physical evidence chain (pipe, blood DC 11, ledger "V.", under-croft manacle)
 - WHEN party opens the inn cellar → Harl found; Veskar knows within the hour and bolts or bargains
 - WHEN suspicion of Veskar becomes open (accusation, searched room) → he attempts night departure; confrontation on the mill road
-- CLOCK — Day 3, pre-dawn: Red Ledger cart arrives at the mill; if Harl is still captive, he is gone for good (scenario fails forward into a rescue-from-the-road arc)
+- CLOCK Day 3 04:00: Red Ledger cart arrives at the mill; if Harl is still captive, he is gone for good (scenario fails forward into a rescue-from-the-road arc)
 
 ## Resolution paths
 1. **Harl rescued, Veskar caught/killed** → village grateful; Red Ledger notes the party's names (future hook)

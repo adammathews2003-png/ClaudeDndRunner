@@ -5,6 +5,8 @@ role: innkeeper
 faction: none
 attitude-to-party: neutral
 statblock: commoner
+default-goal: keep the evening calm
+status: alive
 ---
 
 # Mara Fennick
@@ -19,12 +21,15 @@ one safe place in Thornbury. She would never sell out a neighbor — but she'll 
 outsiders without blinking if she thinks it keeps the peace.
 
 ## Knowledge & secrets
-- Freely shares: village gossip, directions, that Harl the miller hasn't been seen in a week
-- Needs persuasion (DC 12) or friendly attitude: a stranger calling himself Veskar took a room the night Harl vanished, pays in old-minted silver, keeps odd hours
-- Only under real pressure (DC 16, or evidence shown): she heard noises under the inn two nights ago and found her cellar key missing for a day; it reappeared. She's terrified and pretending otherwise.
+- Freely shares: village gossip, directions, that Harl the miller hasn't been seen in a week (since Day -6)
+- Needs persuasion (DC 12) or friendly attitude: a stranger calling himself Veskar took a room the night Harl vanished (Day -6), pays in old-minted silver, keeps odd hours
+- Only under real pressure (DC 16, or evidence shown): she heard noises under the inn two nights before the party arrived (night of Day -1) and found her cellar key missing for a day; it reappeared. She's terrified and pretending otherwise.
+<!-- Day numbers anchor "ago" phrasing so it stays true as the clock advances; she says it relative to the current day. -->
 
 ## History with the party
 (none yet)
 
 ## Movements
-Dawn–noon: kitchen and cellar errands. Noon–midnight: behind the bar. Sleeps upstairs, room 1.
+- 06:00–12:00 → crossroads-inn (kitchen; cellar errands)
+- 12:00–00:00 → crossroads-inn (behind the bar)
+- 00:00–06:00 → crossroads-inn (asleep upstairs, room 1)

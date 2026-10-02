@@ -10,6 +10,16 @@ body sections are conventions.
 goes in a markdown table in the body. Tables are read by header name, so extra columns
 are always safe.
 
+**Frontmatter is player-safe.** It's the first thing anyone sees in a file, and tools
+print it freely, so it holds only the public face of things (e.g., an NPC's cover
+`role` and public `faction`). True identities and allegiances go under the marked
+secret sections (`## Knowledge & secrets`, `## The truth`, `## Hidden`).
+
+**Anchor times to days.** Body text that says "two nights ago" goes stale as the clock
+advances, so add the absolute day: "two nights before the party arrived (night of Day
+-1)". Pre-campaign days are numbered ≤ 0. This also lets `gm.py trace` and `/spoilers`
+treat them as Established facts.
+
 ## Location file — `locations/<slug>.md`
 
 ```markdown
@@ -36,9 +46,11 @@ Sensory prose the GM can draw exposition from. 1–3 paragraphs.
 - Hearth (east wall): always lit; loose stone hides nothing (red herring)
 
 ## Hidden
-<!-- Compared against passive Perception on entry; revealed to qualifying PCs -->
+<!-- Compared against passive Perception on entry; revealed to qualifying PCs.
+     `DC N (area):` limits an entry to one sub-area (checked when the party enters it). -->
 - DC 13: fresh mud tracked in leading to the cellar trapdoor
 - DC 17: faint sound of scraping from below the floorboards
+- DC 15 (cellar): a second, newer lock on the inner door
 
 ## Layout
 <!-- Written the first time a tense scene or fight happens here; fixed afterwards.

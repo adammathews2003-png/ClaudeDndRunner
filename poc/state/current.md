@@ -1,8 +1,11 @@
 ---
 campaign: poc
-in-game-datetime: "Day 1, evening"
+in-game-datetime: "Day 1 18:30"   # dusk arrival; absolute day + 24 h clock
 party-location: crossroads-inn
 scene: "Common room, dinner rush"
+light: bright                     # bright | dim | dark
+in-session: false                 # /gm sets true (turns on the brief hook)
+dice-mode: players-roll-d20s      # players-roll-d20s | gm-rolls-all
 ---
 
 # Current scene
@@ -22,7 +25,9 @@ busy common room. The reeve's 25 gp notice about the missing miller hangs by the
 - Party heads to the mill → load locations/old-mill.md, beat 3
 
 ## Clocks
-- Day 3, pre-dawn: Red Ledger cart (scenario clock)
+- Day 3 04:00: Red Ledger cart (scenario clock)
+
+## Tempo: calm  <!-- calm | tense | combat — see planning/01, Scene tempo -->
 
 ## Combat
 (not in combat)
