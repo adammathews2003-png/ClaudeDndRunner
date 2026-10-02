@@ -1,7 +1,9 @@
 # 06 — Tools Spec (scripts that take work off the GM model)
 
 Status: **planned, not built** (except `tools/space.py`). Build in Phase 2a, before the
-GM skills — the skills are written against these commands.
+GM skills — the skills are written against these commands. Play runs through the
+**table client** (`tools/table.py`, last section before Format changes), which shows
+the player only the GM's narration; everything in this doc happens behind it.
 
 ## Why
 
@@ -34,9 +36,14 @@ append" in 02 → Timeliness rules:
    happened, file it" stops being a discipline and becomes a side effect.
 5. **Output is written for the model to paste:** short fixed-format bracket lines, e.g.
    `[Veskar → Kael: d20 13+5=18 vs AC 15 — HIT · 7 slashing · Kael 9→2/11]`.
-   No JSON unless `--json` is passed (for tests and tool-to-tool use).
+   No JSON unless `--json` is passed (for tests and tool-to-tool use). Tool output is
+   for the GM, not the players: the table client never displays it. Lines that are
+   safe to repeat to players verbatim (public rolls, the player-view map) are the
+   only ones the GM pastes into narration. Everything else is paraphrased in fiction
+   or kept behind the screen (02 → Behind the screen).
 6. **Python 3 stdlib only.** No install step. RNG = `random.SystemRandom`; `--seed N`
-   on any command makes it deterministic for tests.
+   on any command makes it deterministic for tests. (Sole exception: the table client,
+   which needs the Claude Agent SDK. The game tools never import it.)
 7. **Judgment stays with the model** (see the last section). Tools never decide whether
    a check is needed, what a DC is, or what an NPC wants.
 8. **Fast:** every command should finish in < 200 ms (Python start-up is most of it).
@@ -64,6 +71,7 @@ tools/
 │   ├── journal.py     # undo before-images + session-log delta writer
 │   └── gametime.py    # "Day N HH:MM" parse/format/add
 ├── scene.py  combat.py  clock.py  travel.py  rest.py  lint.py  session.py  srd.py
+├── table.py           # table client: the players' console (Agent SDK; not imported by the above)
 └── tests/             # fixture campaign + seeded tests per command
 data/srd/              # SRD 5.1 JSON (monsters, spells, conditions) + LICENSE/attribution
 ```
@@ -96,8 +104,8 @@ gm.py roll table:mill-road-encounters
   dice, not modifiers), `kh/kl` (keep highest/lowest), `x3` (repeat).
 - `table:<slug>` rolls on a markdown table in the campaign's `tables/` folder
   (`| roll | result |`, ranges like `1-3`).
-- `--secret`: output prefixed `SECRET`, logged with a `secret` tag. The GM narrates only
-  the outcome (02 → Secret rolls).
+- `--secret`: output prefixed `SECRET`, logged as a `(GM)` line. The GM narrates only
+  the outcome, or just `[rolled behind the screen]` (02 → Behind the screen).
 
 ### `gm.py atk | save | check | contest` — resolve, apply house rules
 ```
@@ -150,8 +158,12 @@ it. Result:
 [turn 14] Kira buys Tobin a drink; cart story told
   - coin Kira 35→30 gp
   - attitude Tobin neutral→friendly
-  - roll SECRET 1d20+2 = 9 (Mara insight vs Kira deception 15) — fail
+  - (GM) roll SECRET 1d20+2 = 9 (Mara insight vs Kira deception 15) — fail
 ```
+Delta lines carrying GM-only information (secret rolls, off-screen NPC moves, fired
+clock beats, hidden-DC results) are tagged `(GM)`. The tag lets recaps and the history
+summary leave them out of anything said to players. The file itself is protected by
+the honor system.
 
 **Undo journal.** Before each command, `lib/journal.py` saves the before-image of every
 file it touches to `<campaign>/.gm/journal/` (last ~50 batches). `undo` restores the
@@ -239,7 +251,12 @@ Layout: common-room (9 features) — `gm.py space map` to draw
   (or On stage list) to the `## Combat` block; copies Bounds + terrain rows from the
   location `## Layout`; rolls initiative (d20 + DEX; PC values via `--init Kael=15`
   since players roll); seeds HP/AC from PC files / stat blocks; prints the order and the
-  map (`space.py map`). New monsters from the SRD get a `ref` of `srd:<name>`.
+  map (`space.py map --player-view`, below). New monsters from the SRD get a `ref` of
+  `srd:<name>`.
+- **Player-view map:** maps the GM pastes into narration are always rendered with
+  `--player-view`. That leaves out combatants the party can't perceive (conditions
+  `hidden` / `invisible` / `unseen`) and terrain rows whose effect contains `secret`
+  (an unspotted trapdoor). The full map is the GM's, and is never pasted.
 - `next`: advances `up:`; on wrap, increments the round, moves the moves log into the
   session log, ticks condition durations (`poisoned 3r` → `2r`, expiry reported). Prints
   who's up, their position, and the creatures within reach/range.
@@ -337,6 +354,82 @@ single call. Refuses if the slug already exists (prints the existing file's path
 Who's at a location / where someone is, from frontmatter only. Cheap answer to "check
 the record".
 
+## Table client — `tools/table.py` (the players' console)
+
+**Decided (2026-10-02).** The person running the game is also a player. Files are
+protected by the honor system (they don't open them). The **console** must never show
+GM-level information. Plain Claude Code is a developer console: it displays Bash
+command lines (`gm.py move-npc veskar old-mill`), the first lines of tool output,
+Write/Edit contents, permission prompts and subagent progress. The tools can't make
+the GM's *own decisions* invisible there, because the command that carries out a
+decision names it. So play doesn't run in the Claude Code terminal. It runs through a
+small client that drives the same Claude Code session in the background and shows
+only narration.
+
+```
+python tools/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
+```
+
+**How it works**
+- Built on the **Claude Agent SDK** (Python). It runs a persistent Claude Code session
+  with `cwd` = `dnd-adventure/`, loading **project** settings only: the GM skills,
+  hooks (brief injection) and permission allowlist from `.claude/settings.json`. So
+  the GM behaves exactly as designed in 02/06; only the display changes.
+- On start: resumes the last session (id in `<campaign>/.gm/session-id`) or starts one
+  (`--new`), then sends `/gm` automatically. The recap streams in.
+- Each player line is sent as a prompt. The client receives the session's messages as
+  structured data and **displays only the GM's narration text**, streamed as it arrives.
+
+**What the client displays and hides**
+| Shown | Hidden |
+|---|---|
+| GM narration text (streamed) | Tool calls and their command lines |
+| Bracket lines the GM put *in its narration* (public dice, distances, the player-view map) | Tool results (all `gm.py` output, file reads) |
+| A neutral activity line while tools run: `The GM consults their notes…` (no tool names, no counts) | Thinking |
+| Client notices (`[saved]`, connection errors, in generic wording) | Hook-injected context (the brief), system messages, subagent activity |
+
+**Input conventions**
+- Prefix with the speaking PC, `Kira: I check the trapdoor` (05 #10). `:as Kira`
+  sets a default prefix for lines typed without one. Unprefixed lines with no default
+  are sent as table talk.
+- `/end-session`, other GM skills and `!brief` pass straight through.
+- Client-local commands start with `:` and are never sent to the GM: `:quit`
+  (ends the client without ending the session), `:as <PC>`, `:gm-view on|off`.
+
+**Permissions without prompts.** The SDK session can't show interactive permission
+prompts (and a prompt would itself leak). The allowlist from 06 → Permissions is the
+complete set of what the GM may do: `gm.py`, `space.py`, Read within `dnd-adventure/`,
+and the skills. Everything else is denied, and the GM is told so and works around it.
+Denials go to `<campaign>/.gm/client.log`, never to the screen. A frequent denial
+means the allowlist or a skill needs fixing between sessions. A side benefit: the GM
+can't wander outside the game folder mid-session.
+
+**`--gm-view`** shows everything (tool calls, results, thinking), for building and
+debugging. It falls under the honor system like the files. Prep, design and debugging
+sessions keep using plain `claude`, which is effectively permanent GM view.
+
+**Memory systems.** Loading project settings only should also keep user-level plugins
+(e.g., claude-mem) and auto-memory out of play sessions, so play doesn't get recorded
+and replayed as spoiler-laden summaries in later design sessions. Verify this when
+building. If they do load, the client disables them for its session.
+
+**Failure behavior.** SDK/API errors show `The GM needs a moment…` and retry once, then
+`[connection lost — :quit and restart; the game is saved]`. State is safe because it
+lives in files written each turn; the session resumes by id and the SessionStart hook
+re-injects the long brief.
+
+**Deliberately out of scope for v1:** rich markdown rendering (plain text + light
+ANSI: narration normal, bracket lines dim; `rich` can be added later), a public
+transcript file, voice/GUI.
+
+**Build-time checks** (the SDK API is confirmed when building, not assumed here):
+1. Which message types to filter and how text streams (partial messages).
+2. That project hooks fire in SDK sessions, including SessionStart after compaction.
+3. That user-level plugins and memory stay off with project-only settings.
+4. Permission configuration: an allowlist with deny-by-default, plus a denial callback
+   for the log.
+5. Slash commands (`/gm`, `/end-session`) work when sent as prompts.
+
 ## Format changes this requires (made in 04)
 
 - **Time:** `in-game-datetime: "Day 1 19:30"` (absolute day count + 24 h clock).
@@ -365,7 +458,8 @@ plausibly. Tools give facts and outcomes; the model gives meaning.
 | 2a.2 | `roll`, `atk/save/check/contest`, mutations, `log`, `undo` | biggest per-turn saving |
 | 2a.3 | `brief` + hooks + permissions allowlist | removes the per-turn Read |
 | 2a.4 | `scene enter`, `tempo`, `combat start/next/end`, `srd`; `space.py` also reads the Stage table (tense scenes) and moves its parsing onto `lib/md.py` | needed before the Phase 3 dry run |
-| 2a.5 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where` | build when the dry run shows the need |
+| 2a.5 | `table.py` client + `space.py map --player-view` | the Phase 3 dry run is played through it, so console leaks surface early |
+| 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where` | build when the dry run shows the need |
 | 2b | GM skills (02), written to call these commands | |
 
 Each step ships with seeded tests in `tools/tests/` against a fixture copy of `poc/`.
@@ -383,6 +477,7 @@ POC content files are migrated to the new formats (04) in step 2a.1.
 4. ~~Lint timing~~ **Decided (2026-10-02): write-time validation + touched-files check
    per batch + full sweep at scene/combat/session boundaries; no `Stop` hook**
    (Tier 3 → lint).
-5. **Secrets in tool output:** `scene enter` and `clock` print spoiler beats into the
-   transcript. Fine under the honor system (01 → Secrets); a `gm-only/` split would need
-   the tools to read from there.
+5. ~~Secrets in tool output~~ **Decided (2026-10-02): honor system for files; the
+   table client hides all tool output from the console** (Table client section).
+   Tools print freely to the GM. Only narration rules (02 → Behind the screen) and
+   player-view renders govern what players see.

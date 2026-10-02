@@ -87,8 +87,11 @@ deliberately turns to quiet PCs ("Bren, you're nearest the door — what are you
 The user reads files (or just metagames). Partially unsolvable with honor-system
 secrets; make it cheap to do the right thing. **Fix:** spoilers live ONLY under
 clearly-marked sections (`## The truth (SPOILERS)`, `## Hidden`, NPC secrets) so a
-player can safely open any file's top half; everything else is player-safe. For the
-real campaign, consider the `gm-only/` folder split.
+player can safely open any file's top half; everything else is player-safe.
+**Decided (2026-10-02):** files stay honor-system (no `gm-only/` split). The bigger leak
+is the console: plain Claude Code shows command lines and tool output, which spell out
+GM decisions. Play therefore runs through the table client (06), which shows only
+narration, and the GM follows the *Behind the screen* rules (02).
 
 ## 12. Absent players
 Real groups miss sessions. **Fix:** PC frontmatter gets an `autopilot:` note (one line:

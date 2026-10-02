@@ -58,7 +58,8 @@ Running changes: damage, moved items, ambience shifts. GM appends here.
 Layout/terrain tables are the same format everywhere (location Layout, Combat block) so
 `tools/space.py` can read them and the GM can copy rows across. `from`/`to` are opposite
 corner cells (inclusive); a single cell has `to` = `from`. `effect` is free text, but the
-helper keys on the words *difficult*, *stairs*, *ramp*.
+helper keys on the words *difficult*, *stairs*, *ramp*, and *secret* (left off
+`--player-view` maps until the party discovers it; then the word is removed).
 
 Who-is-here is NOT stored in the location file — it's derived by grepping NPC/PC
 frontmatter for `location: <slug>` (single source of truth for positions).
@@ -281,11 +282,17 @@ and `gm.py log "..."` writes the summary and closes it:
 [turn 14] Kira buys Tobin a drink; cart story told
   - coin Kira 35→30 gp
   - attitude Tobin neutral→friendly
+  - (GM) roll SECRET 1d20+2 = 9 (Mara insight vs Kira deception) — fail
 ```
+`(GM)` marks delta lines players must not hear: secret rolls, off-screen moves, fired
+clock beats, hidden-DC results. Recaps and history summaries leave them out.
 `/end-session` compresses it into `sessions/history/session-NN.md` (a half-page summary +
 list of durable changes made, which is the delta lines extracted).
 
 ## Tool-owned files
 - `dnd-adventure/.campaign` — name of the active campaign folder.
 - `<campaign>/.gm/journal/` — undo before-images (last ~50 batches; not canon).
+- `<campaign>/.gm/brief-hash` — brief change tracking (06).
+- `<campaign>/.gm/session-id`, `<campaign>/.gm/client.log` — table client session to
+  resume, and its denial/error log (never shown on the console).
 - `<campaign>/tables/<slug>.md` — random/encounter tables, `| roll | result |`.

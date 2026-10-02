@@ -14,7 +14,8 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
       Migrate POC files to the tool-readable formats in `planning/04` (time, Movements,
       CLOCK lines, PC Attacks/Resources).
 - [ ] **Phase 2a — Tools.** Build `tools/gm.py` per `planning/06-tools-spec.md` (build
-      order there), plus hooks + permission allowlist in `.claude/settings.json`.
+      order there), plus hooks + permission allowlist in `.claude/settings.json`, and the
+      table client `tools/table.py` (the console players play in).
 - [ ] **Phase 2b — GM skills.** Build `.claude/skills/`: `gm`, `scene`, `travel`,
       `combat`, `end-session`, `new-campaign` per `planning/02-gm-agent-design.md`,
       calling the 2a tools.
@@ -25,7 +26,8 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
 ## Open decisions
 
 1. **Edition:** assuming 2014 5e rules unless told otherwise.
-2. **Secrets:** honor system for POC (don't read `## The truth` sections / scenario beats).
+2. ~~Secrets~~ **Decided:** honor system for files (the driver doesn't open them); play
+   runs through `tools/table.py`, which shows only narration (planning/01 → Secrets).
 3. ~~Dice~~ **Decided:** players roll their own d20s and report them; the GM rolls the rest via `gm.py`.
 4. **Table size:** how many players/PCs will the real campaign have?
 5. ~~Git~~ **Done (2026-10-02):** the whole ProjectX workspace is a git repo (root one level

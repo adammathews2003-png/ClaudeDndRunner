@@ -23,7 +23,8 @@ dnd-adventure/
 │   │   └── history/             # Compressed summaries of past sessions
 │   ├── tables/              # Random/encounter tables (gm.py roll table:<slug>)
 │   └── .gm/journal/         # Undo before-images written by tools (not canon)
-├── tools/               # gm.py + modules: dice, state writes, scene, combat, clock… (06)
+├── tools/               # gm.py + modules: dice, state writes, scene, combat, clock… (06);
+│                        #   table.py = the players' console (narration only)
 ├── data/srd/            # SRD 5.1 JSON: monsters, spells, conditions (CC-BY-4.0)
 ├── .campaign            # Name of the active campaign folder
 └── .claude/
@@ -113,18 +114,32 @@ one source of truth.
 
 ## Session lifecycle
 
-- **Session start:** `/gm` sets `in-session: true`; the SessionStart hook injects the
+- **Session start:** `python tools/table.py` resumes or starts the session and sends
+  `/gm`, which sets `in-session: true`; the SessionStart hook injects the
   long brief (scene + recent log) → read the latest history summary → recap → play.
 - **During:** `session-current.md` grows as a turn-by-turn log (written by `gm.py`).
 - **Session end (a skill):** the GM writes the summary and does the world tick; then
   `gm.py session archive` files it in `sessions/history/`, resets the log, runs `lint`
   and commits to git. This keeps the hot path small forever.
 
-## Secrets problem (needs your decision)
+## Secrets: honor-system files, clean console
 
-Scenario docs contain twists the players shouldn't know — but the players and the
-file-owner are the same humans. Options:
-a) Honor system: keep secrets in `scenarios/` and just don't read them. (Simplest; recommended for POC.)
-b) A `gm-only/` folder you agree never to open.
-c) Light obfuscation (secrets in a separate file the GM references by path only).
-The structure supports all three; POC uses (a).
+**Decided (2026-10-02).** The person running Claude Code is also a player. Two
+surfaces could leak:
+
+1. **Files: honor system.** The driver doesn't open game files during a campaign.
+   Spoilers stay in clearly marked sections (`## The truth`, `## Hidden`,
+   `## Knowledge & secrets`, `## Beats & triggers`) so a top-half glance is safe
+   (05 #11). No `gm-only/` folder and no obfuscation.
+2. **The console: enforced.** Play runs through the **table client**
+   (`python tools/table.py`, 06), not the Claude Code terminal. It shows only the GM's
+   narration. Tool calls, command lines, tool output, thinking and the injected brief
+   never reach the screen. Narration itself is governed by the *Behind the screen*
+   rules (02), and maps shown to players are `--player-view` renders.
+
+Plain `claude` stays the GM's-eye view, for building, prep and debugging. Don't play in it.
+
+Note: whoever authors a scenario knows its secrets. The POC is already known to its
+author and is fine for dry runs. For a surprise campaign, someone other than the
+driver (Claude in a prep session the driver doesn't read, or a friend) writes the
+secret sections.

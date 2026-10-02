@@ -11,9 +11,14 @@ core protocol every session. Skills to build in phase 2:
 | `/scene` | party enters new location or major shift | `gm.py scene enter <loc> --write` → refine On stage goals → narrate establishing exposition (short/medium/long) |
 | `/travel` | party moves between locations | `gm.py travel <to>` (connection, time, encounter roll, scene packet) → narrate |
 | `/combat` | initiative starts | `gm.py combat start` → map → turn-by-turn with `atk`/`dmg`/`cond`/`combat next` |
-| `/map` | combat start, or a player asks | `gm.py space map --from <active>` and shows the grid + legend |
+| `/map` | combat start, or a player asks | `gm.py space map --player-view --from <active>` and shows the grid + legend |
 | `/end-session` | wrapping up | Writes summary + world tick, `gm.py session archive` (history, lint, git commit) |
 | `/new-campaign` | scaffolding | Creates a campaign folder from the templates in 04-file-formats.md, sets `.campaign` |
+
+Play runs through the table client (`python tools/table.py`, 06), which shows players
+only the GM's narration. Tool calls, tool output, thinking and the injected brief stay
+hidden. So **the GM's narration is the only thing players see**, and the
+*Behind the screen* rules below govern it.
 
 The main `/gm` skill's instructions ARE the Game Master brain — the sections below are
 what goes into it. Every mechanical step goes through `tools/gm.py` (spec: 06). The
@@ -42,7 +47,7 @@ open on the desk; Mara has her back turned"). Never narrate the players' own cho
 - **GM-prompted rolls:** when something dangerous/interesting is near but not automatic
   ("Kira, give me a Perception check"), the GM asks for the roll *before* revealing why.
 - **Secret rolls:** for checks where asking would itself be a spoiler (e.g., noticing a
-  pickpocket), the GM rolls silently and narrates only outcomes.
+  pickpocket), the GM rolls silently and narrates only outcomes (see *Behind the screen*).
 
 ## Dice
 
@@ -54,6 +59,50 @@ the model, so outcomes are honest. Player-reported rolls go into the same comman
 (`--d20 12` or `--total 19`). The GM pastes the tool's bracket line into narration
 (`[Veskar → Kael: 13+5=18 vs AC 15 — HIT · 7 slashing]`), except for secret rolls.
 `dice-mode: gm-rolls-all` in `current.md` switches to the GM rolling everything.
+
+## Behind the screen (what narration may never contain)
+
+The person at the keyboard is a player. The table client hides the machinery, but the
+GM's own words are shown verbatim, so these rules are the last line of defense. They
+go in the `/gm` skill near the top.
+
+**Never say, in or out of character:**
+- Beat names/numbers, triggers, Watch-for items, clocks the party doesn't know about,
+  or that a beat "fired".
+- DCs of hidden things (`## Hidden`, secret checks), or who *failed* to notice
+  something. Only those who succeed get a narrated notice.
+- True identities, factions, motives or plans the party hasn't uncovered ("Veskar,
+  the Red Ledger agent").
+- NPC intents before they act. In tense scenes the order may show ("Mara is faster —"),
+  but not what she's about to do.
+- File paths, section names, tool names, or "the scenario/notes say…".
+- Monster stat blocks, exact enemy HP, or AC. Describe them in fiction ("bloodied",
+  "barely standing"). PCs' own numbers are fine.
+- Off-screen events the party has no way to know.
+
+**Rolls.**
+- Public rolls are pasted as the tool's bracket line. Secret rolls appear only as
+  `[rolled behind the screen]`, or not at all when even the act of rolling would tip
+  players off.
+- **Decoy rolls:** now and then the GM makes a meaningless secret roll, so a
+  behind-the-screen roll doesn't by itself signal that something is happening (a real
+  GM's habit).
+
+**Pasting tool output.** Only lines meant for players get pasted: public roll lines,
+distances the character could judge (Spatial model below), and the
+**`--player-view` map**. Never paste `scene enter`, `clock`, `brief`, `srd` or full-map
+output. Turn them into fiction.
+
+**Out-of-character questions.**
+- "Why did that happen?" / "What's really going on?" → "That's behind the screen."
+  The answer is friendly and final, and isn't evidence of GM error (05 #3).
+- "Check the record" (05 #13) → answer from what the party knows. If the fact itself is
+  secret: "Checked it behind the screen — it stands."
+- Rules questions about the PCs' own capabilities are always answered openly.
+
+**Recaps and summaries.** Session recaps, `/end-session` summaries and commit messages
+are written from the party's point of view. Session-log lines tagged `(GM)` are left
+out (06).
 
 ## NPC decision-making
 
@@ -131,9 +180,11 @@ players hear depends on whether their *character* could reasonably judge it:
   hand: `dist`, `move` (cost, over-speed, opportunity attacks, unplanned drops), `cone`,
   `line`, `sphere`, `emanation` (who's in the area), and `map`. Use it for anything
   beyond a simple distance; mental math is fine for "is the goblin within 5 ft?".
-- **ASCII map** (`/map` → `space.py map --from <active>`): top-down grid drawn from the
-  terrain and combatant tables, north up, legend with each combatant's position, height
-  and distance from the active combatant. Shown at combat start, on request, and
+- **ASCII map** (`/map` → `space.py map --player-view --from <active>`): top-down grid
+  drawn from the terrain and combatant tables, north up, legend with each combatant's
+  position, height and distance from the active combatant. `--player-view` leaves out
+  what the party can't perceive (hidden/invisible creatures, `secret` terrain) and is
+  the only version ever shown to players. Shown at combat start, on request, and
   whenever the layout changes meaningfully. Because it's generated from state, it can't
   disagree with state. Add `--show` to any area command to overlay the affected cells.
 - **Groups/swarms:** identical minions that move together can share one row with

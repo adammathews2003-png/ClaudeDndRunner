@@ -4,8 +4,10 @@ Record any deviation from RAW (rules as written) here so rulings stay consistent
 across sessions. The GM checks this file when a ruling feels contested.
 
 ## Dice
-- Players roll their own d20s and report totals; GM rolls NPC/monster/secret rolls via
-  real RNG (`Get-Random`) and shows them in brackets, except secret rolls.
+- Players roll their own d20s and report the natural roll or the total; the GM rolls
+  NPC/monster/secret rolls via real RNG (`gm.py`) and shows them in brackets. Secret
+  rolls show only as `[rolled behind the screen]`, and the GM sometimes makes decoy
+  secret rolls.
 
 ## Ties go to the player
 Any exact tie involving a PC resolves in the PC's favor: checks, contests, attacks,
