@@ -275,6 +275,25 @@ T/S/M/L/H/G or `group rN`. `ref` points tools to the creature's numbers: a PC/NP
 which `combat next` / `clock` count down. `notes` may carry `reach 10`, `climb speed`,
 `fly speed`. HP `0/x` renders as a lowercase (down) glyph on the map.
 
+## Table rules — `state/table-rules.md` (player overrules)
+
+Written only by `gm.py rule` after the players confirm an `/overrule` (02). Read by the
+tools (mechanical `key`s) and summarized in every brief.
+
+```markdown
+# Table rules
+<!-- Active overrule rules. Precedence: these > rules/house-rules.md > RAW. -->
+
+| id | rule                          | key           | scope                    | since          | by        | status                 |
+|----|-------------------------------|---------------|--------------------------|----------------|-----------|------------------------|
+| R1 | Potions are a bonus action    | potion=bonus  | campaign                 | S1 t3          | Alex      | active                 |
+| R3 | Crits on 19–20 for this fight | crit-range=19 | combat                   | S2 t14         | Alex, Sam | ended (combat over)    |
+| R4 | No travel encounters          | encounters=off| until we reach Thornbury | S2 t20         | Alex      | active                 |
+```
+`since` = session and turn. Ended rows are moved into the session history by
+`session archive`. Campaign rules promoted at `/end-session` move to
+`rules/house-rules.md` and leave this table.
+
 ## Session log — `sessions/session-current.md`
 Append-only, written by `gm.py` (06): each mutation adds a delta line to the open turn,
 and `gm.py log "..."` writes the summary and closes it:
@@ -286,6 +305,10 @@ and `gm.py log "..."` writes the summary and closes it:
 ```
 `(GM)` marks delta lines players must not hear: secret rolls, off-screen moves, fired
 clock beats, hidden-DC results. Recaps and history summaries leave them out.
+Overrules log as public lines, e.g. `  - [overrule] rule R3 added: crits on 19–20 (combat; Alex, Sam)`
+or `  - [overrule] retcon turn 14: Kira's climb went unseen (Alex, Sam)`. Retcons of
+past sessions also append an `Erratum:` line to that session's history file. The
+original text is never edited.
 `/end-session` compresses it into `sessions/history/session-NN.md` (a half-page summary +
 list of durable changes made, which is the delta lines extracted).
 

@@ -13,7 +13,8 @@ dnd-adventure/
 ├── rules/               # Condensed 5e rule references (read on demand, shared by all campaigns)
 ├── poc/                 # The proof-of-concept campaign — one folder per campaign
 │   ├── state/
-│   │   └── current.md       # THE hot file: scene digest, party location, in-game time, active NPCs
+│   │   ├── current.md       # THE hot file: scene digest, party location, in-game time, active NPCs
+│   │   └── table-rules.md   # Active player overrule rules (02 → Overrule)
 │   ├── locations/           # One file per location
 │   ├── npcs/                # One file per NPC
 │   ├── pcs/                 # One file per player character

@@ -12,6 +12,7 @@ core protocol every session. Skills to build in phase 2:
 | `/travel` | party moves between locations | `gm.py travel <to>` (connection, time, encounter roll, scene packet) → narrate |
 | `/combat` | initiative starts | `gm.py combat start` → map → turn-by-turn with `atk`/`dmg`/`cond`/`combat next` |
 | `/map` | combat start, or a player asks | `gm.py space map --player-view --from <active>` and shows the grid + legend |
+| `/overrule` | players agree to change something | Table authority: retcon what happened, or add a temporary/permanent table rule. Restate, confirm, apply (see *Overrule* below) |
 | `/end-session` | wrapping up | Writes summary + world tick, `gm.py session archive` (history, lint, git commit) |
 | `/new-campaign` | scaffolding | Creates a campaign folder from the templates in 04-file-formats.md, sets `.campaign` |
 
@@ -95,7 +96,11 @@ output. Turn them into fiction.
 
 **Out-of-character questions.**
 - "Why did that happen?" / "What's really going on?" → "That's behind the screen."
-  The answer is friendly and final, and isn't evidence of GM error (05 #3).
+  The answer is friendly and final, and isn't evidence of GM error (05 #3). Players who
+  want a different outcome have `/overrule`, which changes things without opening the
+  screen.
+- Overrule cards (*Overrule* above) list only visible consequences. Hidden ones are
+  "adjusted behind the screen."
 - "Check the record" (05 #13) → answer from what the party knows. If the fact itself is
   secret: "Checked it behind the screen — it stands."
 - Rules questions about the PCs' own capabilities are always answered openly.
@@ -103,6 +108,70 @@ output. Turn them into fiction.
 **Recaps and summaries.** Session recaps, `/end-session` summaries and commit messages
 are written from the party's point of view. Session-log lines tagged `(GM)` are left
 out (06).
+
+## Overrule (the players' table authority)
+
+Players can change the game by agreement, and that's how the table keeps ownership of
+its fun. `/overrule` is the **only** channel for it: dice results, rulings and outcomes
+are otherwise final (05 #3).
+
+**Two kinds**
+1. **Retcon:** adjust something that happened. "Kira wasn't spotted on that climb";
+   "Undo that last round, we misread the map"; "Mara wouldn't know our names, we never
+   told her"; "Re-roll that, the die fell off the table."
+2. **Table rule:** a rule change for a while, often from a game idea. "Crits on 19–20
+   for this boss fight"; "Flanking gives advantage this session"; "No death saves in
+   this tutorial fight"; "From now on, drinking a potion is a bonus action."
+   Scopes: `scene` · `combat` · `session` · `campaign` · `until <condition>`
+   (GM-judged, e.g., "until we leave the dungeon").
+
+**Flow (two steps, never one)**
+1. A player types `/overrule <what>` (free text; it can carry the kind and scope
+   explicitly, e.g., `/overrule rule crits on 19-20 for this combat`).
+2. The GM classifies it and **restates** it as a short card: kind, exact change,
+   scope, and the *visible* consequences ("Kira gets her 6 HP back and isn't prone; the
+   guard never raised the alarm"). Anything that followed from it behind the screen is
+   adjusted silently, and the card just says so ("…and whatever followed from it behind
+   the screen"). The card ends with: **"All players agree? (yes / no)"**.
+3. On a `yes` covering all present players (one typed `yes` from the driver counts
+   when they're the only player; otherwise name who agrees, e.g., `yes — Alex, Sam`),
+   the GM applies it through `gm.py` (06) and resumes the fiction. `no`, or silence
+   followed by new play, cancels it. Nothing is applied before confirmation.
+
+**Applying it**
+- *Retcon of the last GM turn:* `gm.py undo`, then a corrected re-resolution if needed.
+- *Older retcons:* **corrective changes going forward**, never rewriting old turns:
+  `gm.py retcon "<what>" --turn N` logs it, and ordinary mutations (`hp`, `cond`,
+  `move-npc`, `attitude`…) fix the state in the same `do` batch. Hidden consequences
+  are fixed with `(GM)`-tagged changes.
+- *Past sessions:* allowed; the history file gets an appended **Erratum** line, and its
+  original text is never edited.
+- *Table rules:* `gm.py rule add` (06). Rules with a mechanical **key** (crit range,
+  flanking…) are applied by the tools automatically. Free-text rules are the GM's to
+  honor. Active rules appear in every brief, so they don't get forgotten.
+- Scopes expire on their own: scene rules at `scene enter`, combat rules at
+  `combat end`, session rules at `session archive`. `until` rules are ended by the GM
+  with `gm.py rule end` when the condition is met, and announced in one line.
+- At `/end-session`, campaign-scoped rules are offered for promotion to
+  `rules/house-rules.md` (all campaigns) or stay campaign-only.
+
+**Limits that keep it honest**
+- **Overrule changes outcomes; it never opens the screen.** "Overrule: tell us who
+  took Harl" is a request to reveal, not a change. The answer is "that's behind the
+  screen."
+- **Conflicts with hidden facts.** If a player-declared fact ("there's a back door
+  out of the mill") contradicts something behind the screen, the GM doesn't say what.
+  It offers: *(a) make it true and adjust the hidden side to fit, or (b) decline and
+  keep the world as is.* The table picks. (Choosing (a) reveals only that *something*
+  was there, which is an accepted cost.)
+- **Another player's PC** can't be changed (decisions, HP, items) without that
+  player's own `yes`.
+- **The GM never proposes, hints at, or invites an overrule**, especially after a bad
+  roll. Complaints, groans and "that seems harsh" are not overrules, and not evidence of
+  GM error. Only the explicit command counts. The GM may *answer* a rules question
+  ("RAW, ties go to…") but doesn't suggest bending it.
+- Overrules are logged publicly (`[overrule]` lines), so a table that overrules every
+  bad roll can see it doing so.
 
 ## NPC decision-making
 

@@ -120,8 +120,8 @@ gm.py contest Kira stealth passive                     # vs. everyone's passive 
 - Bonuses come from: Attacks table / ability mods / skills in PC & NPC files, or the SRD
   stat block named by `statblock:` / the combat row's `ref`.
 - **`lib/resolve.py` is the only place outcome rules live:** nat 20/1 on attacks, crit
-  dice doubling, cover AC, and the full **ties-go-to-PC** rule set from
-  `rules/house-rules.md` (NPC roll = PC AC → miss; contest tie → PC; NPC check = PC
+  dice doubling, cover AC, active table-rule keys (overrules, below), and the full
+  **ties-go-to-PC** rule set from `rules/house-rules.md` (NPC roll = PC AC → miss; contest tie → PC; NPC check = PC
   passive → PC wins). The output names a tie explicitly (`— MISS (tie→PC)`) so the GM
   can narrate it.
 - Players roll their own d20s (02 → Dice): PC-side commands take `--d20` (the tool
@@ -147,6 +147,7 @@ gm.py contest Kira stealth passive                     # vs. everyone's passive 
 | `time +20m` | alias for `clock advance` (Tier 3) | `current.md` |
 | `log "Kira buys Tobin a drink; cart story told"` | closes the open turn block with this summary | session log |
 | `undo` | rolls back the last `do` batch / single command | files in the journal |
+| `rule add\|end\|list`, `retcon` | player overrules (below) | `state/table-rules.md`, session log |
 
 Group combat rows (`Thugs ×3`, `7/11 ea`): `hp Thugs -5` **splits one member into its
 own row** (`Thug 1`, 2/11) — the same rule as 02 → Groups/swarms.
@@ -165,6 +166,49 @@ clock beats, hidden-DC results) are tagged `(GM)`. The tag lets recaps and the h
 summary leave them out of anything said to players. The file itself is protected by
 the honor system.
 
+### `gm.py rule` / `gm.py retcon` — player overrules (02 → Overrule)
+Called by the `/overrule` skill **only after** the players confirm.
+```
+gm.py rule add "Crits on 19–20 for this fight" --scope combat --key crit-range=19 --by "Alex, Sam"
+   → [rule R3 added · combat · crit-range=19]
+gm.py rule add "Potions are a bonus action" --scope campaign --by Alex
+gm.py rule add "No travel encounters" --scope "until we reach Thornbury" --by Alex
+gm.py rule end R3 [--reason "boss down"]
+gm.py rule list
+gm.py retcon "Kira's climb went unseen" --turn 14 --by "Alex, Sam"
+   → [retcon of turn 14 logged] (then corrective mutations in the same batch)
+```
+- **Storage:** `<campaign>/state/table-rules.md` (format in 04). Ended rules stay in the
+  table, marked ended, until `session archive` moves them to the session history.
+- **Mechanical keys** are read by `lib/resolve.py` and the other tools. A rule without a
+  key is free text the GM honors. v1 keys:
+
+  | key | values | effect |
+  |---|---|---|
+  | `crit-range` | 18–20 | natural roll ≥ N crits (attacks) |
+  | `crit-damage` | `double` · `max+roll` | crit damage mode |
+  | `ties` | `pc` · `raw` | toggle the ties-go-to-PC house rule |
+  | `flanking` | `off` · `adv` · `+2` | applied by `atk` when `space.py` finds an ally opposite the target |
+  | `death-saves` | `on` · `off` (drop to 1 HP instead of 0) · `dc N` | PC death saves |
+  | `potion` | `action` · `bonus` | reported in `combat next` reminders |
+  | `dice-mode` | as in `current.md` | temporary override |
+  | `encounters` | `on` · `off` | `travel` skips encounter rolls |
+
+  New keys are added as tables invent them. `lint` warns on unknown keys, which still
+  work as free text.
+- **Precedence:** active table rules > `rules/house-rules.md` > RAW. When two active
+  rules set the same key, the newer wins, and `rule add` warns at confirm time.
+- **Expiry:** `scene enter` ends `scene` rules, `combat end` ends `combat` rules, and
+  `session archive` ends `session` rules. Each prints `[rule R3 ended — combat over]`
+  for the GM to announce. `until …` rules end only with `rule end`.
+- **Brief line:** `Rules: R1 potions=bonus (campaign) · R3 crit 19–20 (combat)`. This
+  line is part of the heartbeat too, so active rules are always in context.
+- **`retcon`** writes the public log line `[overrule] retcon turn 14: Kira's climb went
+  unseen (Alex, Sam)`. The corrections that follow are ordinary mutations, logged as
+  usual. Hidden ones are tagged `(GM)`. When the target is the latest batch, the skill
+  uses `undo` instead.
+- `--by` records who agreed. Under the honor system it isn't verified, just remembered.
+
 **Undo journal.** Before each command, `lib/journal.py` saves the before-image of every
 file it touches to `<campaign>/.gm/journal/` (last ~50 batches). `undo` restores the
 latest batch and logs `undo turn 14 step 2`. This covers "check the record" corrections
@@ -177,6 +221,7 @@ latest batch and logs `undo turn 14 step 2`. This covers "check the record" corr
 On stage: Mara (wary) goal: keep evening calm · Tobin (friendly) goal: tell cart story · Veskar (wary)
 Order: Mara 17 · Kael 13 · Veskar 12 · Tobin 5
 Party: Kael 9/11 AC15 · Kira 24/24 AC14 [poisoned 8m]
+Rules: R1 potions=bonus (campaign) · R3 crit 19–20 (combat)
 Watch: Harl asked of Mara → beat 1 · mill → beat 3   Next clock: Day 3 04:00 (Red Ledger cart) in 1d 8h
 Combat: — 
 Log: turn 14 open (2 deltas)
@@ -199,8 +244,9 @@ Hooks in the project `.claude/settings.json`:
   files, so hand edits are caught too).
 - **Unchanged** → inject one heartbeat line (~30 tokens) carrying the facts that most
   often matter mid-scene:
-  `[GM BRIEF] unchanged since turn 14 · Day 1 19:40 · tense · Kael 9/11 poisoned · up: Mara`
-  (time · tempo · every PC below max HP or with a condition · whose turn, in combat).
+  `[GM BRIEF] unchanged since turn 14 · Day 1 19:40 · tense · Kael 9/11 poisoned · up: Mara · R1 R3`
+  (time · tempo · every PC below max HP or with a condition · whose turn, in combat ·
+  active table-rule ids).
 - **Forced full brief:** after any `SessionStart` (hash cleared); every 15 prompts
   regardless, so the full version never drifts too far back in context; and when the
   player message starts with `!brief`. (Covers a cancelled prompt whose brief the model
@@ -392,7 +438,9 @@ python tools/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
 - Prefix with the speaking PC, `Kira: I check the trapdoor` (05 #10). `:as Kira`
   sets a default prefix for lines typed without one. Unprefixed lines with no default
   are sent as table talk.
-- `/end-session`, other GM skills and `!brief` pass straight through.
+- `/end-session`, `/overrule`, other GM skills and `!brief` pass straight through. The
+  overrule card and its "All players agree?" question are ordinary GM text, so the
+  client shows them. `yes` / `no` is typed as a normal line.
 - Client-local commands start with `:` and are never sent to the GM: `:quit`
   (ends the client without ending the session), `:as <PC>`, `:gm-view on|off`.
 
@@ -442,6 +490,8 @@ transcript file, voice/GUI.
 - **NPC files with custom stat blocks:** same fields/tables as PCs.
 - **`current.md`:** frontmatter `in-session`, `light`, `dice-mode`; a **Stage table**
   under `## Tempo: tense`; Combatants table gains a `ref` column.
+- **New `state/table-rules.md`** for player overrules; `[overrule]` log lines; `Erratum:`
+  lines in history files.
 
 ## What stays with the model
 
@@ -455,7 +505,7 @@ plausibly. Tools give facts and outcomes; the model gives meaning.
 | Step | Contents | Why first |
 |---|---|---|
 | 2a.1 | `lib/md.py`, `lib/campaign.py`, `lib/journal.py`, `gm.py` skeleton + `do` | everything else builds on these |
-| 2a.2 | `roll`, `atk/save/check/contest`, mutations, `log`, `undo` | biggest per-turn saving |
+| 2a.2 | `roll`, `atk/save/check/contest`, mutations, `log`, `undo`, `rule`/`retcon` (+ resolve.py keys) | biggest per-turn saving; table rules change resolve.py, so they're built with it |
 | 2a.3 | `brief` + hooks + permissions allowlist | removes the per-turn Read |
 | 2a.4 | `scene enter`, `tempo`, `combat start/next/end`, `srd`; `space.py` also reads the Stage table (tense scenes) and moves its parsing onto `lib/md.py` | needed before the Phase 3 dry run |
 | 2a.5 | `table.py` client + `space.py map --player-view` | the Phase 3 dry run is played through it, so console leaks surface early |

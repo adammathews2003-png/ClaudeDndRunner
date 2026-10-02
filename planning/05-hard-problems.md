@@ -27,7 +27,10 @@ persuasion always work, retconning when players complain. This kills tension.
 **Fix:** explicit GM-skill directives: dice results are final; NPCs are allowed to say
 no, lie, and win; failed checks have real costs (fail forward, not fail soft); player
 displeasure is not evidence of GM error. The rulings log (rules/house-rules.md) resolves
-disputes by precedent, not by whoever pushes hardest.
+disputes by precedent, not by whoever pushes hardest. **Overrule (02)** gives players a
+legitimate, explicit way to change outcomes by agreement. Pressure that doesn't use the
+command changes nothing, and the GM never suggests one. The table owns the bending;
+the GM never bends on its own.
 
 ## 4. No save states → one bad write loses history
 Files get overwritten in place; a confused update can trash an NPC's history.
@@ -102,8 +105,9 @@ makes no major decisions"). GM runs absent PCs on autopilot; no XP/loot penaltie
 The GM will misremember an AC or contradict established fact. **Fix:** a table rule —
 anyone can call "check the record"; GM checks the files/log (`gm.py where`, the brief,
 the delta lines); files win; the correction is logged (`gm.py undo` if it was a bad
-write). For genuine narrative retcons the table agrees to, log them in
-`house-rules.md` → Rulings log so they're deliberate and remembered.
+write). Narrative retcons the table agrees to go through `/overrule` (02): restated,
+confirmed, applied as forward corrections, and logged as `[overrule]` lines (plus an
+Erratum in past session histories), so they're deliberate and remembered.
 
 ## 14. Latency budget honesty
 Even with the digest, a scene change = 3–5 file reads + narration + writes, and the
