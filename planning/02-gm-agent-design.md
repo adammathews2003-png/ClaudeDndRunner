@@ -84,7 +84,7 @@ messages.
 | level | |
 | ability scores | missing → offer standard array (auto-assigned by class), point buy, or rolled 4d6-drop-lowest via `gm.py roll` |
 | equipment | missing → offer the class + background starting equipment |
-| HP method (characters starting above level 1) | level 1 is always the hit die's max; for each level after, **max or roll** (house rule). One answer can cover all levels ("max all"), or rolls go through `gm.py roll` publicly |
+| HP method: **max or roll** | asked **once per character**, stored as `hp-method` (house rule). Applied to every level after 1st (level 1 is always max), including levels the character starts above 1st, and to all future level-ups. Never asked again; see *Level-up flow* |
 | choices the class/race forces at this level | skill proficiencies, fighting style, expertise, cantrips/spells known or prepared, etc. `pc check` lists exactly which apply |
 
 **Optional (asked once, can be skipped):** background, a one-line look, personality,
@@ -110,10 +110,16 @@ and the flow runs immediately or at the next session start.
 
 1. **Compute.** `gm.py pc levelup <pc> --plan` lists what level N+1 grants
    automatically (proficiency bonus, hit dice, spell slots, class and subclass
-   features, cantrip damage tiers) and **which choices are required**:
-   - HP: **take the hit die's maximum or roll it** (house rule; RAW is average or
-     roll) + CON mod. The roll goes through `gm.py roll` publicly, or the player
-     reports their own. A roll is final, even if it's low.
+   features, cantrip damage tiers) and **which choices are required**.
+   - **HP is not a choice here:** it follows the character's stored `hp-method`.
+     With `max`, it's the hit die's max + CON. With `roll`, the tool rolls the hit die
+     publicly (+ CON; the roll is final), or the player reports their own roll if they
+     say so. The GM doesn't ask "max or roll?" again. The setting changes only when a
+     player brings it up in play ("Kira: switch me to rolling HP") → `gm.py pc edit
+     <pc> --set hp-method=roll`. That affects future levels only; past levels stay as
+     they were unless the table uses `/overrule`.
+
+   Choices that are required:
    - ASI or feat (levels 4/8/12/16/19, plus fighter 6/14 and rogue 10)
    - subclass, if this is the class's subclass level
    - new spells known/prepared, cantrips, expertise, fighting style, invocations,

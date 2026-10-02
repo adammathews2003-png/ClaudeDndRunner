@@ -19,6 +19,7 @@ saves: [wis, cha]
 skills: {insight: 5, medicine: 5, persuasion: 3, religion: 1}
 senses: []
 hit-dice: {die: d8, left: 3}
+hp-method: max                    # asked once; changed only if the player asks
 autopilot: stays beside the most-hurt ally, heals and shields, lets others lead
 present: true
 level-pending:

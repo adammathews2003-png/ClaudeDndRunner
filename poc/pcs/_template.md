@@ -19,6 +19,7 @@ saves: []                         # proficient saves, e.g. [dex, int]
 skills: {}                        # totals for skills used at the table, e.g. {stealth: 7}
 senses: []                        # e.g. [darkvision 60]
 hit-dice: {die: d8, left: 3}
+hp-method:                        # max | roll — asked once at creation; changed only on request
 autopilot: follows the group, defends themselves, makes no major decisions
 present: true
 level-pending:

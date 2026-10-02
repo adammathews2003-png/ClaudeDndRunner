@@ -10,12 +10,15 @@ across sessions. The GM checks this file when a ruling feels contested.
   secret rolls.
 
 ## Hit points: max or roll
-Each level after 1st, the player chooses: **take the hit die's maximum, or roll it**,
-then add CON mod. *Overrides RAW "average (rounded up) or roll."* Level 1 is max (same
-as RAW). Characters created above 1st level make the same choice for each level beyond
-the first ("max all" is fine). A roll is final, even a 1, so rolling is a gamble
-against a guaranteed max. Rolls go through `gm.py roll` publicly, or the player reports
-their own.
+Each level after 1st gives **the hit die's maximum, or a roll of it**, plus CON mod.
+*Overrides RAW "average (rounded up) or roll."* Level 1 is max (same as RAW).
+- The player chooses **once per character**, at creation, stored as `hp-method`. It
+  then applies automatically to every level, including levels a character starts above
+  1st. The GM doesn't ask again at level-up.
+- It's revisited **only if the player asks** in play ("switch me to rolling"), and the
+  change applies to future levels only.
+- A roll is final, even a 1, so rolling is a gamble against a guaranteed max. Rolls go
+  through `gm.py roll` publicly, or the player reports their own.
 
 ## Ties go to the player
 Any exact tie involving a PC resolves in the PC's favor: checks, contests, attacks,

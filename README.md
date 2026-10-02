@@ -38,4 +38,5 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
    Secrets in tool output: hidden by the table client (`planning/06-tools-spec.md`).
 7. **Advancement:** milestone leveling assumed (GM announces levels at story beats;
    `gm.py pc level-pending`). XP tracking would need an `xp` field and award steps.
-   HP per level **decided: max or roll** (player's choice each level; house rule).
+   HP per level **decided: max or roll**, chosen once per character (`hp-method`),
+   revisited only if the player asks (house rule).

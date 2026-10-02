@@ -145,6 +145,7 @@ saves: [dex, int]                 # proficient saves
 skills: {stealth: 7, perception: 5, sleight-of-hand: 5}   # totals, only the ones used
 senses: [darkvision 60]
 hit-dice: {die: d8, left: 3}
+hp-method: max                    # max | roll — asked once at creation; changed only on request
 autopilot: follows the group, defends herself, makes no major decisions
 present: true                     # this session's roster (gm.py pc roster)
 level-pending:                    # e.g. 4 — set at a milestone, cleared by level-up

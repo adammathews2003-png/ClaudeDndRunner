@@ -464,7 +464,7 @@ gm.py pc write <slug>                             # draft → pcs/<slug>.md (new
 gm.py pc edit  <pc> --set ... / --item +"longbow" # between-session changes, same checks
 gm.py pc level-pending <pc> [--to 4]              # mark a milestone level-up
 gm.py pc levelup <pc> --plan                      # what level N+1 grants + required choices
-gm.py pc levelup <pc> --choose hp=max asi="dex+2" spells="+guiding bolt" --apply
+gm.py pc levelup <pc> --choose asi="dex+2" spells="+guiding bolt" --apply
 gm.py pc roster [--present Kira,Kael] [--absent Bren]   # session attendance → present: flags
 ```
 
@@ -475,11 +475,12 @@ DERIVED   speed 30 · prof +2 · darkvision 60 · hit die d12 · saves STR, CON
           rage 3/long rest · reckless attack · danger sense · frenzy (berserker)
           half-orc: +2 STR +1 CON · relentless endurance · savage attacks · Intimidation
 PENDING   HP, AC (unarmored), attack bonuses, save totals: need ability scores
-          HP for levels 2–3: max (12 each) or roll? (house rule; level 1 = 12)
+          HP for levels 2–3: by hp-method (asked below if not set; level 1 = 12)
 MISSING   1. ability scores (offer: standard array → STR 15 CON 14 DEX 13 WIS 12 CHA 10 INT 8
              before racial bonuses, so STR 17 CON 15 · point buy · roll 4d6 drop lowest)
           2. 2 barbarian skills from: Animal Handling, Athletics, Intimidation, Nature, Perception, Survival
           3. name
+          4. hp-method: max or roll (asked once; stored, reused at every level-up)
 DEFAULTS  background: none given → skills/equipment from background skipped (OK?)
 CONFLICTS —
 CUSTOM    —
@@ -503,7 +504,9 @@ Derived values are recalculated whenever a draft field changes. Values in
   player-stated values win).
 
 **`pc levelup --plan`** reads the class table for N+1 and lists *granted* (applied
-automatically) vs. *choices* (must be answered). `--apply` refuses while any choice
+automatically) vs. *choices* (must be answered). HP is *granted*, computed from the
+PC's `hp-method` (`roll` rolls publicly at `--apply`; `--hp-roll N` takes a
+player-reported roll instead). It's only a choice if `hp-method` is somehow unset. `--apply` refuses while any choice
 is unanswered and prints the missing list, which the GM turns into the next question.
 On apply, it updates:
 - HP max and current (current goes up by the same amount)

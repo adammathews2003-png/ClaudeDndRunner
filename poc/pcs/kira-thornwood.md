@@ -19,6 +19,7 @@ saves: [dex, int]
 skills: {stealth: 7, perception: 5, acrobatics: 5, sleight-of-hand: 5, investigation: 3, insight: 3, deception: 2}
 senses: [darkvision 60]
 hit-dice: {die: d8, left: 3}
+hp-method: max                    # asked once; changed only if the player asks
 autopilot: scouts quietly at the edge of things, avoids fights she can't win, makes no deals
 present: true
 level-pending:
