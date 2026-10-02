@@ -9,6 +9,14 @@ across sessions. The GM checks this file when a ruling feels contested.
   rolls show only as `[rolled behind the screen]`, and the GM sometimes makes decoy
   secret rolls.
 
+## Hit points: max or roll
+Each level after 1st, the player chooses: **take the hit die's maximum, or roll it**,
+then add CON mod. *Overrides RAW "average (rounded up) or roll."* Level 1 is max (same
+as RAW). Characters created above 1st level make the same choice for each level beyond
+the first ("max all" is fine). A roll is final, even a 1, so rolling is a gamble
+against a guaranteed max. Rolls go through `gm.py roll` publicly, or the player reports
+their own.
+
 ## Ties go to the player
 Any exact tie involving a PC resolves in the PC's favor: checks, contests, attacks,
 saves, initiative (rolled or passive). Concretely:

@@ -7,7 +7,7 @@ class: cleric
 subclass: life
 level: 3
 background: acolyte
-hp: {current: 24, max: 24}
+hp: {current: 30, max: 30}   # max HP per level (house rule)
 ac: 18
 passive-perception: 13
 passive-investigation: 9

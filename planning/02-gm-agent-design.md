@@ -84,6 +84,7 @@ messages.
 | level | |
 | ability scores | missing → offer standard array (auto-assigned by class), point buy, or rolled 4d6-drop-lowest via `gm.py roll` |
 | equipment | missing → offer the class + background starting equipment |
+| HP method (characters starting above level 1) | level 1 is always the hit die's max; for each level after, **max or roll** (house rule). One answer can cover all levels ("max all"), or rolls go through `gm.py roll` publicly |
 | choices the class/race forces at this level | skill proficiencies, fighting style, expertise, cantrips/spells known or prepared, etc. `pc check` lists exactly which apply |
 
 **Optional (asked once, can be skipped):** background, a one-line look, personality,
@@ -110,8 +111,9 @@ and the flow runs immediately or at the next session start.
 1. **Compute.** `gm.py pc levelup <pc> --plan` lists what level N+1 grants
    automatically (proficiency bonus, hit dice, spell slots, class and subclass
    features, cantrip damage tiers) and **which choices are required**:
-   - HP: take the average or roll the hit die (the roll goes through `gm.py roll`
-     publicly, or the player reports their own)
+   - HP: **take the hit die's maximum or roll it** (house rule; RAW is average or
+     roll) + CON mod. The roll goes through `gm.py roll` publicly, or the player
+     reports their own. A roll is final, even if it's low.
    - ASI or feat (levels 4/8/12/16/19, plus fighter 6/14 and rogue 10)
    - subclass, if this is the class's subclass level
    - new spells known/prepared, cantrips, expertise, fighting style, invocations,

@@ -133,7 +133,7 @@ class: rogue
 subclass: thief                   # empty until the class's subclass level
 level: 3
 background: custom (dock runner)
-hp: {current: 24, max: 24}
+hp: {current: 30, max: 30}
 ac: 14
 passive-perception: 15        # GM reads this every scene entry
 passive-investigation: 13

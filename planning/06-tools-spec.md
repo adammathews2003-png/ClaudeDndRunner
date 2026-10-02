@@ -226,7 +226,7 @@ latest batch and logs `undo turn 14 step 2`. This covers "check the record" corr
 [GM BRIEF] poc · Day 1 19:40 (evening) · crossroads-inn — Common room, dinner rush · tempo: tense
 On stage: Mara (wary) goal: keep evening calm · Tobin (friendly) goal: tell cart story · Veskar (wary)
 Order: Mara 17 · Kael 13 · Veskar 12 · Tobin 5
-Party: Kael 9/11 AC15 · Kira 24/24 AC14 [poisoned 8m]
+Party: Kael 9/11 AC15 · Kira 30/30 AC14 [poisoned 8m]
 Rules: R1 potions=bonus (campaign) · R3 crit 19–20 (combat)
 Watch: Harl asked of Mara → beat 1 · mill → beat 3   Next clock: Day 3 04:00 (Red Ledger cart) in 1d 8h
 Combat: — 
@@ -464,7 +464,7 @@ gm.py pc write <slug>                             # draft → pcs/<slug>.md (new
 gm.py pc edit  <pc> --set ... / --item +"longbow" # between-session changes, same checks
 gm.py pc level-pending <pc> [--to 4]              # mark a milestone level-up
 gm.py pc levelup <pc> --plan                      # what level N+1 grants + required choices
-gm.py pc levelup <pc> --choose hp=avg asi="dex+2" spells="+guiding bolt" --apply
+gm.py pc levelup <pc> --choose hp=max asi="dex+2" spells="+guiding bolt" --apply
 gm.py pc roster [--present Kira,Kael] [--absent Bren]   # session attendance → present: flags
 ```
 
@@ -475,6 +475,7 @@ DERIVED   speed 30 · prof +2 · darkvision 60 · hit die d12 · saves STR, CON
           rage 3/long rest · reckless attack · danger sense · frenzy (berserker)
           half-orc: +2 STR +1 CON · relentless endurance · savage attacks · Intimidation
 PENDING   HP, AC (unarmored), attack bonuses, save totals: need ability scores
+          HP for levels 2–3: max (12 each) or roll? (house rule; level 1 = 12)
 MISSING   1. ability scores (offer: standard array → STR 15 CON 14 DEX 13 WIS 12 CHA 10 INT 8
              before racial bonuses, so STR 17 CON 15 · point buy · roll 4d6 drop lowest)
           2. 2 barbarian skills from: Animal Handling, Athletics, Intimidation, Nature, Perception, Survival

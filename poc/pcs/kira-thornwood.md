@@ -7,7 +7,7 @@ class: rogue
 subclass: thief
 level: 3
 background: custom (dock runner)
-hp: {current: 24, max: 24}
+hp: {current: 30, max: 30}   # max HP per level (house rule)
 ac: 14
 passive-perception: 15
 passive-investigation: 13
