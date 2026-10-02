@@ -23,7 +23,7 @@ are watched with polite suspicion.
 - Shrine of Chauntea: candle-lit, tended daily
 
 ## Hidden
-- DC 12: fresh cart tracks leave the square toward the mill road — made at night (frost pattern), within the last two days
+- DC 12: cart tracks come in off the mill road and cross the square toward the back of the inn — made at night (frost pattern), on the night of Day -1
 
 ## Notes / current state
 (none yet)

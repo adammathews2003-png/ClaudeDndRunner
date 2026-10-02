@@ -32,4 +32,6 @@ he draws steel. If cornered, he negotiates first, fights without mercy second.
 - 04:00–00:00 → crossroads-inn (room 3)
 - 00:00–04:00 → old-mill (via the stable yard)
 
+Night of Day 2→3 is different: the scenario CLOCK at Day 3 02:00 has him back at the
+inn moving Harl to the mill, so he's in the stable yard around 02:00, not at the mill.
 If suspicion rises (GM judgment / scenario beat 5), he attempts to leave Thornbury by night.

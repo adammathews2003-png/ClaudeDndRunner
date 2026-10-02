@@ -13,9 +13,12 @@ nobody wants to walk the mill road after dark.
 
 ## The truth (SPOILERS — GM only)
 Veskar is an agent of the Red Ledger, a smuggling ring using rural mills as waypoints.
-Harl discovered contraband hidden in his under-croft and Veskar took him. Harl is alive,
-manacled beneath the Crossroads Inn's cellar (Veskar copied Mara's key), moved there
-because the mill felt exposed. Veskar is waiting for a Red Ledger cart in three days to
+Harl discovered contraband hidden in his under-croft and Veskar took him (Day -6),
+holding him first in the mill's under-croft. Harl is alive, now manacled beneath the
+Crossroads Inn's cellar (Veskar copied Mara's key), moved there because the mill felt
+exposed. Veskar brought him in by cart after midnight on the night of Day -1: off the
+mill road, across the square, round into the inn's stable yard, and down through the
+side door and the trapdoor. Veskar is waiting for a Red Ledger cart in three days to
 remove Harl — and the contraband — permanently.
 
 ## Factions & relationships
@@ -30,6 +33,7 @@ remove Harl — and the contraband — permanently.
 - WHEN party enters the mill → physical evidence chain (pipe, blood DC 11, ledger "V.", under-croft manacle)
 - WHEN party opens the inn cellar → Harl found; Veskar knows within the hour and bolts or bargains
 - WHEN suspicion of Veskar becomes open (accusation, searched room) → he attempts night departure; confrontation on the mill road
+- CLOCK Day 3 02:00: Veskar moves Harl from the inn cellar back to the mill for the handover: trapdoor → side door → stable yard → his cart → mill road. Interceptable: noise in the yard (Tobin, asleep in the stable loft, may wake; DC 12 Perception for anyone awake at the inn), a lantern-less cart on the mill road. If the party is watching the inn, this is the confrontation.
 - CLOCK Day 3 04:00: Red Ledger cart arrives at the mill; if Harl is still captive, he is gone for good (scenario fails forward into a rescue-from-the-road arc)
 
 ## Resolution paths

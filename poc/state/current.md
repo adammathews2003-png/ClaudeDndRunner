@@ -25,6 +25,7 @@ busy common room. The reeve's 25 gp notice about the missing miller hangs by the
 - Party heads to the mill → load locations/old-mill.md, beat 3
 
 ## Clocks
+- Day 3 02:00: Veskar moves Harl to the mill (scenario clock)
 - Day 3 04:00: Red Ledger cart (scenario clock)
 
 ## Tempo: calm  <!-- calm | tense | combat — see planning/01, Scene tempo -->
