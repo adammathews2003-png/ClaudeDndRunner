@@ -140,6 +140,10 @@ surfaces could leak:
 
 Plain `claude` stays the GM's-eye view, for building, prep and debugging. Don't play in it.
 
+Players who *want* to peek use `/spoilers` (02), the one consented exception. It
+answers questions about secrets and "what if" alternatives, and records what was
+revealed in `sessions/spoilers.md`.
+
 Note: whoever authors a scenario knows its secrets. The POC is already known to its
 author and is fine for dry runs. For a surprise campaign, someone other than the
 driver (Claude in a prep session the driver doesn't read, or a friend) writes the

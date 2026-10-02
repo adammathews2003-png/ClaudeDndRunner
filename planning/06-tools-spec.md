@@ -387,7 +387,8 @@ edit to a file the current turn didn't touch, which can wait for the next scene 
 ### `gm.py session archive`
 `/end-session` mechanics: numbers the next `history/session-NN.md`, writes the
 model-provided summary (`--summary-file`) plus the auto-extracted delta list (all
-`  - ` lines from the log), resets `session-current.md`, clears `in-session`, runs
+`  - ` lines from the log), resets `session-current.md` (`sessions/spoilers.md` is
+never reset), clears `in-session`, runs
 `lint`, then `git add -A && git commit -m "session NN"` if the folder is a repo (05 #4).
 The model writes only the half-page summary and the world tick.
 
@@ -399,6 +400,47 @@ single call. Refuses if the slug already exists (prints the existing file's path
 ### `gm.py where [<name>]`
 Who's at a location / where someone is, from frontmatter only. Cheap answer to "check
 the record".
+
+### Spoiler support — `trace`, `odds`, `spoil` (02 → Spoilers)
+These give `/spoilers` answers facts and numbers instead of model recall. `trace` and
+`odds` are also useful to the GM in ordinary play.
+
+**`gm.py trace <name|location> [--from "Day 1 18:00"] [--to "Day 2 06:00"]`**: a
+reconstructed timeline. It merges:
+- logged moves, including `(GM)` lines, from `session-current.md` and `history/`
+- the `## Movements` schedule for periods not covered by the logs (labeled `scheduled`)
+- `clock` firings
+```
+[TRACE] Veskar · Day 1 18:00 → Day 2 06:00
+  Day 1 18:00–00:00  crossroads-inn (room 3)        scheduled
+  Day 2 00:10        → old-mill via stable yard      logged (GM) turn 22
+  Day 2 04:30        → crossroads-inn                scheduled
+```
+Each row carries its source (`logged` / `scheduled` / `inferred`), which maps directly
+onto the GM's *Established* / *Likely* labels. A location argument lists everyone who
+passed through it in the window.
+
+**`gm.py odds <atk|save|check|contest> ...`**: the same arguments as the resolving
+commands, but it returns **exact probabilities** instead of rolling, with active table
+rules applied:
+```
+gm.py odds atk Kira Veskar --with dagger --sneak 2d6
+  → [ODDS Kira → Veskar: hit 60% (crit 5%) · dmg avg 12.5 · drops him (22 HP) in 1 hit 0% · in 2 hits 41%]
+gm.py odds check Mara insight 12   → [ODDS Mara insight ≥12: 55%]
+gm.py odds contest Kira stealth Mara perception → [ODDS Kira wins 68% (ties→PC)]
+```
+Computed by enumerating the dice distributions (no simulation, deterministic). It's
+also the basis for the "Guess" claims in what-ifs.
+
+**`gm.py spoil log "<question>" --level minor|major --depth hint|answer|full --by "Alex, Sam" --reveals "<one-line summary of what was revealed>"`**:
+appends to `sessions/spoilers.md` (04) and writes a public `[spoilers]` line to the
+session log. Called **after** the answer is shown (a cancelled card logs nothing).
+Level-`none` what-ifs are logged too, with `--level none`, so the record of what the
+table explored is complete.
+
+**`gm.py spoil list`** prints what's already spoiled, so the GM knows which facts no
+longer need "behind the screen". The `brief --long` at session start includes the
+count and the latest entries.
 
 ## Table client — `tools/table.py` (the players' console)
 
@@ -441,6 +483,11 @@ python tools/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
 - `/end-session`, `/overrule`, other GM skills and `!brief` pass straight through. The
   overrule card and its "All players agree?" question are ordinary GM text, so the
   client shows them. `yes` / `no` is typed as a normal line.
+- `/spoilers` passes through the same way. The GM wraps a confirmed answer in
+  `<<SPOILERS>>` … `<<END SPOILERS>>` markers. The client renders them as a full-width
+  banner in a distinct color (`── SPOILERS ─────`), so nobody reads one by accident
+  while glancing at the screen. If the markers are unbalanced (e.g., the answer was
+  cut off), the client closes the banner at the end of the message.
 - Client-local commands start with `:` and are never sent to the GM: `:quit`
   (ends the client without ending the session), `:as <PC>`, `:gm-view on|off`.
 
@@ -492,6 +539,8 @@ transcript file, voice/GUI.
   under `## Tempo: tense`; Combatants table gains a `ref` column.
 - **New `state/table-rules.md`** for player overrules; `[overrule]` log lines; `Erratum:`
   lines in history files.
+- **New `sessions/spoilers.md`** (spoiler record); `[spoilers]` log lines; `current.md`
+  frontmatter `spoilers: ask|off`.
 
 ## What stays with the model
 
@@ -509,7 +558,7 @@ plausibly. Tools give facts and outcomes; the model gives meaning.
 | 2a.3 | `brief` + hooks + permissions allowlist | removes the per-turn Read |
 | 2a.4 | `scene enter`, `tempo`, `combat start/next/end`, `srd`; `space.py` also reads the Stage table (tense scenes) and moves its parsing onto `lib/md.py` | needed before the Phase 3 dry run |
 | 2a.5 | `table.py` client + `space.py map --player-view` | the Phase 3 dry run is played through it, so console leaks surface early |
-| 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where` | build when the dry run shows the need |
+| 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `trace`, `odds`, `spoil` | build when the dry run shows the need (`odds` reuses the 2a.2 resolve/dice code) |
 | 2b | GM skills (02), written to call these commands | |
 
 Each step ships with seeded tests in `tools/tests/` against a fixture copy of `poc/`.

@@ -94,7 +94,10 @@ player can safely open any file's top half; everything else is player-safe.
 **Decided (2026-10-02):** files stay honor-system (no `gm-only/` split). The bigger leak
 is the console: plain Claude Code shows command lines and tool output, which spell out
 GM decisions. Play therefore runs through the table client (06), which shows only
-narration, and the GM follows the *Behind the screen* rules (02).
+narration, and the GM follows the *Behind the screen* rules (02). When players *want*
+to peek, `/spoilers` (02) makes it an explicit, consented, recorded act. Spoiled facts
+are tracked as player knowledge in `sessions/spoilers.md` and never become character
+knowledge.
 
 ## 12. Absent players
 Real groups miss sessions. **Fix:** PC frontmatter gets an `autopilot:` note (one line:

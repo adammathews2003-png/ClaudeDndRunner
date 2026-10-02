@@ -13,6 +13,7 @@ core protocol every session. Skills to build in phase 2:
 | `/combat` | initiative starts | `gm.py combat start` → map → turn-by-turn with `atk`/`dmg`/`cond`/`combat next` |
 | `/map` | combat start, or a player asks | `gm.py space map --player-view --from <active>` and shows the grid + legend |
 | `/overrule` | players agree to change something | Table authority: retcon what happened, or add a temporary/permanent table rule. Restate, confirm, apply (see *Overrule* below) |
+| `/spoilers` | players want to peek behind the screen | Answers questions about secrets, or "what if" alternatives, from state + history. Consent card first; never creates canon (see *Spoilers* below) |
 | `/end-session` | wrapping up | Writes summary + world tick, `gm.py session archive` (history, lint, git commit) |
 | `/new-campaign` | scaffolding | Creates a campaign folder from the templates in 04-file-formats.md, sets `.campaign` |
 
@@ -65,7 +66,8 @@ the model, so outcomes are honest. Player-reported rolls go into the same comman
 
 The person at the keyboard is a player. The table client hides the machinery, but the
 GM's own words are shown verbatim, so these rules are the last line of defense. They
-go in the `/gm` skill near the top.
+go in the `/gm` skill near the top. **The single exception is a confirmed `/spoilers`
+answer** (below), and the rules apply again immediately after it.
 
 **Never say, in or out of character:**
 - Beat names/numbers, triggers, Watch-for items, clocks the party doesn't know about,
@@ -98,7 +100,10 @@ output. Turn them into fiction.
 - "Why did that happen?" / "What's really going on?" → "That's behind the screen."
   The answer is friendly and final, and isn't evidence of GM error (05 #3). Players who
   want a different outcome have `/overrule`, which changes things without opening the
-  screen.
+  screen. Players who want to *know* have `/spoilers`. The GM doesn't point either
+  one out.
+- Facts already recorded in `sessions/spoilers.md` may be discussed out of character
+  without a new card.
 - Overrule cards (*Overrule* above) list only visible consequences. Hidden ones are
   "adjusted behind the screen."
 - "Check the record" (05 #13) → answer from what the party knows. If the fact itself is
@@ -157,8 +162,9 @@ are otherwise final (05 #3).
 
 **Limits that keep it honest**
 - **Overrule changes outcomes; it never opens the screen.** "Overrule: tell us who
-  took Harl" is a request to reveal, not a change. The answer is "that's behind the
-  screen."
+  took Harl" is a request to reveal, not a change, so it belongs to `/spoilers`. The
+  GM says only that overrule can't reveal things, without recommending the other
+  command.
 - **Conflicts with hidden facts.** If a player-declared fact ("there's a back door
   out of the mill") contradicts something behind the screen, the GM doesn't say what.
   It offers: *(a) make it true and adjust the hidden side to fit, or (b) decline and
@@ -172,6 +178,78 @@ are otherwise final (05 #3).
   ("RAW, ties go to…") but doesn't suggest bending it.
 - Overrules are logged publicly (`[overrule]` lines), so a table that overrules every
   bad roll can see it doing so.
+
+## Spoilers (players opt in to peek behind the screen)
+
+`/spoilers` is the **only** exception to *Behind the screen*. Players ask, and only
+when they explicitly use the command. It covers two kinds of question:
+
+1. **Secrets:** "Who actually took Harl?" · "Was Mara lying to us?" · "What was
+   Veskar doing the night we stayed at the inn?" · "Did we miss anything at the mill?"
+2. **What-ifs:** "What would've happened if we'd gone to the mill the first night?" ·
+   "What if Kira had attacked Veskar on the landing instead of talking?" · "What if
+   we'd never bought Tobin that drink?"
+
+**Flow (the same two steps as Overrule)**
+1. A player types `/spoilers <question>`. Optional depth: `hint` (a nudge in the right
+   direction) · `answer` (default: just what the question asks) · `full` (everything
+   connected to it, up to the whole `## The truth`).
+2. The GM shows a **consent card** that describes the spoiler without spoiling it:
+   - **Level:** `none` (a what-if answerable entirely from what the party already
+     knows) · `minor` (a resolved thread or background detail) · `major` (touches an
+     unresolved thread, the kind of thing the campaign is built around).
+   - **Spill-over:** "Answering this also reveals related secrets; I'll keep to the
+     question unless you ask for `full`."
+   - **"All players agree? (yes / no)"**. As with overrule, a lone driver's `yes`
+     counts; otherwise name who agrees. **Any one player's `no` cancels it.** A spoiler
+     can't be un-seen, and it's shown to the whole table on one screen.
+   - Level `none` skips the card and is answered directly.
+3. On `yes` the answer is shown between spoiler banners, then play resumes under the
+   normal *Behind the screen* rules.
+
+**How the GM answers**
+- **Sources:**
+  - scenario `## The truth` and beats
+  - NPC secrets and Movements
+  - the session log **including `(GM)` lines**, plus history
+  - clocks and current state
+  - `gm.py trace` (where someone was, when) and `gm.py odds` (exact chances for
+    checks and attacks) (06)
+- **Every claim is labeled by certainty:**
+  - **Established:** in the files or logs. *"Veskar left for the mill at midnight on
+    Day 1, that's logged."*
+  - **Likely:** follows from motives, schedules or clocks without dice. *"If you'd
+    reached the mill that night, Veskar was there; he bargains before he fights."*
+  - **Guess:** depends on rolls or choices nobody made. Cite odds where the tools
+    can compute them. *"Kira's sneak attack hits him ~60% of the time; he'd likely
+    have survived the first round and run."*
+- **Honest, not flattering.** A what-if can show the party chose badly, or that it
+  wouldn't have mattered. The GM doesn't soften a costly choice or inflate a lucky
+  one (05 #3).
+- **Undecided things stay undecided.** If the answer was never authored (what's in
+  the locked strongbox, who Harl's sister is), the GM says so: *"Not decided yet.
+  Here's what I'd lean toward, but it isn't canon."* The guess is not written down
+  as fact, so the world stays open. Making it canon requires `/overrule`.
+
+**Effects on the game**
+- **What-ifs are never canon** and never change state. To turn a what-if into what
+  actually happened, the table uses `/overrule` (a retcon) separately.
+- **Secrets don't change because they were revealed.** The GM never swaps a twist to
+  restore surprise. The world stays honest.
+- **Characters don't learn it.** Spoiled facts are player knowledge, not character
+  knowledge (05 #11). The table plays its characters as not knowing, and NPCs react
+  to what the characters actually did.
+- Every spoiler is recorded in `sessions/spoilers.md` (04). From then on, the GM no
+  longer answers "that's behind the screen" for facts already spoiled; it can
+  reference them out of character. In-fiction narration still treats them as unknown
+  to the characters.
+- The GM **never offers or suggests** spoilers, even when players are stuck. Being
+  stuck is a pacing problem the GM solves in fiction (a new lead, an NPC's move, a
+  clock), not with a peek.
+- **Table switch:** `spoilers: ask` (default) or `off` in `current.md`. With `off`,
+  `/spoilers` replies "the table has spoilers turned off" and nothing else, which
+  suits groups who want to be protected from themselves. Changing the switch is an
+  `/overrule` table rule.
 
 ## NPC decision-making
 

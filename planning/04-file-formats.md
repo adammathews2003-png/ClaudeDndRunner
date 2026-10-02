@@ -205,6 +205,7 @@ scene: "Common room, dinner rush"
 light: bright                     # bright | dim | dark — passive Perception uses it
 in-session: false                 # true while playing; gates the brief hook (06)
 dice-mode: players-roll-d20s      # players-roll-d20s | gm-rolls-all
+spoilers: ask                     # ask | off — whether /spoilers is available (02)
 ---
 
 # Current scene
@@ -294,6 +295,24 @@ tools (mechanical `key`s) and summarized in every brief.
 `session archive`. Campaign rules promoted at `/end-session` move to
 `rules/house-rules.md` and leave this table.
 
+## Spoiler record — `sessions/spoilers.md`
+
+Append-only record of every confirmed `/spoilers` answer, written by `gm.py spoil log`.
+Unlike the session log, it isn't reset each session: it's the permanent list of what
+the *players* know out of character, which the GM consults so it doesn't keep facts
+"behind the screen" that are already out.
+
+```markdown
+# Spoilers revealed (player knowledge, not character knowledge)
+
+| when    | by        | level | depth  | question                               | revealed                                        |
+|---------|-----------|-------|--------|----------------------------------------|-------------------------------------------------|
+| S2 t31  | Alex, Sam | major | answer | Was Mara lying about Harl?             | Yes — she fears something under the inn         |
+| S3 t02  | Alex      | none  | answer | What if we'd gone to the mill night 1? | (what-if; no secrets beyond party knowledge)    |
+```
+`revealed` is a one-line summary of what was revealed, written so a later GM pass can
+match it against secrets.
+
 ## Session log — `sessions/session-current.md`
 Append-only, written by `gm.py` (06): each mutation adds a delta line to the open turn,
 and `gm.py log "..."` writes the summary and closes it:
@@ -306,7 +325,10 @@ and `gm.py log "..."` writes the summary and closes it:
 `(GM)` marks delta lines players must not hear: secret rolls, off-screen moves, fired
 clock beats, hidden-DC results. Recaps and history summaries leave them out.
 Overrules log as public lines, e.g. `  - [overrule] rule R3 added: crits on 19–20 (combat; Alex, Sam)`
-or `  - [overrule] retcon turn 14: Kira's climb went unseen (Alex, Sam)`. Retcons of
+or `  - [overrule] retcon turn 14: Kira's climb went unseen (Alex, Sam)`.
+Spoilers log only the question and level publicly, e.g.
+`  - [spoilers] major/answer: "Was Mara lying about Harl?" (Alex, Sam)`.
+The content goes to `sessions/spoilers.md`. Retcons of
 past sessions also append an `Erratum:` line to that session's history file. The
 original text is never edited.
 `/end-session` compresses it into `sessions/history/session-NN.md` (a half-page summary +

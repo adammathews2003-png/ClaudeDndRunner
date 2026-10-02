@@ -17,7 +17,7 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
       order there), plus hooks + permission allowlist in `.claude/settings.json`, and the
       table client `tools/table.py` (the console players play in).
 - [ ] **Phase 2b — GM skills.** Build `.claude/skills/`: `gm`, `scene`, `travel`,
-      `combat`, `map`, `overrule`, `end-session`, `new-campaign` per `planning/02-gm-agent-design.md`,
+      `combat`, `map`, `overrule`, `spoilers`, `end-session`, `new-campaign` per `planning/02-gm-agent-design.md`,
       calling the 2a tools.
 - [ ] **Phase 3 — Dry run.** Two pregen PCs, run the POC scenario for a few scenes,
       note where the GM stalls or state drifts, tighten skill instructions.
