@@ -114,31 +114,41 @@ Append-only log of notable interactions. Drives attitude changes.
 Scenario-driven or conditional moves in prose ("if suspicion rises, leaves by night").
 ```
 
-Custom stat blocks (`statblock: custom`) use the same `mods`/`prof`/`saves`/`skills`
+Custom stat blocks (`statblock: custom`) use the same `scores`/`prof`/`saves`/`skills`
 frontmatter and `## Attacks` table as PCs, below.
 
 ## PC file — `pcs/<slug>.md`
+
+Written and updated by `gm.py pc` (intake, edits, level-ups; 02 → Session start &
+characters). Derived fields (hp max, ac, passives, prof, saves/skill totals, Attacks,
+spell slots) are recomputed by the tools unless listed in `overrides`.
 
 ```markdown
 ---
 name: Kira Thornwood
 player: Alex
 location: crossroads-inn
+race: high elf                    # race + subrace
 class: rogue
+subclass: thief                   # empty until the class's subclass level
 level: 3
+background: custom (dock runner)
 hp: {current: 24, max: 24}
 ac: 14
 passive-perception: 15        # GM reads this every scene entry
 passive-investigation: 13
 speed: 30
 conditions: []
-mods: {str: -1, dex: 3, con: 2, int: 1, wis: 1, cha: 0}
+scores: {str: 8, dex: 17, con: 14, int: 12, wis: 13, cha: 10}   # raw scores; mods derived
 prof: 2
 saves: [dex, int]                 # proficient saves
 skills: {stealth: 7, perception: 5, sleight-of-hand: 5}   # totals, only the ones used
-senses: []                        # e.g. [darkvision 60]
+senses: [darkvision 60]
 hit-dice: {die: d8, left: 3}
 autopilot: follows the group, defends herself, makes no major decisions
+present: true                     # this session's roster (gm.py pc roster)
+level-pending:                    # e.g. 4 — set at a milestone, cleared by level-up
+overrides: {}                     # player-insisted values the tools won't re-derive, e.g. {ac: 17}
 ---
 
 # Kira Thornwood
@@ -159,8 +169,15 @@ STR 8 (-1) | DEX 17 (+3) | CON 14 (+2) | INT 12 (+1) | WIS 13 (+1) | CHA 10 (+0)
 | sneak attack  | 1       | 1   | turn     |
 | spell slot 1  | 2       | 2   | long     |
 
+## Spells
+<!-- Casters only. source: cantrip | known | prepared | always (domain/oath/etc.) | custom -->
+| spell         | level | source  | notes          |
+|---------------|-------|---------|----------------|
+| minor illusion| 0     | cantrip | high elf (INT) |
+
 ## Features & abilities
-Sneak Attack 2d6, Cunning Action, Thieves' Cant... (summarize non-SRD content here too)
+Sneak Attack 2d6, Cunning Action, Thieves' Cant... Non-SRD content is summarized here
+and marked `(custom)`; the tools carry it but don't derive it.
 
 ## Inventory
 - Equipped: leather armor, 2 daggers, shortbow (20 arrows)
@@ -351,6 +368,8 @@ list of durable changes made, which is the delta lines extracted).
 - `dnd-adventure/.campaign` — name of the active campaign folder.
 - `<campaign>/.gm/journal/` — undo before-images (last ~50 batches; not canon).
 - `<campaign>/.gm/brief-hash` — brief change tracking (06).
+- `<campaign>/.gm/drafts/<slug>.json` — in-progress character intake/level-up drafts
+  (resumable; deleted on write).
 - `<campaign>/.gm/session-id`, `<campaign>/.gm/client.log` — table client session to
   resume, and its denial/error log (never shown on the console).
 - `<campaign>/tables/<slug>.md` — random/encounter tables, `| roll | result |`.

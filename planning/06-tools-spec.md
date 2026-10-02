@@ -70,7 +70,7 @@ tools/
 │   ├── resolve.py     # hit/save/check/contest outcomes, incl. ties-go-to-PC (one place)
 │   ├── journal.py     # undo before-images + session-log delta writer
 │   └── gametime.py    # "Day N HH:MM" parse/format/add
-├── scene.py  combat.py  clock.py  travel.py  rest.py  lint.py  session.py  srd.py
+├── scene.py  combat.py  clock.py  travel.py  rest.py  lint.py  session.py  srd.py  pc.py
 ├── table.py           # table client: the players' console (Agent SDK; not imported by the above)
 └── tests/             # fixture campaign + seeded tests per command
 data/srd/              # SRD 5.1 JSON (monsters, spells, conditions) + LICENSE/attribution
@@ -448,6 +448,75 @@ recorded as "what-if (not canon)" and never as facts.
 longer need "behind the screen". The `brief --long` at session start includes the
 count and the latest entries.
 
+## Character tools — `gm.py pc` (intake & level-up, 02 → Session start & characters)
+
+The model turns free text into fields. These commands do everything after that: fill
+in what can be computed, check it, list exactly what's missing, and write the file.
+It's the same split as dice: the model never adds up HP or works out spell slots.
+
+```
+gm.py pc draft <slug> --set race="half-orc" class=barbarian level=3 subclass=berserker \
+                      --equip "greataxe; 4 javelins; explorer's pack"
+gm.py pc draft <slug> --from-sheet <file>         # a pasted sheet the GM saved to .gm/drafts/
+gm.py pc check <slug>                             # derive + validate the draft
+gm.py pc card  <slug>                             # one-screen character card for confirmation
+gm.py pc write <slug>                             # draft → pcs/<slug>.md (new or edit)
+gm.py pc edit  <pc> --set ... / --item +"longbow" # between-session changes, same checks
+gm.py pc level-pending <pc> [--to 4]              # mark a milestone level-up
+gm.py pc levelup <pc> --plan                      # what level N+1 grants + required choices
+gm.py pc levelup <pc> --choose hp=avg asi="dex+2" spells="+guiding bolt" --apply
+gm.py pc roster [--present Kira,Kael] [--absent Bren]   # session attendance → present: flags
+```
+
+**`pc check` output** (fed back into the ask step):
+```
+[PC CHECK] grask · half-orc barbarian (berserker) 3
+DERIVED   speed 30 · prof +2 · darkvision 60 · hit die d12 · saves STR, CON
+          rage 3/long rest · reckless attack · danger sense · frenzy (berserker)
+          half-orc: +2 STR +1 CON · relentless endurance · savage attacks · Intimidation
+PENDING   HP, AC (unarmored), attack bonuses, save totals: need ability scores
+MISSING   1. ability scores (offer: standard array → STR 15 CON 14 DEX 13 WIS 12 CHA 10 INT 8
+             before racial bonuses, so STR 17 CON 15 · point buy · roll 4d6 drop lowest)
+          2. 2 barbarian skills from: Animal Handling, Athletics, Intimidation, Nature, Perception, Survival
+          3. name
+DEFAULTS  background: none given → skills/equipment from background skipped (OK?)
+CONFLICTS —
+CUSTOM    —
+```
+Derived values are recalculated whenever a draft field changes. Values in
+`overrides` are never recalculated.
+
+**What `pc check` covers (SRD 5.1)**
+- **Races/subraces:** score increases, speed, size, senses, proficiencies, traits.
+- **Classes:** hit die, saves, skill choices, armor/weapon proficiencies, features by
+  level, subclass level, spell slots / cantrips / spells known or prepared counts, ASI
+  levels.
+- **Subclasses:** the SRD's one per class (Berserker, Lore, Life, Land, Champion, Open
+  Hand, Devotion, Hunter, Thief, Draconic, Fiend, Evocation). Any other subclass is
+  `custom`.
+- **Equipment:** armor → AC (DEX caps, STR requirements, stealth disadvantage); weapons
+  → the Attacks table (finesse/versatile/thrown/ranges); shield; starting packages.
+- **Checks:** point-buy ≤ 27 / standard array / plausible rolled scores; proficiency
+  with equipped armor and weapons; known-spell counts vs. the class table; spells from
+  the class list and of castable level. These are **warnings**, not blocks (02:
+  player-stated values win).
+
+**`pc levelup --plan`** reads the class table for N+1 and lists *granted* (applied
+automatically) vs. *choices* (must be answered). `--apply` refuses while any choice
+is unanswered and prints the missing list, which the GM turns into the next question.
+On apply, it updates:
+- HP max and current (current goes up by the same amount)
+- hit dice, prof, slots and Resources, features, scores (ASI)
+- recalculated Attacks and spell save DC/attack bonus
+- a Journal line and a session-log delta
+
+**`pc roster`** sets `present: true|false` on PC files for this session. The brief's
+party line shows absent PCs as `Bren (autopilot)`.
+
+**Data:** extends `data/srd/` with the 5e-bits SRD classes, subclasses, levels,
+features, races, subraces, traits, equipment, backgrounds and spells files (same
+CC-BY-4.0 source as the monsters).
+
 ## Table client — `tools/table.py` (the players' console)
 
 **Decided (2026-10-02).** The person running the game is also a player. Files are
@@ -537,9 +606,11 @@ transcript file, voice/GUI.
 - **NPC `## Movements`:** machine-readable lines `- 00:00–05:00 → old-mill (via stable yard)`;
   prose conditions stay as prose below them. Optional frontmatter `default-goal:`.
 - **Scenario CLOCK beats:** `- CLOCK Day 3 04:00: <what happens>`.
-- **PC files:** frontmatter `mods: {str: -1, dex: 3, ...}`, `prof: 2`, `saves: [dex, int]`,
+- **PC files:** frontmatter `race`, `subclass`, `background`, `scores: {str: 8, dex: 17, ...}`
+  (raw scores, the source of truth; modifiers are derived), `prof: 2`, `saves: [dex, int]`,
   `skills: {stealth: 7, perception: 5}`, `senses: [darkvision 60]`, `hit-dice: {die: d8, left: 3}`,
-  `autopilot:` (05 #12); body tables `## Attacks` and `## Resources`.
+  `autopilot:` (05 #12), `present`, `level-pending`, `overrides: {}`; body tables
+  `## Attacks`, `## Resources` and `## Spells`.
 - **NPC files with custom stat blocks:** same fields/tables as PCs.
 - **`current.md`:** frontmatter `in-session`, `light`, `dice-mode`; a **Stage table**
   under `## Tempo: tense`; Combatants table gains a `ref` column.
@@ -563,6 +634,7 @@ plausibly. Tools give facts and outcomes; the model gives meaning.
 | 2a.3 | `brief` + hooks + permissions allowlist | removes the per-turn Read |
 | 2a.4 | `scene enter`, `tempo`, `combat start/next/end`, `srd`; `space.py` also reads the Stage table (tense scenes) and moves its parsing onto `lib/md.py` | needed before the Phase 3 dry run |
 | 2a.5 | `table.py` client + `space.py map --player-view` | the Phase 3 dry run is played through it, so console leaks surface early |
+| 2a.5b | `gm.py pc` (draft/check/card/write/edit/levelup/roster) + SRD class/race/equipment data | the dry run creates one new PC and levels a pregen, to exercise both loops |
 | 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `trace`, `odds`, `spoil` | build when the dry run shows the need (`odds` reuses the 2a.2 resolve/dice code) |
 | 2b | GM skills (02), written to call these commands | |
 

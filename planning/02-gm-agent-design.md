@@ -7,7 +7,9 @@ core protocol every session. Skills to build in phase 2:
 
 | Skill | Trigger | What it does |
 |---|---|---|
-| `/gm` (core loop) | start of play / each session | Loads GM protocol, sets `in-session: true` (turns on the brief hook), runs the turn loop |
+| `/gm` (core loop) | start of play / each session | Loads GM protocol, sets `in-session: true` (turns on the brief hook), runs the **session-start routine** (roster → intake/level-ups → recap), then the turn loop |
+| `/character` | new player, new PC, or "I changed something" | **Character intake loop:** free text (sketchy or a full sheet) → draft → derived numbers → ask only for what's missing → write the PC file (see *Session start & characters* below) |
+| `/level-up` | the GM announces a level, or at session start | Tool works out what the new level grants, then asks only for the player's choices (HP, ASI/feat, spells, subclass…), then updates the PC file |
 | `/scene` | party enters new location or major shift | `gm.py scene enter <loc> --write` → refine On stage goals → narrate establishing exposition (short/medium/long) |
 | `/travel` | party moves between locations | `gm.py travel <to>` (connection, time, encounter roll, scene packet) → narrate |
 | `/combat` | initiative starts | `gm.py combat start` → map → turn-by-turn with `atk`/`dmg`/`cond`/`combat next` |
@@ -25,6 +27,105 @@ hidden. So **the GM's narration is the only thing players see**, and the
 The main `/gm` skill's instructions ARE the Game Master brain — the sections below are
 what goes into it. Every mechanical step goes through `tools/gm.py` (spec: 06). The
 skills say *when* to call a command, and the tools do the math and the file writes.
+
+## Session start & characters
+
+### Session-start routine (run by `/gm`)
+1. **Roster:** "Who's at the table today?" Free text ("Alex is Kira, Sam's new,
+   Jo's out"). Each name is matched to a PC file:
+   - **Present, known PC** → continue.
+   - **Absent PC** → marked `present: false` for the session. They're run on their
+     `autopilot` line (05 #12).
+   - **New player / new PC** → the character intake loop (below). A pregen is
+     offered as the fast path ("or play Kira or Kael, ready now").
+2. **Changes since last time:** one question to the whole table: "Anything change
+   with your characters between sessions? Purchases, gear swaps, retirements?" Each
+   answer goes through the same intake loop in *edit* mode, touching only what changed.
+3. **Pending level-ups** (from `level-pending` in a PC file) → the level-up flow
+   (below), one PC at a time.
+4. **Recap** from the party's point of view (no `(GM)` lines), then the opening
+   scene's narration.
+
+Steps 1–3 are skipped quickly when nothing applies ("Same table as last time, no
+changes" → straight to the recap). Each step is a short exchange, not a form.
+
+### Character intake loop (`/character`)
+**Input can be at any level of detail**, from "half-orc barbarian, level 3, berserker,
+greataxe and javelins" to a pasted full character sheet, or a mix across several
+messages.
+
+**The loop:**
+1. **Extract.** The GM turns everything said so far into a draft
+   (`gm.py pc draft`, 06), field by field. It never invents a value the player didn't
+   give.
+2. **Derive and check.** `gm.py pc check` fills in everything computable from the SRD
+   data and reports three lists:
+   - **Missing (required):** must be asked for.
+   - **Defaults proposed:** e.g., standard array assigned by class priority, the
+     class's starting equipment. The GM shows them as "I'll use X — OK?". A default
+     never becomes final silently.
+   - **Conflicts:** stated value vs. derived ("you wrote AC 17; chain mail + shield
+     comes to 18 — which is right?").
+3. **Ask.** The GM asks **only** for what's missing or conflicting, in one compact
+   message (grouped, numbered, with options where the SRD gives a short list). The
+   player answers in free text, and the loop goes back to step 1.
+4. **Confirm.** When nothing required is missing, the GM shows a one-screen
+   **character card** (name, race, class/subclass/level, scores, HP, AC, speed,
+   attacks, key features, spells, equipment). The player's "looks good" writes the
+   file (`gm.py pc write`). Corrections loop back to step 1.
+
+**Required before a PC can play:**
+
+| Field | Notes |
+|---|---|
+| name | |
+| race (+ subrace if the race has them) | |
+| class + **subclass** | subclass only once the class reaches its subclass level (2014: cleric/sorcerer/warlock 1, druid/wizard 2, others 3) |
+| level | |
+| ability scores | missing → offer standard array (auto-assigned by class), point buy, or rolled 4d6-drop-lowest via `gm.py roll` |
+| equipment | missing → offer the class + background starting equipment |
+| choices the class/race forces at this level | skill proficiencies, fighting style, expertise, cantrips/spells known or prepared, etc. `pc check` lists exactly which apply |
+
+**Optional (asked once, can be skipped):** background, a one-line look, personality,
+**a goal or bond**, and the `autopilot` line (a default is proposed).
+
+**Rules for the loop**
+- **Player-stated values win.** A conflict is asked about once. If the player
+  insists, the value is kept and recorded in `overrides` (04), so the tools stop
+  re-deriving it. It's the player's sheet, on the honor system.
+- **Non-SRD content** (a subclass, race or feat from a book) is accepted. The GM
+  asks the player to summarize what it does at this level, writes it under
+  `## Features & abilities`, and marks it `custom`. The tools don't derive custom
+  features; they just carry them.
+- **Interrupted intake resumes:** drafts live in `.gm/drafts/<slug>.json` until written.
+- **Behind the screen:** intake is player-facing. Backstory goals are woven into the
+  world *privately*: the GM may note scenario hooks in GM-only sections, and never says
+  so at the table.
+
+### Level-up flow (`/level-up`)
+**Trigger:** the GM announces a level at a story milestone (default: milestone
+leveling; see Open decisions in the README). `gm.py pc level-pending <pc>` marks it,
+and the flow runs immediately or at the next session start.
+
+1. **Compute.** `gm.py pc levelup <pc> --plan` lists what level N+1 grants
+   automatically (proficiency bonus, hit dice, spell slots, class and subclass
+   features, cantrip damage tiers) and **which choices are required**:
+   - HP: take the average or roll the hit die (the roll goes through `gm.py roll`
+     publicly, or the player reports their own)
+   - ASI or feat (levels 4/8/12/16/19, plus fighter 6/14 and rogue 10)
+   - subclass, if this is the class's subclass level
+   - new spells known/prepared, cantrips, expertise, fighting style, invocations,
+     etc., per class
+2. **Ask** for the choices only, in free text, in one compact message. Missing or
+   invalid answers are asked again (same loop as intake).
+3. **Card + confirm:** a short "Level 4 Kira" diff card listing what changed.
+   "Looks good" → `gm.py pc levelup <pc> --apply`, which updates the PC file and adds
+   a Journal line, a session-log delta, and `level-pending` cleared.
+4. **Memory stays current:** the PC file is the single source; the brief's party
+   line, combat seeding, and `odds` all read it, so nothing else needs updating.
+
+Multiclassing is supported only as `custom` in v1. The GM records it in Features, and
+the tools treat the PC as their primary class.
 
 ## Exposition pacing
 

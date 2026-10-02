@@ -17,7 +17,8 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
       order there), plus hooks + permission allowlist in `.claude/settings.json`, and the
       table client `tools/table.py` (the console players play in).
 - [ ] **Phase 2b — GM skills.** Build `.claude/skills/`: `gm`, `scene`, `travel`,
-      `combat`, `map`, `overrule`, `spoilers`, `end-session`, `new-campaign` per `planning/02-gm-agent-design.md`,
+      `combat`, `map`, `character`, `level-up`, `overrule`, `spoilers`, `end-session`,
+      `new-campaign` per `planning/02-gm-agent-design.md`,
       calling the 2a tools.
 - [ ] **Phase 3 — Dry run.** Two pregen PCs, run the POC scenario for a few scenes,
       note where the GM stalls or state drifts, tighten skill instructions.
@@ -34,4 +35,7 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
    up, branch `main`). `gm.py session archive` commits there (see planning/05, item 4).
 6. ~~Tools~~ **Decided:** stdlib frontmatter parser; hybrid brief injection; lint at
    write time, per batch on touched files, and fully at scene/session boundaries.
-   Only secrets-in-tool-output remains open (`planning/06-tools-spec.md` → Open questions).
+   Secrets in tool output: hidden by the table client (`planning/06-tools-spec.md`).
+7. **Advancement:** milestone leveling assumed (GM announces levels at story beats;
+   `gm.py pc level-pending`). XP tracking would need an `xp` field and award steps.
+   Also: level-up HP default (each player chooses average or roll each time, assumed).

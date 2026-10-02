@@ -2,21 +2,27 @@
 name: Kira Thornwood
 player: (pregen)
 location: crossroads-inn
-class: rogue (thief)
+race: high elf
+class: rogue
+subclass: thief
 level: 3
+background: custom (dock runner)
 hp: {current: 24, max: 24}
 ac: 14
 passive-perception: 15
 passive-investigation: 13
 speed: 30
 conditions: []
-mods: {str: -1, dex: 3, con: 2, int: 1, wis: 1, cha: 0}
+scores: {str: 8, dex: 17, con: 14, int: 12, wis: 13, cha: 10}   # raw scores; mods derived
 prof: 2
 saves: [dex, int]
 skills: {stealth: 7, perception: 5, acrobatics: 5, sleight-of-hand: 5, investigation: 3, insight: 3, deception: 2}
 senses: [darkvision 60]
 hit-dice: {die: d8, left: 3}
 autopilot: scouts quietly at the edge of things, avoids fights she can't win, makes no deals
+present: true
+level-pending:
+overrides: {}
 ---
 
 # Kira Thornwood
@@ -42,6 +48,11 @@ or an ally is within 5 ft of the target (and she doesn't have disadvantage).
 |---------------|---------|-----|----------|
 | sneak attack  | 1       | 1   | turn     |
 | arrows        | 20      | 20  | —        |
+
+## Spells
+| spell          | level | source  | notes          |
+|----------------|-------|---------|----------------|
+| minor illusion | 0     | cantrip | high elf (INT) |
 
 ## Features & abilities
 - **Sneak Attack 2d6**, **Thieves' Cant**, **Expertise** (Stealth, Perception)

@@ -117,7 +117,9 @@ one source of truth.
 
 - **Session start:** `python tools/table.py` resumes or starts the session and sends
   `/gm`, which sets `in-session: true`; the SessionStart hook injects the
-  long brief (scene + recent log) → read the latest history summary → recap → play.
+  long brief (scene + recent log) → **session-start routine** (02): roster (who's
+  here; new PCs go through the intake loop) → changes since last time → pending
+  level-ups → recap → play.
 - **During:** `session-current.md` grows as a turn-by-turn log (written by `gm.py`).
 - **Session end (a skill):** the GM writes the summary and does the world tick; then
   `gm.py session archive` files it in `sessions/history/`, resets the log, runs `lint`

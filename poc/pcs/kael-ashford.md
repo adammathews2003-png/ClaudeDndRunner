@@ -2,21 +2,27 @@
 name: Kael Ashford
 player: (pregen)
 location: crossroads-inn
-class: cleric (life)
+race: human
+class: cleric
+subclass: life
 level: 3
+background: acolyte
 hp: {current: 24, max: 24}
 ac: 18
 passive-perception: 13
 passive-investigation: 9
 speed: 30
 conditions: []
-mods: {str: 2, dex: 0, con: 2, int: -1, wis: 3, cha: 1}
+scores: {str: 15, dex: 11, con: 14, int: 9, wis: 16, cha: 12}   # raw scores; mods derived
 prof: 2
 saves: [wis, cha]
 skills: {insight: 5, medicine: 5, persuasion: 3, religion: 1}
 senses: []
 hit-dice: {die: d8, left: 3}
 autopilot: stays beside the most-hurt ally, heals and shields, lets others lead
+present: true
+level-pending:
+overrides: {}
 ---
 
 # Kael Ashford
@@ -43,10 +49,27 @@ Spell save DC 13 · spell attack +5.
 | channel divinity  | 1       | 1   | short    |
 | healer's kit uses | 10      | 10  | —        |
 
+## Spells
+Spellcasting ability WIS · save DC 13 · attack +5 · prepares WIS mod + level = 6 per long rest.
+
+| spell              | level | source   | notes                          |
+|--------------------|-------|----------|--------------------------------|
+| sacred flame       | 0     | cantrip  | DEX save, 1d8 radiant          |
+| guidance           | 0     | cantrip  |                                |
+| spare the dying    | 0     | cantrip  |                                |
+| light              | 0     | cantrip  |                                |
+| bless              | 1     | always   | Life Domain                    |
+| cure wounds        | 1     | always   | Life Domain; +3 Disciple of Life |
+| guiding bolt       | 1     | prepared |                                |
+| healing word       | 1     | prepared | bonus action; +3 Disciple of Life |
+| command            | 1     | prepared | WIS save                       |
+| sanctuary          | 1     | prepared | bonus action                   |
+| lesser restoration | 2     | always   | Life Domain                    |
+| spiritual weapon   | 2     | always   | Life Domain                    |
+| aid                | 2     | prepared | +5 HP max & current, 3 creatures, 8 h |
+| hold person        | 2     | prepared | WIS save                       |
+
 ## Features & abilities
-- **Spellcasting (WIS).** Cantrips: *sacred flame, guidance, spare the dying, light*.
-  - Always prepared (Life Domain): *bless, cure wounds, lesser restoration, spiritual weapon*
-  - Prepared (6): *guiding bolt, healing word, command, sanctuary, aid, hold person*
 - **Disciple of Life:** healing spells of 1st level or higher restore an extra
   2 + the spell's level HP.
 - **Channel Divinity (1/short rest):**
