@@ -28,7 +28,8 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
 2. **Secrets:** honor system for POC (don't read `## The truth` sections / scenario beats).
 3. ~~Dice~~ **Decided:** players roll their own d20s and report them; the GM rolls the rest via `gm.py`.
 4. **Table size:** how many players/PCs will the real campaign have?
-5. **Git:** recommend `git init` in this folder for save states / rollback (see planning/05, item 4).
+5. ~~Git~~ **Done (2026-10-02):** the whole ProjectX workspace is a git repo (root one level
+   up, branch `main`). `gm.py session archive` commits there (see planning/05, item 4).
 6. ~~Tools~~ **Decided:** stdlib frontmatter parser; hybrid brief injection; lint at
    write time, per batch on touched files, and fully at scene/session boundaries.
    Only secrets-in-tool-output remains open (`planning/06-tools-spec.md` → Open questions).
