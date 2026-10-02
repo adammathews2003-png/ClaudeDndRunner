@@ -27,10 +27,10 @@ persuasion always work, retconning when players complain. This kills tension.
 **Fix:** explicit GM-skill directives: dice results are final; NPCs are allowed to say
 no, lie, and win; failed checks have real costs (fail forward, not fail soft); player
 displeasure is not evidence of GM error. The rulings log (rules/house-rules.md) resolves
-disputes by precedent, not by whoever pushes hardest. **Overrule (02)** gives players a
-legitimate, explicit way to change outcomes by agreement. Pressure that doesn't use the
-command changes nothing, and the GM never suggests one. The table owns the bending;
-the GM never bends on its own.
+disputes by precedent, not by whoever pushes hardest. **Overrule (02)** gives the table
+a legitimate, explicit way to change outcomes (honor-based: using it is the table's
+choice). Pressure that doesn't use the command changes nothing, and the GM never
+suggests one. The table owns the bending; the GM never bends on its own.
 
 ## 4. No save states → one bad write loses history
 Files get overwritten in place; a confused update can trash an NPC's history.
@@ -95,7 +95,7 @@ player can safely open any file's top half; everything else is player-safe.
 is the console: plain Claude Code shows command lines and tool output, which spell out
 GM decisions. Play therefore runs through the table client (06), which shows only
 narration, and the GM follows the *Behind the screen* rules (02). When players *want*
-to peek, `/spoilers` (02) makes it an explicit, consented, recorded act. Spoiled facts
+to peek, `/spoilers` (02) makes it an explicit, honor-based, recorded act. Spoiled facts
 are tracked as player knowledge in `sessions/spoilers.md` and never become character
 knowledge.
 
@@ -108,9 +108,9 @@ makes no major decisions"). GM runs absent PCs on autopilot; no XP/loot penaltie
 The GM will misremember an AC or contradict established fact. **Fix:** a table rule —
 anyone can call "check the record"; GM checks the files/log (`gm.py where`, the brief,
 the delta lines); files win; the correction is logged (`gm.py undo` if it was a bad
-write). Narrative retcons the table agrees to go through `/overrule` (02): restated,
-confirmed, applied as forward corrections, and logged as `[overrule]` lines (plus an
-Erratum in past session histories), so they're deliberate and remembered.
+write). Narrative retcons go through `/overrule` (02): applied as forward corrections,
+shown as a card, reversible with `/overrule undo`, and logged as `[overrule]` lines
+(plus an Erratum in past session histories), so they're deliberate and remembered.
 
 ## 14. Latency budget honesty
 Even with the digest, a scene change = 3–5 file reads + narration + writes, and the

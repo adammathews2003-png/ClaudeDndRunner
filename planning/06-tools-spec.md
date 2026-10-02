@@ -147,7 +147,7 @@ gm.py contest Kira stealth passive                     # vs. everyone's passive 
 | `time +20m` | alias for `clock advance` (Tier 3) | `current.md` |
 | `log "Kira buys Tobin a drink; cart story told"` | closes the open turn block with this summary | session log |
 | `undo` | rolls back the last `do` batch / single command | files in the journal |
-| `rule add\|end\|list`, `retcon` | player overrules (below) | `state/table-rules.md`, session log |
+| `rule add\|end\|list`, `retcon`, `overrule-undo` | player overrules (below) | `state/table-rules.md`, session log |
 
 Group combat rows (`Thugs ×3`, `7/11 ea`): `hp Thugs -5` **splits one member into its
 own row** (`Thug 1`, 2/11) — the same rule as 02 → Groups/swarms.
@@ -167,17 +167,24 @@ summary leave them out of anything said to players. The file itself is protected
 the honor system.
 
 ### `gm.py rule` / `gm.py retcon` — player overrules (02 → Overrule)
-Called by the `/overrule` skill **only after** the players confirm.
+Called by the `/overrule` skill as soon as someone invokes it (honor-based; no
+confirmation step).
 ```
-gm.py rule add "Crits on 19–20 for this fight" --scope combat --key crit-range=19 --by "Alex, Sam"
+gm.py rule add "Crits on 19–20 for this fight" --scope combat --key crit-range=19
    → [rule R3 added · combat · crit-range=19]
-gm.py rule add "Potions are a bonus action" --scope campaign --by Alex
-gm.py rule add "No travel encounters" --scope "until we reach Thornbury" --by Alex
+gm.py rule add "Potions are a bonus action" --scope campaign
+gm.py rule add "No travel encounters" --scope "until we reach Thornbury"
 gm.py rule end R3 [--reason "boss down"]
 gm.py rule list
-gm.py retcon "Kira's climb went unseen" --turn 14 --by "Alex, Sam"
+gm.py retcon "Kira's climb went unseen" --turn 14
    → [retcon of turn 14 logged] (then corrective mutations in the same batch)
+gm.py overrule-undo
+   → reverses the most recent overrule batch (rule add or retcon + its corrections)
 ```
+Each overrule is run as **its own `do` batch** and marked as one in the journal, so
+`overrule-undo` (behind `/overrule undo`) can reverse exactly that overrule even if
+ordinary turns came after it. If a later batch touched the same files, it refuses and
+lists the conflicts instead.
 - **Storage:** `<campaign>/state/table-rules.md` (format in 04). Ended rules stay in the
   table, marked ended, until `session archive` moves them to the session history.
 - **Mechanical keys** are read by `lib/resolve.py` and the other tools. A rule without a
@@ -197,17 +204,16 @@ gm.py retcon "Kira's climb went unseen" --turn 14 --by "Alex, Sam"
   New keys are added as tables invent them. `lint` warns on unknown keys, which still
   work as free text.
 - **Precedence:** active table rules > `rules/house-rules.md` > RAW. When two active
-  rules set the same key, the newer wins, and `rule add` warns at confirm time.
+  rules set the same key, the newer wins, and `rule add` reports the one it overrode.
 - **Expiry:** `scene enter` ends `scene` rules, `combat end` ends `combat` rules, and
   `session archive` ends `session` rules. Each prints `[rule R3 ended — combat over]`
   for the GM to announce. `until …` rules end only with `rule end`.
 - **Brief line:** `Rules: R1 potions=bonus (campaign) · R3 crit 19–20 (combat)`. This
   line is part of the heartbeat too, so active rules are always in context.
 - **`retcon`** writes the public log line `[overrule] retcon turn 14: Kira's climb went
-  unseen (Alex, Sam)`. The corrections that follow are ordinary mutations, logged as
-  usual. Hidden ones are tagged `(GM)`. When the target is the latest batch, the skill
-  uses `undo` instead.
-- `--by` records who agreed. Under the honor system it isn't verified, just remembered.
+  unseen`. The corrections that follow are ordinary mutations, logged as usual. Hidden
+  ones are tagged `(GM)`. When the target is the latest batch, the skill uses `undo`
+  instead.
 
 **Undo journal.** Before each command, `lib/journal.py` saves the before-image of every
 file it touches to `<campaign>/.gm/journal/` (last ~50 batches). `undo` restores the
@@ -432,11 +438,11 @@ gm.py odds contest Kira stealth Mara perception → [ODDS Kira wins 68% (ties→
 Computed by enumerating the dice distributions (no simulation, deterministic). It's
 also the basis for the "Guess" claims in what-ifs.
 
-**`gm.py spoil log "<question>" --level minor|major --depth hint|answer|full --by "Alex, Sam" --reveals "<one-line summary of what was revealed>"`**:
+**`gm.py spoil log "<question>" --level none|minor|major --depth hint|answer|full --reveals "<one-line summary of what was revealed>"`**:
 appends to `sessions/spoilers.md` (04) and writes a public `[spoilers]` line to the
-session log. Called **after** the answer is shown (a cancelled card logs nothing).
-Level-`none` what-ifs are logged too, with `--level none`, so the record of what the
-table explored is complete.
+session log. Called right after the answer is shown. Level-`none` what-ifs are logged
+too, so the record of what the table explored is complete. What-if *guesses* are
+recorded as "what-if (not canon)" and never as facts.
 
 **`gm.py spoil list`** prints what's already spoiled, so the GM knows which facts no
 longer need "behind the screen". The `brief --long` at session start includes the
@@ -481,13 +487,13 @@ python tools/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
   sets a default prefix for lines typed without one. Unprefixed lines with no default
   are sent as table talk.
 - `/end-session`, `/overrule`, other GM skills and `!brief` pass straight through. The
-  overrule card and its "All players agree?" question are ordinary GM text, so the
-  client shows them. `yes` / `no` is typed as a normal line.
-- `/spoilers` passes through the same way. The GM wraps a confirmed answer in
-  `<<SPOILERS>>` … `<<END SPOILERS>>` markers. The client renders them as a full-width
-  banner in a distinct color (`── SPOILERS ─────`), so nobody reads one by accident
-  while glancing at the screen. If the markers are unbalanced (e.g., the answer was
-  cut off), the client closes the banner at the end of the message.
+  overrule applied card is ordinary GM text, so the client shows it.
+- `/spoilers` passes through the same way. The GM wraps the answer in
+  `<<SPOILERS level/depth>>` … `<<END SPOILERS>>` markers. The client renders them as a
+  full-width banner in a distinct color, with the spoiler-free header on the banner
+  line (`── SPOILERS · major · answer ─────`), so anyone glancing at the shared screen
+  can look away. If the markers are unbalanced (e.g., the answer was cut off), the
+  client closes the banner at the end of the message.
 - Client-local commands start with `:` and are never sent to the GM: `:quit`
   (ends the client without ending the session), `:as <PC>`, `:gm-view on|off`.
 
@@ -539,8 +545,7 @@ transcript file, voice/GUI.
   under `## Tempo: tense`; Combatants table gains a `ref` column.
 - **New `state/table-rules.md`** for player overrules; `[overrule]` log lines; `Erratum:`
   lines in history files.
-- **New `sessions/spoilers.md`** (spoiler record); `[spoilers]` log lines; `current.md`
-  frontmatter `spoilers: ask|off`.
+- **New `sessions/spoilers.md`** (spoiler record); `[spoilers]` log lines.
 
 ## What stays with the model
 

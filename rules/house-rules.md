@@ -21,8 +21,8 @@ saves, initiative (rolled or passive). Concretely:
 - PC vs. PC ties: no house rule — re-roll or let the players decide.
 
 ## Overrules
-Players can retcon events or add table rules by agreement with `/overrule` (see
-`planning/02` → Overrule). Temporary rules live in the campaign's
+The table can retcon events or add table rules with `/overrule` (honor-based: whoever
+runs the session uses it when they choose; see `planning/02` → Overrule). Temporary rules live in the campaign's
 `state/table-rules.md` and outrank this file while active. Campaign rules the table
 wants everywhere get promoted into this file at `/end-session`.
 

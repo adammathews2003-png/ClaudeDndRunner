@@ -205,7 +205,6 @@ scene: "Common room, dinner rush"
 light: bright                     # bright | dim | dark — passive Perception uses it
 in-session: false                 # true while playing; gates the brief hook (06)
 dice-mode: players-roll-d20s      # players-roll-d20s | gm-rolls-all
-spoilers: ask                     # ask | off — whether /spoilers is available (02)
 ---
 
 # Current scene
@@ -278,18 +277,18 @@ which `combat next` / `clock` count down. `notes` may carry `reach 10`, `climb s
 
 ## Table rules — `state/table-rules.md` (player overrules)
 
-Written only by `gm.py rule` after the players confirm an `/overrule` (02). Read by the
-tools (mechanical `key`s) and summarized in every brief.
+Written only by `gm.py rule` when someone invokes `/overrule` (02; honor-based). Read
+by the tools (mechanical `key`s) and summarized in every brief.
 
 ```markdown
 # Table rules
 <!-- Active overrule rules. Precedence: these > rules/house-rules.md > RAW. -->
 
-| id | rule                          | key           | scope                    | since          | by        | status                 |
-|----|-------------------------------|---------------|--------------------------|----------------|-----------|------------------------|
-| R1 | Potions are a bonus action    | potion=bonus  | campaign                 | S1 t3          | Alex      | active                 |
-| R3 | Crits on 19–20 for this fight | crit-range=19 | combat                   | S2 t14         | Alex, Sam | ended (combat over)    |
-| R4 | No travel encounters          | encounters=off| until we reach Thornbury | S2 t20         | Alex      | active                 |
+| id | rule                          | key            | scope                    | since  | status              |
+|----|-------------------------------|----------------|--------------------------|--------|---------------------|
+| R1 | Potions are a bonus action    | potion=bonus   | campaign                 | S1 t3  | active              |
+| R3 | Crits on 19–20 for this fight | crit-range=19  | combat                   | S2 t14 | ended (combat over) |
+| R4 | No travel encounters          | encounters=off | until we reach Thornbury | S2 t20 | active              |
 ```
 `since` = session and turn. Ended rows are moved into the session history by
 `session archive`. Campaign rules promoted at `/end-session` move to
@@ -297,7 +296,7 @@ tools (mechanical `key`s) and summarized in every brief.
 
 ## Spoiler record — `sessions/spoilers.md`
 
-Append-only record of every confirmed `/spoilers` answer, written by `gm.py spoil log`.
+Append-only record of every `/spoilers` answer, written by `gm.py spoil log`.
 Unlike the session log, it isn't reset each session: it's the permanent list of what
 the *players* know out of character, which the GM consults so it doesn't keep facts
 "behind the screen" that are already out.
@@ -305,11 +304,13 @@ the *players* know out of character, which the GM consults so it doesn't keep fa
 ```markdown
 # Spoilers revealed (player knowledge, not character knowledge)
 
-| when    | by        | level | depth  | question                               | revealed                                        |
-|---------|-----------|-------|--------|----------------------------------------|-------------------------------------------------|
-| S2 t31  | Alex, Sam | major | answer | Was Mara lying about Harl?             | Yes — she fears something under the inn         |
-| S3 t02  | Alex      | none  | answer | What if we'd gone to the mill night 1? | (what-if; no secrets beyond party knowledge)    |
+| when   | level | depth  | question                               | revealed                                         |
+|--------|-------|--------|----------------------------------------|--------------------------------------------------|
+| S2 t31 | major | answer | Was Mara lying about Harl?             | Yes — she fears something under the inn          |
+| S3 t02 | none  | answer | What if we'd gone to the mill night 1? | what-if (not canon); no secrets beyond party knowledge |
 ```
+What-if guesses are always recorded as "what-if (not canon)". This file never makes
+anything a world fact.
 `revealed` is a one-line summary of what was revealed, written so a later GM pass can
 match it against secrets.
 
@@ -324,10 +325,10 @@ and `gm.py log "..."` writes the summary and closes it:
 ```
 `(GM)` marks delta lines players must not hear: secret rolls, off-screen moves, fired
 clock beats, hidden-DC results. Recaps and history summaries leave them out.
-Overrules log as public lines, e.g. `  - [overrule] rule R3 added: crits on 19–20 (combat; Alex, Sam)`
-or `  - [overrule] retcon turn 14: Kira's climb went unseen (Alex, Sam)`.
+Overrules log as public lines, e.g. `  - [overrule] rule R3 added: crits on 19–20 (combat)`
+or `  - [overrule] retcon turn 14: Kira's climb went unseen`.
 Spoilers log only the question and level publicly, e.g.
-`  - [spoilers] major/answer: "Was Mara lying about Harl?" (Alex, Sam)`.
+`  - [spoilers] major/answer: "Was Mara lying about Harl?"`.
 The content goes to `sessions/spoilers.md`. Retcons of
 past sessions also append an `Erratum:` line to that session's history file. The
 original text is never edited.
