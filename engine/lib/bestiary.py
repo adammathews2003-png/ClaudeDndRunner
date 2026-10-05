@@ -1,12 +1,13 @@
-"""Custom monsters ("bestiary") — homebrew stat blocks the tools treat exactly like SRD
-monsters (docs/design/04 → Bestiary file; 07 → Custom monsters).
+"""Custom monsters — homebrew stat blocks the tools treat exactly like SRD monsters
+(docs/design/04 → Custom-bestiary file; 07 → Custom monsters).
 
-Where they live, searched in this order by `lib/srd.monster()`:
-1. `campaigns/<active>/bestiary/<slug>.md` — monsters that belong to one campaign,
-2. `bestiary/<slug>.md` at the repo root — shared, reusable homebrew,
-3. the SRD 5.1 data.
+Each campaign keeps its own: `campaigns/<name>/custom-bestiary/<slug>.md`. During play the
+lookup (`lib/srd.monster()`) is the active campaign's custom-bestiary, then the SRD 5.1
+data; campaigns never see each other's creatures. Sharing happens only when making one:
+`gm.py monster new "<name>" --from "<other-campaign>:<monster>"` copies a creature from
+another campaign's custom-bestiary (`find_in()`), and `monster list --all` browses them.
 
-A bestiary file is markdown: frontmatter with the numbers (`size`, `type`, `ac`, `hp`,
+A custom-bestiary file is markdown: frontmatter with the numbers (`size`, `type`, `ac`, `hp`,
 `hp-dice`, `speed`, `scores`, `prof`, `saves` and `skills` as bonus dicts, `senses`,
 `passive-perception`, damage/condition lists, `cr`, `xp`, `based-on`) and body sections
 `## Traits` (`- **Name.** text`), `## Attacks` (the PC/NPC table: name | hit | damage |
@@ -19,7 +20,7 @@ from pathlib import Path
 
 from . import campaign, md
 
-SHARED = campaign.BASE / "bestiary"
+FOLDER = "custom-bestiary"
 SIZES = {"T": "Tiny", "S": "Small", "M": "Medium", "L": "Large", "H": "Huge", "G": "Gargantuan"}
 ABBR = ("str", "dex", "con", "int", "wis", "cha")
 FULL = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
@@ -30,40 +31,54 @@ def key(text):
     return re.sub(r"[^a-z0-9]+", "-", t).strip("-")
 
 
-def folders():
-    out = []
-    try:
-        out.append(campaign.root() / "bestiary")
-    except campaign.CampaignError:
-        pass
-    out.append(SHARED)
-    return out
+def folder(root=None):
+    """`<campaign>/custom-bestiary` of `root` (default: the active campaign), or None."""
+    if root is None:
+        try:
+            root = campaign.root()
+        except campaign.CampaignError:
+            return None
+    return Path(root) / FOLDER
 
 
-def all_files():
-    seen, out = set(), []
-    for d in folders():
-        for p in sorted(d.glob("*.md")) if d.is_dir() else []:
-            if p.stem not in seen:
-                seen.add(p.stem)
-                out.append(p)
-    return out
+def files(root=None):
+    d = folder(root)
+    return sorted(d.glob("*.md")) if d is not None and d.is_dir() else []
 
 
-def find(name):
-    """The bestiary file for `name` (slug or `name:`, exact then unique prefix), or None."""
+def _match(paths, name):
     want = key(re.sub(r"^(srd|monster):\s*", "", str(name), flags=re.I))
     if not want:
         return None
-    files = all_files()
-    for p in files:
+    for p in paths:
         if p.stem == want:
             return p
-    for p in files:
+    for p in paths:
         if key(md.load(p).front.get("name")) == want:
             return p
-    pre = [p for p in files if p.stem.startswith(want)]
+    pre = [p for p in paths if p.stem.startswith(want)]
     return pre[0] if len(pre) == 1 else None
+
+
+def find(name):
+    """The active campaign's custom-bestiary file for `name`, or None."""
+    return _match(files(), name)
+
+
+def find_in(campaign_name, name):
+    """Another campaign's custom-bestiary file (for copying at creation), or None."""
+    root = campaign.CAMPAIGNS / campaign_name
+    if not root.is_dir():
+        return None
+    return _match(files(root), name)
+
+
+def all_campaign_files():
+    """[(campaign name, path)] across every campaign (`monster list --all`)."""
+    out = []
+    for root in sorted(p for p in campaign.CAMPAIGNS.iterdir() if p.is_dir()) if campaign.CAMPAIGNS.is_dir() else []:
+        out += [(root.name, p) for p in files(root)]
+    return out
 
 
 def _bullets(doc, heading):
@@ -97,7 +112,7 @@ def _list(v):
 
 
 def to_record(doc):
-    """An SRD-shaped record dict from a bestiary Doc."""
+    """An SRD-shaped record dict from a custom-bestiary Doc."""
     f = doc.front
     scores = f.get("scores") if isinstance(f.get("scores"), dict) else {}
     profs = []
@@ -145,11 +160,8 @@ def to_record(doc):
     return rec
 
 
-def load(name):
-    """A CustomMonster for `name`, or None when no bestiary file matches."""
-    p = find(name)
-    if p is None:
-        return None
+def from_path(p):
+    """A CustomMonster built from a custom-bestiary file."""
     from .srd import Monster
 
     class CustomMonster(Monster):
@@ -193,3 +205,9 @@ def load(name):
             return lines
 
     return CustomMonster(md.load(p))
+
+
+def load(name):
+    """A CustomMonster from the active campaign's custom-bestiary, or None."""
+    p = find(name)
+    return from_path(p) if p is not None else None

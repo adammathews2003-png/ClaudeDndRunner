@@ -401,7 +401,7 @@ def check_loop(out):
 
 
 def check_encounters(out, doc):
-    """Every ENCOUNTER roster entry must be an SRD or bestiary monster (07 → Custom monsters)."""
+    """Every ENCOUNTER roster entry must be an SRD or custom-bestiary monster (07 → Custom monsters)."""
     from . import encounter as enc
     for line in doc.body:
         ln = enc.parse_line(line)
@@ -411,16 +411,16 @@ def check_encounters(out, doc):
             try:
                 e.monster_xp()
             except enc.EncounterError:
-                out.warn(_rel(doc.path), f"ENCOUNTER \"{ln.name}\": {e.name!r} is not an SRD or bestiary monster "
+                out.warn(_rel(doc.path), f"ENCOUNTER \"{ln.name}\": {e.name!r} is not an SRD or custom-bestiary monster "
                                          "(gm.py monster new \"<name>\" --from \"<similar SRD monster>\")")
 
 
 def check_bestiary(out, doc):
     for k in ("name", "ac", "hp", "scores", "xp"):
         if doc.front.get(k) in (None, "", {}):
-            out.err(_rel(doc.path), f"bestiary: missing `{k}`")
+            out.err(_rel(doc.path), f"custom-bestiary: missing `{k}`")
     if doc.table("Attacks") is None and doc.section("Actions") is None:
-        out.warn(_rel(doc.path), "bestiary: no ## Attacks table or ## Actions")
+        out.warn(_rel(doc.path), "custom-bestiary: no ## Attacks table or ## Actions")
 
 
 def check_party_together(out):
@@ -438,7 +438,7 @@ def check_party_together(out):
 def _kind(rel):
     head = rel.split("/")[0]
     return head if head in ("pcs", "npcs", "locations", "scenarios", "state", "sessions", "tables",
-                            "bestiary") else ""
+                            "custom-bestiary") else ""
 
 
 def check_file(out, path, fix_safe=False):
@@ -458,7 +458,7 @@ def check_file(out, path, fix_safe=False):
         check_location_file(out, doc)
     if kind in ("locations", "scenarios", "tables"):
         check_encounters(out, doc)
-    if kind == "bestiary":
+    if kind == "custom-bestiary":
         check_bestiary(out, doc)
     if rel == "state/current.md":
         check_state(out, doc)
@@ -474,7 +474,7 @@ def run(files=None, fix_safe=False):
             if p.exists() and p.suffix == ".md" and not rel.startswith("sessions/"):
                 check_file(out, p, fix_safe)
         return out
-    for kind in ("locations", "npcs", "pcs", "scenarios", "tables", "bestiary"):
+    for kind in ("locations", "npcs", "pcs", "scenarios", "tables", "custom-bestiary"):
         for p in sorted((root / kind).glob("*.md")) if (root / kind).is_dir() else []:
             check_file(out, p, fix_safe)
     if campaign.state_path().exists():

@@ -381,13 +381,15 @@ Layout: common-room (9 features) — `gm.py space map` to draw
   foes defeated, routed, captured or talked down; fled foes count only if the GM says
   so (`--count-fled`).
 
-### `gm.py monster new "<name>" --from "<base>" [--shared] | list | show <name>`
-Custom monsters (07 → Custom monsters; 04 → Bestiary file). `new` copies a base stat block
-(SRD or custom) into `campaigns/<active>/bestiary/<slug>.md`, or `bestiary/<slug>.md` with
-`--shared`, for editing. Every tool that looks up a monster (`srd monster`, `combat start
---add "srd:<name>"`, `atk`, `ENCOUNTER` rosters and `encounter`/`danger`, `statblock:`) finds
-it: the campaign's bestiary first, then the shared one, then the SRD. `list` shows both
-scopes; `show` = `srd monster`.
+### `gm.py monster new "<name>" --from "<base>" | list [--all] | show <name>`
+Custom monsters (07 → Custom monsters; 04 → Custom-bestiary file), one `custom-bestiary/` per
+campaign. `new --from "<SRD or this campaign's monster>"` copies the stat block into
+`campaigns/<active>/custom-bestiary/<slug>.md` for editing; `--from "<other-campaign>:<monster>"`
+copies another campaign's creature as it is (the only way creatures cross campaigns).
+Every tool that looks up a monster (`srd monster`, `combat start --add "srd:<name>"`, `atk`,
+`ENCOUNTER` rosters and `encounter`/`danger`, `statblock:`) finds it: the active
+campaign's custom-bestiary first, then the SRD. `list` shows this campaign's; `list --all`
+every campaign's; `show` = `srd monster`.
 
 ### `gm.py srd monster|spell|condition <name>`
 - Data: SRD 5.1 JSON (from the 5e-bits `5e-database` project, CC-BY-4.0) stored in

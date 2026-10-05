@@ -211,7 +211,7 @@ class Monster:
 
 
 def monster(name):
-    """A custom monster from the campaign's or the shared bestiary (lib/bestiary.py) when
+    """A custom monster from the active campaign's custom-bestiary (lib/bestiary.py) when
     one matches, else the SRD record."""
     from . import bestiary
     custom = bestiary.load(name)

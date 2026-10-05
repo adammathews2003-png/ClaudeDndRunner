@@ -359,12 +359,13 @@ gains `loop`, `loop-baseline`, `loop-start`, `loop-end`; PCs gain `loop-bed: sit
 `## Memory across loops`; a regenerated piece already carried is marked `hollow` in
 its `notes`.
 
-## Bestiary file — `campaigns/<name>/bestiary/<slug>.md` or `bestiary/<slug>.md` (shared)
+## Custom-bestiary file — `campaigns/<name>/custom-bestiary/<slug>.md`
 
 A custom monster, made with `gm.py monster new "<name>" --from "<SRD or custom monster>"`
-(07 → Custom monsters) and then edited. Lookup order everywhere a monster is named
-(`srd:<name>`, `ENCOUNTER` rosters, `statblock:`): the campaign's bestiary, the shared
-`bestiary/`, then the SRD.
+(07 → Custom monsters) and then edited. Each campaign keeps its own; everywhere a monster
+is named (`srd:<name>`, `ENCOUNTER` rosters, `statblock:`) the lookup is the active
+campaign's custom-bestiary, then the SRD. Creatures cross campaigns only by being copied
+at creation (`--from "<other-campaign>:<monster>"`).
 ```markdown
 ---
 name: Frost Yeti

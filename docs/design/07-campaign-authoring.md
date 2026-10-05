@@ -163,10 +163,13 @@ writes an editable stat block with every number, trait and attack; rename the at
 add a damage rider or a trait that fits the theme (cold claws, ice walking, a fear of
 fire), adjust resistances, set `cr`/`xp` by the DMG's rough math (damage per round and
 HP decide the CR), and write a Description and a **Backstory**. A unique creature (a named
-yeti with a grudge) is a custom monster too, with its own file in the campaign's
-`bestiary/`; reusable species go in the shared `bestiary/`. Generators should prefer a
-memorable custom creature over an off-the-shelf one whenever the theme asks for it, and
-must never name a monster that is neither SRD nor in a bestiary (`lint` warns).
+yeti with a grudge) is a custom monster too. Every campaign keeps its own
+`custom-bestiary/`; there is no shared one during play. When a new campaign wants a
+creature another campaign already has, copy it at creation (`monster new "<name>" --from
+"<other-campaign>:<monster>"`, browse with `monster list --all`) and re-theme the copy.
+Generators should prefer a memorable custom creature over an off-the-shelf one whenever
+the theme asks for it, and must never name a monster that is neither SRD nor in the
+campaign's custom-bestiary (`lint` warns).
 
 ## Items, loot and merchants
 

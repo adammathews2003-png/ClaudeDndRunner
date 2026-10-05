@@ -1,28 +1,35 @@
-"""Custom monsters: lib/bestiary.py lookup order and scope, `gm.py monster new|list|show`,
-custom monsters in combat/atk/encounter, and the lint checks for ENCOUNTER rosters and
-bestiary files (docs/design/04 → Bestiary file; 07 → Custom monsters)."""
+"""Custom monsters: one `custom-bestiary/` per campaign (lib/bestiary.py), `gm.py monster
+new|list|show` including copying from another campaign at creation, custom monsters in
+combat/atk/encounter, and the lint checks for ENCOUNTER rosters and custom-bestiary files
+(docs/design/04 → Custom-bestiary file; 07 → Custom monsters)."""
 import shutil
 from unittest import mock
 
-from fixture import TOOLS, CampaignCase, _edit, run_main, start_combat
-from lib import bestiary, md, srd
+from fixture import TOOLS, CampaignCase, _edit, run_main
+from lib import campaign, md, srd
 
-SHARED = TOOLS.parent / "bestiary"
+YETI = TOOLS / "tests" / "fixtures" / "frost-yeti.md"
 
 
 class Bestiary(CampaignCase):
     def setUp(self):
         super().setUp()
-        self.shared = self.tmp / "shared-bestiary"
-        shutil.copytree(SHARED, self.shared)
-        self.p = mock.patch.object(bestiary, "SHARED", self.shared)
+        (self.camp / "custom-bestiary").mkdir()
+        shutil.copy(YETI, self.camp / "custom-bestiary" / "frost-yeti.md")
+        # a second campaign beside this one, for the cross-campaign rules
+        self.other = self.tmp / "other"
+        (self.other / "custom-bestiary").mkdir(parents=True)
+        shutil.copy(YETI, self.other / "custom-bestiary" / "snow-beast.md")
+        _edit(self.other / "custom-bestiary" / "snow-beast.md",
+              lambda t: t.replace("name: Frost Yeti", "name: Snow Beast").replace("# Frost Yeti", "# Snow Beast"))
+        self.p = mock.patch.object(campaign, "CAMPAIGNS", self.tmp)
         self.p.start()
 
     def tearDown(self):
         self.p.stop()
         super().tearDown()
 
-    def test_shared_lookup_and_block(self):
+    def test_campaign_lookup_and_block(self):
         m = srd.monster("frost yeti")
         self.assertTrue(getattr(m, "custom", False))
         self.assertEqual((m.ac, m.hp, m.xp, m.size), (13, 59, 700, "L"))
@@ -34,24 +41,34 @@ class Bestiary(CampaignCase):
         self.assertIn("Traits: Ice Walk · Snow Camouflage · Keen Smell · Fear of Fire", lines)
         self.assertEqual(srd.monster("polar bear").name, "Polar Bear")   # the SRD still answers
 
-    def test_campaign_scope_wins_and_new(self):
-        code, lines = run_main(["monster", "new", "Frost Yeti", "--from", "brown bear"])
+    def test_other_campaigns_are_invisible_in_play(self):
+        with self.assertRaises(srd.SrdError):
+            srd.monster("snow beast")
+        self.assertEqual(run_main(["srd", "monster", "snow", "beast"])[0], 1)
+
+    def test_new_from_srd_and_from_another_campaign(self):
+        code, lines = run_main(["monster", "new", "Ice Bear", "--from", "brown bear"])
         self.assertEqual(code, 0, lines)
-        p = self.path("bestiary/frost-yeti.md")
-        self.assertEqual(md.load(p).front["based-on"], "Brown Bear (SRD)")
-        self.assertEqual(srd.monster("frost yeti").name, "Frost Yeti")
-        self.assertEqual(srd.monster("frost yeti").hp, md.load(p).front["hp"])   # the campaign copy wins
-        self.assertEqual(run_main(["monster", "new", "Frost Yeti", "--from", "brown bear"])[0], 1)
-        out = run_main(["monster", "list"])[1]
-        self.assertTrue(any("Frost Yeti" in line and "campaign" in line for line in out))
-        self.assertTrue(any("Flameskull" in line and "shared" in line for line in out))
-        code, lines = run_main(["monster", "new", "Ice Bear", "--from", "frost yeti"])   # custom from custom
+        self.assertIn("campaigns/poc/custom-bestiary/ice-bear.md", lines[0])
+        self.assertEqual(md.load(self.path("custom-bestiary/ice-bear.md")).front["based-on"], "Brown Bear (SRD)")
+        self.assertEqual(run_main(["monster", "new", "Ice Bear", "--from", "brown bear"])[0], 1)
+        run_main(["monster", "new", "Glacier Bear", "--from", "frost yeti"])   # this campaign's custom one
+        self.assertIn("Frost Yeti (custom)", md.load(self.path("custom-bestiary/glacier-bear.md")).front["based-on"])
+        code, lines = run_main(["monster", "new", "Rime Beast", "--from", "other:snow beast"])
         self.assertEqual(code, 0, lines)
-        self.assertIn("Frost Yeti (custom)", md.load(self.path("bestiary/ice-bear.md")).front["based-on"])
+        p = self.path("custom-bestiary/rime-beast.md")
+        f = md.load(p).front
+        self.assertEqual(f["name"], "Rime Beast")
+        self.assertTrue(f["based-on"].startswith("Snow Beast from campaigns/other ("))
+        self.assertIn("## Backstory", p.read_text(encoding="utf-8"))          # copied as it is
+        self.assertEqual(srd.monster("rime beast").xp, 700)
+        self.assertEqual(run_main(["monster", "new", "X", "--from", "other:nothing"])[0], 1)
+        mine = run_main(["monster", "list"])[1]
+        self.assertTrue(all("· poc ·" in line for line in mine))
+        everywhere = "\n".join(run_main(["monster", "list", "--all"])[1])
+        self.assertIn("Snow Beast · CR 3 (700 XP) · other", everywhere)
 
     def test_custom_in_combat_and_encounters(self):
-        start_combat(self)
-        run_main(["combat", "end"])
         run_main(["tempo", "tense", "--pos", "Mara @bar", "--pos", "Tobin @tables-e",
                   "--pos", "Kael near Tobin", "--pos", "Kira @door"])
         code, lines = run_main(["--seed", "1", "combat", "start", "--init", "Kael=15", "--init", "Kira=12",
@@ -63,22 +80,22 @@ class Bestiary(CampaignCase):
         code, lines = run_main(["--seed", "3", "atk", "Frost Yeti", "Kira", "--with", "claw"])
         self.assertEqual(code, 0, lines)
         self.assertIn("Frost Yeti → Kira", lines[0])
+        run_main(["combat", "end"])
         _edit(self.path("locations/old-mill.md"),
               lambda t: t.replace("## Hidden", "## Encounters\n- ENCOUNTER hard \"the cold thing\": frost yeti ×n\n\n## Hidden", 1))
         self.assertIn("frost yeti ×", run_main(["encounter", "build", "the cold thing"])[1][0])
 
     def test_lint(self):
         _edit(self.path("locations/old-mill.md"),
-              lambda t: t.replace("## Hidden", "## Encounters\n- ENCOUNTER hard \"bad\": yeti ×1 | table cell\n"
+              lambda t: t.replace("## Hidden", "## Encounters\n- ENCOUNTER hard \"bad\": snow beast ×1 | table cell\n"
                                                "- ENCOUNTER easy \"ok\": frost yeti ×n — notes here\n\n## Hidden", 1))
         found = "\n".join(run_main(["lint"])[1])
-        self.assertIn("ENCOUNTER \"bad\": 'yeti' is not an SRD or bestiary monster", found)
+        self.assertIn("ENCOUNTER \"bad\": 'snow beast' is not an SRD or custom-bestiary monster", found)
         self.assertNotIn("\"ok\"", found)
-        self.path("bestiary").mkdir(exist_ok=True)
-        self.path("bestiary/broken.md").write_text("---\nname: Broken\n---\n# Broken\n", encoding="utf-8")
+        self.path("custom-bestiary/broken.md").write_text("---\nname: Broken\n---\n# Broken\n", encoding="utf-8")
         code, lines = run_main(["lint"])
         self.assertEqual(code, 1)
-        self.assertIn("bestiary: missing `ac`", "\n".join(lines))
+        self.assertIn("custom-bestiary: missing `ac`", "\n".join(lines))
 
     def test_stacked_places_are_not_an_overlap(self):
         from lib.lint import _Out, check_location_file

@@ -15,8 +15,8 @@ allowed-tools: Bash(python engine/gm.py:*), Bash(python engine/space.py:*), Powe
    `python engine/gm.py encounter build "<name>"` — and use the `--add` arguments it prints
    (a template scales its monster count to the table; a `fixed` fight keeps its roster
    and may warn that it is above the party: let it be a wall, and let them run).
-   Improvised fights: pick monsters that fit the fiction (`monster list` shows the custom
-   ones; anything SRD works) and check the pressure with `encounter budget`.
+   Improvised fights: pick monsters that fit the fiction (`monster list` shows this campaign's
+   custom creatures; anything SRD works) and check the pressure with `encounter budget`.
 3. Ask the players for their initiative rolls (d20 + DEX; they roll), then:
    `python engine/gm.py combat start --init Kael=15 --init Kira=12 [--add "srd:thug x3 @25,15,0"] [--add "srd:wolf @near Kira"] [--surprised Tobin]`
    - New monsters come from the SRD (`srd:<name>`; `xN` makes a group row). Their numbers

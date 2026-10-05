@@ -32,13 +32,14 @@ follow them exactly), and as a worked example `campaigns/poc/` (scenario, NPCs, 
    after; never "→ in transit"). A sidekick if `sidekick:` asks (07).
 5. **Monsters: be creative.** When the theme wants a creature the SRD lacks, or a named
    one, make it: `gm.py --campaign <slug> monster new "<name>" --from "<closest SRD monster>"`,
-   then edit the file in `campaigns/<slug>/bestiary/` — rename attacks thematically, add a
-   fitting trait or damage rider, set `cr`/`xp`, write a Description and a Backstory
-   (`bestiary/frost-yeti.md` and `campaigns/loop-open/bestiary/gerald.md` are examples).
-   Reusable species can already exist in the shared `bestiary/` (`gm.py monster list`).
+   then edit the file in `campaigns/<slug>/custom-bestiary/` — rename attacks thematically,
+   add a fitting trait or damage rider, set `cr`/`xp`, write a Description and a Backstory
+   (`campaigns/loop-open/custom-bestiary/gerald.md` is an example). Another campaign may
+   already have something close: `gm.py monster list --all`, then copy it with
+   `monster new "<name>" --from "<other-campaign>:<monster>"` and re-theme the copy.
    **Encounters as budgets**: `- ENCOUNTER <easy|medium|hard|deadly> "<name>": <monster> ×n, …`
-   or `- ENCOUNTER fixed L<level> <word> "<name>": <roster>`, every monster SRD or bestiary
-   (lint warns otherwise). Then
+   or `- ENCOUNTER fixed L<level> <word> "<name>": <roster>`, every monster SRD or in the
+   campaign's custom-bestiary (lint warns otherwise). Then
    `gm.py --campaign <slug> encounter threat <place>` on every adventure place (it writes
    `threat:`), and check the readings with `encounter build "<name>"`.
 6. **Loot and merchants** (07 → Items): `## Loot` tables (a treasure item in every
