@@ -131,7 +131,8 @@ class Line:
         self.level = int(m.group(2)) if m.group(2) else None
         self.word = m.group(3).lower()
         self.name = m.group(4)
-        roster = re.split(r"\s+#", m.group(5))[0]
+        # the roster ends at a comment (`# …`), a dash note (`— …`) or a table cell edge (`|`)
+        roster = re.split(r"\s+#|\s+—\s+|\s*\|", m.group(5))[0]
         self.entries = [Entry(e) for e in _split_roster(roster) if e.strip()]
         self.source = source
 

@@ -154,6 +154,20 @@ budget` prints it (`power +0.5 (2 rare, 3 uncommon)`); the GM can override with
 `--power`. Getting cool items is meant to show: a party that has looted well reads green
 where it used to read yellow.
 
+## Custom monsters
+
+The SRD is a floor, not a ceiling. When a scene wants a creature the SRD doesn't have (a
+yeti, a flameskull, the queen's clockwork hounds), the author makes one by **copying the
+closest SRD monster and re-theming it**: `gm.py monster new "Frost Yeti" --from "polar bear"`
+writes an editable stat block with every number, trait and attack; rename the attacks,
+add a damage rider or a trait that fits the theme (cold claws, ice walking, a fear of
+fire), adjust resistances, set `cr`/`xp` by the DMG's rough math (damage per round and
+HP decide the CR), and write a Description and a **Backstory**. A unique creature (a named
+yeti with a grudge) is a custom monster too, with its own file in the campaign's
+`bestiary/`; reusable species go in the shared `bestiary/`. Generators should prefer a
+memorable custom creature over an off-the-shelf one whenever the theme asks for it, and
+must never name a monster that is neither SRD nor in a bestiary (`lint` warns).
+
 ## Items, loot and merchants
 
 Loot is authored into places, not improvised, so becoming formidable is something the

@@ -30,8 +30,15 @@ follow them exactly), and as a worked example `campaigns/poc/` (scenario, NPCs, 
    with numbers), `default-goal`, secrets under `## Knowledge & secrets`, and
    `## Movements` lines in the exact form `- HH:MM–HH:MM → site[/area] (note)` (prose
    after; never "→ in transit"). A sidekick if `sidekick:` asks (07).
-5. **Encounters as budgets**: `- ENCOUNTER <easy|medium|hard|deadly> "<name>": <srd monster> ×n, …`
-   or `- ENCOUNTER fixed L<level> <word> "<name>": <roster>`, SRD monsters only. Then
+5. **Monsters: be creative.** When the theme wants a creature the SRD lacks, or a named
+   one, make it: `gm.py --campaign <slug> monster new "<name>" --from "<closest SRD monster>"`,
+   then edit the file in `campaigns/<slug>/bestiary/` — rename attacks thematically, add a
+   fitting trait or damage rider, set `cr`/`xp`, write a Description and a Backstory
+   (`bestiary/frost-yeti.md` and `campaigns/loop-open/bestiary/gerald.md` are examples).
+   Reusable species can already exist in the shared `bestiary/` (`gm.py monster list`).
+   **Encounters as budgets**: `- ENCOUNTER <easy|medium|hard|deadly> "<name>": <monster> ×n, …`
+   or `- ENCOUNTER fixed L<level> <word> "<name>": <roster>`, every monster SRD or bestiary
+   (lint warns otherwise). Then
    `gm.py --campaign <slug> encounter threat <place>` on every adventure place (it writes
    `threat:`), and check the readings with `encounter build "<name>"`.
 6. **Loot and merchants** (07 → Items): `## Loot` tables (a treasure item in every

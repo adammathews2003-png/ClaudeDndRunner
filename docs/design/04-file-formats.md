@@ -359,6 +359,42 @@ gains `loop`, `loop-baseline`, `loop-start`, `loop-end`; PCs gain `loop-bed: sit
 `## Memory across loops`; a regenerated piece already carried is marked `hollow` in
 its `notes`.
 
+## Bestiary file — `campaigns/<name>/bestiary/<slug>.md` or `bestiary/<slug>.md` (shared)
+
+A custom monster, made with `gm.py monster new "<name>" --from "<SRD or custom monster>"`
+(07 → Custom monsters) and then edited. Lookup order everywhere a monster is named
+(`srd:<name>`, `ENCOUNTER` rosters, `statblock:`): the campaign's bestiary, the shared
+`bestiary/`, then the SRD.
+```markdown
+---
+name: Frost Yeti
+kind: monster
+based-on: Polar Bear (SRD), re-themed with ice affinity
+size: L                 # T S M L H G
+type: monstrosity
+ac: 13
+ac-note: natural (frost-matted hide)
+hp: 59
+hp-dice: 7d10+21
+speed: 40 ft, climb 40 ft
+scores: {str: 19, dex: 12, con: 17, int: 6, wis: 12, cha: 7}
+prof: 2
+saves: {con: 5}         # bonuses, as in a stat block
+skills: {perception: 3, stealth: 3}
+senses: [darkvision 60]
+passive-perception: 13
+resistances: []
+immunities: [cold]
+vulnerabilities: []
+condition-immunities: []
+cr: 3
+xp: 700
+---
+## Description · ## Traits (`- **Name.** text`) · ## Attacks (`| name | hit | damage | range | notes |`,
+damage parts joined with ` + `, e.g. `1d6+4 slashing + 1d6 cold`) · ## Actions (Multiattack and
+non-attack actions as bullets) · ## Reactions · ## Backstory
+```
+
 ## NPC file — `npcs/<slug>.md`
 
 ```markdown

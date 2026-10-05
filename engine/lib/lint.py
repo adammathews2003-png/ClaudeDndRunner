@@ -252,7 +252,8 @@ def check_location_file(out, doc):
     for i, a in enumerate(placed):
         for b in placed[i + 1:]:
             (alo, ahi), (blo, bhi) = a.box(), b.box()
-            if alo[0] < bhi[0] and blo[0] < ahi[0] and alo[1] < bhi[1] and blo[1] < ahi[1]:
+            stacked = not (alo[2] < bhi[2] and blo[2] < ahi[2]) and (ahi[2] != alo[2] or bhi[2] != blo[2])
+            if alo[0] < bhi[0] and blo[0] < ahi[0] and alo[1] < bhi[1] and blo[1] < ahi[1] and not stacked:
                 out.warn(rel, f"Places `{a.id}` and `{b.id}` overlap")
     areas = set(geo._area_slugs(doc)) if tier == "site" else set()
     for r in frame.routes:
@@ -399,6 +400,29 @@ def check_loop(out):
                 out.warn(_rel(d.path), "`## Memory across loops` in a campaign without the time-loop mechanic")
 
 
+def check_encounters(out, doc):
+    """Every ENCOUNTER roster entry must be an SRD or bestiary monster (07 → Custom monsters)."""
+    from . import encounter as enc
+    for line in doc.body:
+        ln = enc.parse_line(line)
+        if ln is None:
+            continue
+        for e in ln.entries:
+            try:
+                e.monster_xp()
+            except enc.EncounterError:
+                out.warn(_rel(doc.path), f"ENCOUNTER \"{ln.name}\": {e.name!r} is not an SRD or bestiary monster "
+                                         "(gm.py monster new \"<name>\" --from \"<similar SRD monster>\")")
+
+
+def check_bestiary(out, doc):
+    for k in ("name", "ac", "hp", "scores", "xp"):
+        if doc.front.get(k) in (None, "", {}):
+            out.err(_rel(doc.path), f"bestiary: missing `{k}`")
+    if doc.table("Attacks") is None and doc.section("Actions") is None:
+        out.warn(_rel(doc.path), "bestiary: no ## Attacks table or ## Actions")
+
+
 def check_party_together(out):
     locs = {}
     for d in campaign.pcs():
@@ -413,7 +437,8 @@ def check_party_together(out):
 
 def _kind(rel):
     head = rel.split("/")[0]
-    return head if head in ("pcs", "npcs", "locations", "scenarios", "state", "sessions", "tables") else ""
+    return head if head in ("pcs", "npcs", "locations", "scenarios", "state", "sessions", "tables",
+                            "bestiary") else ""
 
 
 def check_file(out, path, fix_safe=False):
@@ -431,6 +456,10 @@ def check_file(out, path, fix_safe=False):
         check_movements(out, doc)
     if kind == "locations":
         check_location_file(out, doc)
+    if kind in ("locations", "scenarios", "tables"):
+        check_encounters(out, doc)
+    if kind == "bestiary":
+        check_bestiary(out, doc)
     if rel == "state/current.md":
         check_state(out, doc)
 
@@ -445,7 +474,7 @@ def run(files=None, fix_safe=False):
             if p.exists() and p.suffix == ".md" and not rel.startswith("sessions/"):
                 check_file(out, p, fix_safe)
         return out
-    for kind in ("locations", "npcs", "pcs", "scenarios"):
+    for kind in ("locations", "npcs", "pcs", "scenarios", "tables", "bestiary"):
         for p in sorted((root / kind).glob("*.md")) if (root / kind).is_dir() else []:
             check_file(out, p, fix_safe)
     if campaign.state_path().exists():
