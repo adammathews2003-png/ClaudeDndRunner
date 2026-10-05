@@ -737,6 +737,61 @@ lies and decisions · whether a Watch-for beat has actually fired · rulings and
 house-rule interpretation · scene summaries and session summaries · placing new terrain
 plausibly. Tools give facts and outcomes; the model gives meaning.
 
+## Campaign authoring, encounters and mechanics (07)
+
+### `gm.py campaign new|fill|status|ledger`
+Maintains `<campaign>/campaign.md` (07 → Parameters). `new <slug> --set length=…
+start-level=… difficulty=… shape=… --seed-file <path>` writes the frontmatter and
+copies the seed; `fill <id> "<answer>"` closes a fill-in-queue row and logs it; `status
+[--level shape-only|…]` prints the campaign at a reveal level; `ledger add "<what>"
+--via <skill>` records what the driver was told. The generation itself is skill work
+in a forked context (07 → Skills), not a tool.
+
+### `gm.py encounter budget|build|threat`
+- `budget [--present Kira,Kael] [--power +1]`: per-character XP thresholds (2014
+  DMG) summed for the PCs present at their levels, shifted by item power, with the
+  small/large-party shift (07 → Difficulty scaled to the table). Prints the four
+  thresholds, the effective party size and the power line.
+- `build "<encounter name>" [--present …] [--seed N]`: finds the `ENCOUNTER` line, takes
+  its absolute budget (the word at the campaign's `start-level` for 4 PCs = the place's
+  `threat.xp`), and scales the template's `×n` counts for the effective party size and
+  item power, never for level. Prints the roster as `--add` arguments for `combat
+  start`. `fixed` encounters print their stored
+  roster and a `[fixed L5 deadly — above the party]` warning when applicable.
+- `threat <place>`: recomputes `threat: {xp, fixed}` in a location's frontmatter from
+  its hardest `ENCOUNTER` line (used by the authoring skills and `lint`).
+
+### `gm.py loot roll <table> [--seed N]` · `gm.py shop <merchant> [--buy|--sell <item>] [--restock]`
+`loot roll` rolls a `tables/loot-*.md` table and prints the result as an `item +`
+suggestion (it never adds to an inventory by itself). `shop` prints a merchant's `##
+Stock` (set rows plus the current random rows), `--buy`/`--sell` move coin and items via
+`coin` and `item` with the DMG rarity price bands when a row has no price, and
+`--restock` re-rolls the random rows (also run by `clock advance` on a `daily`/`weekly`
+boundary and by `loop reset` for `loop`). `encounter budget` counts item power from
+inventory rarity tags (07 → Item power).
+
+### `gm.py danger <place> | --bearing <N|NE|…> [--present …]`
+Compares the place's `threat.xp` with the present party's thresholds and prints
+`[DANGER old-mill: yellow]` (green ≤ medium · yellow ≤ deadly · red above deadly or
+fixed above the party's unshifted level: item power never lowers a fixed wall).
+`--bearing` lists every placed adventure place in that
+45° wedge from the party's location with its colour, nearest first.
+
+### `gm.py loop start|reset|status` — only when `mechanics: [time-loop]`
+- `start`: commits, records `loop-baseline: <sha>`, `loop: 1`, `loop-start`,
+  `loop-end`, and each PC's `loop-bed` location in `current.md`.
+- `reset --by death|sleep|time`: restores `locations/`, `npcs/`, `scenarios/`,
+  `tables/` and the world facts of `state/current.md` from the baseline (`git checkout
+  <sha> -- …`), sets the clock to `loop-start`, moves PCs to `loop-bed` at full HP with
+  no conditions, increments `loop`, marks regenerated pieces already carried as
+  `hollow`, appends the `state/loops.md` row from the deltas since the last reset, and
+  logs `(GM) loop N reset (death)` + a public `[loop]` line. Never touches `pcs/`,
+  `state/loops.md`, `sessions/`, `campaign.md`.
+- `status`: loop number, time left in the day, what `loops.md` says the party learned.
+- `clock advance` reaching `loop-end` triggers `reset --by time`. `lint` errors on a
+  loop campaign without a baseline, and warns on `## Memory across loops` sections in
+  campaigns without the mechanic.
+
 ## Build order
 
 | Step | Contents | Why first |
@@ -750,6 +805,7 @@ plausibly. Tools give facts and outcomes; the model gives meaning.
 | 2a.6 | `clock` (with in-transit moves), `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `world add/place/lead/reveal`, `trace`, `odds`, `spoil` | build when the dry run shows the need (`odds` reuses the 2a.2 resolve/dice code) |
 | 2a.7 | `combat reframe`, `world place` suggestions, `world import`, `space.py map --place` (area/world maps) | deferred until play asks for them; none is needed to run the POC |
 | 2b | GM skills (02), written to call these commands | |
+| 2c | `campaign`, `encounter budget/build/threat`, `danger`, `loop` (mechanic-gated); `/campaign new|scenario|fill|status` authoring skills (07); `rules/mechanics/time-loop.md` | the first real campaign is authored with these and uses the loop mechanic; `encounter build` replaces fixed rosters in the GM's `/combat` recipe |
 
 Each step ships with seeded tests in `tools/tests/` against a fixture copy of `poc/`.
 POC content files are migrated to the new formats (04) in step 2a.1.

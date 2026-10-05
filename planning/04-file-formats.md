@@ -307,6 +307,36 @@ buildings. A single-room Layout can still rely on its Bounds.
 Who-is-here is NOT stored in the location file. It's derived by grepping NPC/PC
 frontmatter for `location: <slug>` (single source of truth for positions).
 
+## Campaign file — `<campaign>/campaign.md`
+
+Frontmatter and body per 07 → Parameters (name, slug, length, start-level, players,
+difficulty, shape, secondary, tone, references, reveal-policy, mechanics, seed-file,
+status); sections `## Premise (player-safe)`, `## Author notes (GM-only)`, `## Reveal
+exceptions`, `## Fill-in queue` (`| id | question | default | status |`), `## Author
+ledger` (`| when | what the driver was told | via |`).
+
+**Encounter lines** (scenarios and locations, 07 → Difficulty scaled to the table):
+`- ENCOUNTER <easy|medium|hard|deadly> "<name>": <monster> ×n, <monster>, …` or
+`- ENCOUNTER fixed L<level> <word> "<name>": <roster>`. Adventure places carry
+`threat: {xp: N, fixed: false}` in frontmatter, computed by `gm.py encounter threat`.
+
+**Loot and stock** (07 → Items, loot and merchants). A location may carry
+`## Loot`: `| item | kind | rarity | where | guard | random | notes |` (`kind`:
+campaign | treasure | consumable; `where` = sub-area or feature id; `guard` = an
+ENCOUNTER name, a check like `DC 15 Investigation`, or `—`; `random` = a loot table
+slug or blank). A merchant NPC carries `## Stock`: `| item | price | stock | restock |
+random |` (`restock`: daily | weekly | loop | never; `random` = a stock table slug for
+re-rolled rows). Tables: `tables/loot-<tier|place>.md` and `tables/stock-<merchant>.md`,
+both `| roll | result |`. The `item` mutation and PC `## Inventory` are unchanged; a
+magic item's rarity is written in its inventory line (`+1 longsword (uncommon)`) so
+`encounter budget` can count item power.
+
+**Time-loop campaigns** (`mechanics: [time-loop]`, 07 → Campaign mechanics): `current.md`
+gains `loop`, `loop-baseline`, `loop-start`, `loop-end`; PCs gain `loop-bed: site/area`;
+`state/loops.md` is `| loop | ended by | learned | gained | notes |`; an NPC may have
+`## Memory across loops`; a regenerated piece already carried is marked `hollow` in
+its `notes`.
+
 ## NPC file — `npcs/<slug>.md`
 
 ```markdown
