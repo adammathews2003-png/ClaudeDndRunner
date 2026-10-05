@@ -31,8 +31,9 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
    runs through `tools/table.py`, which shows only narration (planning/01 → Secrets).
 3. ~~Dice~~ **Decided:** players roll their own d20s and report them; the GM rolls the rest via `gm.py`.
 4. **Table size:** how many players/PCs will the real campaign have?
-5. ~~Git~~ **Done (2026-10-02):** the whole ProjectX workspace is a git repo (root one level
-   up, branch `main`). `gm.py session archive` commits there (see planning/05, item 4).
+5. ~~Git~~ **Done (2026-10-02; moved 2026-10-05):** `dnd-adventure/` is the git repo
+   (branch `main`), published at https://github.com/adammathews2003-png/ClaudeDndRunner.
+   `gm.py session archive` commits there (see planning/05, item 4).
 6. ~~Tools~~ **Decided:** stdlib frontmatter parser; hybrid brief injection; lint at
    write time, per batch on touched files, and fully at scene/session boundaries.
    Secrets in tool output: hidden by the table client (`planning/06-tools-spec.md`).

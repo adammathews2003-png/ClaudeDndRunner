@@ -8,8 +8,8 @@ phase has to decide something the docs leave open, the decision is written here 
 session makes the same one.
 
 Conventions used throughout:
-- Paths are relative to `dnd-adventure/` unless they start with `~` or the repo root is
-  named. The git repo root is one level up (`ProjectX/`), branch `main`.
+- Paths are relative to `dnd-adventure/`, which is the git repo root (branch `main`,
+  remote `origin` = github.com/adammathews2003-png/ClaudeDndRunner) since 2026-10-05.
 - `04:68-130` means `planning/04-file-formats.md` lines 68–130 as of commit `0bbce3d`.
 - Run tools as `python tools/gm.py …` from `dnd-adventure/` (Python 3.11.9 is installed;
   both `python` and `py` resolve to it).
@@ -559,7 +559,7 @@ archive`, `stub`, `where`, `world init|show|add|lead|place|reveal`, `trace`, `od
    extracted `  - ` deltas (minus `(GM)` lines for the recap portion), reset
    `session-current.md`, never touch `spoilers.md`, clear `in-session`, end `session`
    rules, run lint (refuse on errors unless `--force`), then `git add -A && git commit
-   -m "session NN"` from the repo root.
+   -m "session NN"` from the repo root (`dnd-adventure/`).
 6. `stub npc|location|place` (06:458-464) from the 04 templates; `where [--from]`
    (06:466-476) with the `[WHERE]` lines; `world init|show|add|lead|place|reveal`
    (06:478-506 minus suggestions/import, which are Phase 8): constraint parser for the

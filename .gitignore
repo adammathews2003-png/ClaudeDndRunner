@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+
+# Claude GM tool scratch (undo journal, brief hash, drafts, client log; not canon)
+.gm/
+
+# Editors
+.idea/
+.vscode/
+.DS_Store
