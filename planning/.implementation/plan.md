@@ -699,3 +699,17 @@ on a toy seed returns only a shape card in the parent context (grep the transcri
    stall or drift in `planning/.implementation/DRY-RUN-NOTES.md`; tighten skills, not
    tools, unless a tool is wrong.
 7. Tick the README phases; update `README.md` build-phase checkboxes at the repo level.
+
+---
+
+## Phase 1 — completion notes (2026-10-04)
+
+Built and verified (83 tests). Extras beyond the contract that later phases may use:
+`GM_CAMPAIGN` env var (same effect as `--campaign`), `Doc.front_quoted`, `Doc.bom`,
+`Table.find`, `Table.extras` (cells beyond the header, preserved on edit),
+`journal.log_turn/current_turn/entries`, `gametime.parse_clock/parse_window/diff/
+fmt_delta`. `Batch` is lazy: entering costs nothing; the entry is created on the first
+write. Writes under `.gm/` are never journaled; writes outside the campaign root raise.
+`gm.py` has a minimal `log` command already. Known, deliberately unfixed: indented table
+rows lose their indent on edit; `section()` is first-wins on prefix (prefer exact
+heading text when two share a prefix); exotic unicode line separators are normalized.

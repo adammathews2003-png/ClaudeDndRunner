@@ -86,7 +86,7 @@ To stay dependency-free (decided: no PyYAML), frontmatter is restricted to a YAM
 · `# comments` · quoted strings. **No nested blocks, no multi-line values.** Anything
 richer goes in a markdown table in the body (Attacks, Resources). Writers preserve
 comments, key order and untouched lines byte-for-byte. `lint` flags frontmatter outside
-the subset. (Alternative: depend on PyYAML — see Open questions.)
+the subset.
 
 Tables are parsed by header name, so extra columns never break a reader (space.py
 already works this way).
@@ -475,7 +475,7 @@ the record". Given a place, it also prints the generated relational view, the sa
 This is the "no calculation needed" answer for planning ("can they get there before
 the cart?") without anyone storing or hand-maintaining a distance table.
 
-### `gm.py world show | add | place | lead | reveal | import`
+### `gm.py world init | show | add | place | lead | reveal | import`
 Maintains `locations/world.md` (04 → The world file; 02 → The open world). Every write
 records a `source` and is logged.
 ```

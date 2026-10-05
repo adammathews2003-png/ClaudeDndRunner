@@ -19,7 +19,7 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | Phase | Build step | Contents | Done |
 |---|---|---|---|
 | 0 | — | Documentation discovery (in `plan.md`) | [x] |
-| 1 | 2a.1 | `lib/md.py`, `lib/campaign.py`, `lib/journal.py`, `lib/gametime.py`, `gm.py` skeleton + `do`, test harness, `.campaign` | [ ] |
+| 1 | 2a.1 | `lib/md.py`, `lib/campaign.py`, `lib/journal.py`, `lib/gametime.py`, `gm.py` skeleton + `do`, test harness, `.campaign` | [x] `0bbce3d`→ see git log (2026-10-04) |
 | 2 | 2a.2 | `lib/dice.py`, `lib/resolve.py`, `roll`, `atk/save/check/contest`, mutations, `log`, `undo`, `rule/retcon/overrule-undo` | [ ] |
 | 3 | 2a.3 | `brief` + hooks + permissions allowlist (`.claude/settings.json`) | [ ] |
 | 4 | 2a.4 | `lib/geo.py`, `scene enter`, `tempo/pos/intent/onstage`, `combat start/next/end`, `srd` + data download, `space.py` on `md.py` + Stage table + `secret` | [ ] |

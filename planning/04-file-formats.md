@@ -8,7 +8,10 @@ body sections are conventions.
 `key: scalar`, `key: [inline, list]`, `key: {one: 1, level: 2}` (one-level inline map),
 `# comments` and quoted strings. No nested blocks or multi-line values. Anything richer
 goes in a markdown table in the body. Tables are read by header name, so extra columns
-are always safe.
+are always safe. Line endings: the working tree is mixed CRLF/LF (`core.autocrlf` is
+`true`), so tools read with `encoding="utf-8"` + `splitlines()`, write back with the
+newline the file already uses (`\r\n` if it contains one, else `\n`), and give new
+files `\n`.
 
 **Frontmatter is player-safe.** It's the first thing anyone sees in a file, and tools
 print it freely, so it holds only the public face of things (e.g., an NPC's cover
@@ -175,7 +178,8 @@ origin (0,0,0) = the well at the center of the square · +x east · +y north · 
      footprint edge nearest the other end. `via` = waypoints in this frame, in order.
      `time` is blank (derived: path length ÷ pace × the kind's factor) or an override
      with a reason. `kind` sets a default pace factor: road/street/door 1 · path/lane
-     1 · trail 1.5 · trackless/marsh/scree 2 (the DMG's difficult-terrain halving).
+     1 · trapdoor/stairs/gate/ladder 1 · trail 1.5 · trackless/marsh/scree 2 (the
+     DMG's difficult-terrain halving).
      `access`: obvious | DC N to notice | locked (who has the key) | secret. `secret`
      routes are left off player-facing output until discovered, like terrain.
      A route with its own dangers gets `tables/encounters-<route id>.md`; `travel`
