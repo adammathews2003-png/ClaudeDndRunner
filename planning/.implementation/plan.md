@@ -829,3 +829,25 @@ spec left open:
   byte-identical.
 - `space.py map --player-view` (Phase 5's filter) is already in; Phase 5 only needs the
   table client to use it. `gm.py space …` adds `--state` for the active campaign.
+
+## Phase 5 — completion notes (2026-10-05)
+
+Built and verified (241 tests + the live checks in `tools/tests/CLIENT-CHECKS.md`).
+`tools/table.py`; `space.py map --player-view` came with Phase 4. Needs
+`pip install claude-agent-sdk` (0.2.163 used); everything else stays stdlib-only and
+`table.py` imports the SDK lazily. Findings that changed the design:
+- **Windows:** the SDK refuses npm's `claude.CMD`; `find_cli()` uses the `claude.exe`
+  it wraps (`CLAUDE_CLI_PATH` overrides).
+- **Deny-by-default needs a PreToolUse hook.** Read-only shell commands (`whoami`) are
+  auto-approved and never reach `can_use_tool`. The client's hook (`decide()`) is the
+  real gate; `can_use_tool` is a backstop. Accepted: single `gm.py`/`space.py` commands
+  (Bash or PowerShell) with no unquoted `; & | < >`/newline and no `$(`/`${`/backticks,
+  optionally after `cd <game folder> &&` or with an absolute path to `tools/`;
+  Read/Glob/Grep inside dnd-adventure/; Skill.
+- **Auto-memory** was on for SDK sessions; the client sets
+  `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`.
+- `/gm` is auto-sent only when `.claude/skills/gm/` exists (Phase 9).
+- **For Phase 9 (`/gm` skill):** the GM must call tools exactly as
+  `python tools/gm.py <command>` (it tried `python gm.py …` first), never mention a
+  denial to the players, and never invent a roll when a tool fails (the first run did,
+  before the denial message named the allowed form).

@@ -722,7 +722,11 @@ python tools/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
 prompts (and a prompt would itself leak). The allowlist from 06 → Permissions is the
 complete set of what the GM may do: `gm.py`, `space.py`, Read within `dnd-adventure/`,
 and the skills. Everything else is denied, and the GM is told so and works around it.
-Denials go to `<campaign>/.gm/client.log`, never to the screen. A frequent denial
+Denials go to `<campaign>/.gm/client.log`, never to the screen. **Built (Phase 5):**
+the allowlist alone is not deny-by-default (Claude Code auto-approves read-only shell
+commands), so the client gates every tool call with a PreToolUse hook: single
+`gm.py`/`space.py` commands with no shell operators, Read/Glob/Grep inside the game
+folder, and Skill (tools/tests/CLIENT-CHECKS.md). A frequent denial
 means the allowlist or a skill needs fixing between sessions. A side benefit: the GM
 can't wander outside the game folder mid-session.
 
@@ -733,7 +737,9 @@ sessions keep using plain `claude`, which is effectively permanent GM view.
 **Memory systems.** Loading project settings only should also keep user-level plugins
 (e.g., claude-mem) and auto-memory out of play sessions, so play doesn't get recorded
 and replayed as spoiler-laden summaries in later design sessions. Verify this when
-building. If they do load, the client disables them for its session.
+building. If they do load, the client disables them for its session. **Checked (Phase 5):**
+user plugins and MCP servers don't load; auto-memory did, so the client sets
+`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` for its session.
 
 **Failure behavior.** SDK/API errors show `The GM needs a moment…` and retry once, then
 `[connection lost — :quit and restart; the game is saved]`. State is safe because it
