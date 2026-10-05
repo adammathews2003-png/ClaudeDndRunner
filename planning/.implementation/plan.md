@@ -410,7 +410,10 @@ pathfinding, `@feature`, LoS; see its docstring L1-16 and `Terrain` L84-100).
    copy Bounds + terrain from the sub-area's Layout, `--add "srd:thug x3 @25,15,0"`,
    `--init Kael=15`, `--surprised`; `next` advances `up:`, wraps rounds, moves the
    moves log into the session log, ticks `Nr` durations; `end` writes HP/conditions
-   back, sets `status: dead`, restores `(not in combat)`, ends `combat` rules. `--frame`
+   back, sets `status: dead`, restores `(not in combat)`, ends `combat` rules. **Write-back
+   is required, not optional:** during combat HP, temp HP and conditions live only in the
+   Combatants row (Phase 2 mutations write the row), so `end` must copy them to each PC/NPC
+   file's frontmatter (`hp: {current, max, temp}`, `conditions`) or the files go stale. `--frame`
    and `reframe` are Phase 8; reject with "not built yet".
 5. `srd monster|spell|condition <name> [--write <npc file>]` (06:347-355) and a one-off
    `tools/fetch_srd.py` (stdlib `urllib`) that lists the 5e-bits repo directory first,
@@ -713,3 +716,22 @@ write. Writes under `.gm/` are never journaled; writes outside the campaign root
 `gm.py` has a minimal `log` command already. Known, deliberately unfixed: indented table
 rows lose their indent on edit; `section()` is first-wins on prefix (prefer exact
 heading text when two share a prefix); exotic unicode line separators are normalized.
+
+## Phase 2 — completion notes (2026-10-05)
+
+Built and verified (184 tests). Commands: `roll`, `atk/save/check/contest` (in
+`roll.py`), `hp/dmg/cond/move-npc/move-party/time/undo` (`mutations.py`),
+`item/coin/res/attitude` (`inventory.py`), `rule/retcon/overrule-undo` (`rules.py`).
+Libraries: `lib/dice.py` (`Roller`, `Result.body/label`), `lib/resolve.py` (the only
+outcome rules, incl. `attack_mode`, ties-go-to-PC, table-rule keys), `lib/creatures.py`
+(creature numbers; raises `SrdNotBuilt` for SRD stat blocks until Phase 4),
+`lib/errors.py`. Decisions the spec left open:
+- Flags for "this DC/target belongs to a PC": `save … --by <pc>`, `check … --vs <pc>`.
+- `dmg` applies resistance/immunity/vulnerability (frontmatter lists, see 04); temp HP
+  is `hp: {current, max, temp}` and `9/11 (+5 temp)` in combat rows.
+- The tool rolls all damage; one log delta per `atk` (HP change folded in).
+- `gm.py --seed N do "…"` shares one seeded roller across the batch.
+- Locations must be `slug[/area]` naming a non-world-tier file.
+- Split group members are single creatures (size `M` until Phase 4 reads stat-block size).
+- **For Phase 4:** `combat end` must write HP/temp/conditions from the Combatants rows
+  back to PC/NPC frontmatter (added to Phase 4's build list).

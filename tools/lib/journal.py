@@ -66,6 +66,7 @@ class Batch:
     def __init__(self, command_line="", overrule=False):
         self.command_line = command_line
         self.overrule = overrule
+        self.extra = {}  # further manifest keys (e.g. `undoes` for overrule-undo)
         self.touched = []
         self.files = {}  # rel path -> snapshot file name or None (did not exist)
         self.dir = None
@@ -127,6 +128,7 @@ class Batch:
             "turn": self.turn,
             "step": self.step,
             "overrule": self.overrule,
+            **self.extra,
             "when": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
         tmp = self.dir / "manifest.json.tmp"
@@ -172,20 +174,30 @@ def undo():
         raise NothingToUndo("nothing to undo")
     entry = found[-1]
     manifest = _manifest(entry)
+    restore(entry, manifest.get("files", {}))
+    shutil.rmtree(entry, ignore_errors=True)
+    turn, step = manifest.get("turn"), manifest.get("step")
+    _without_journal(log_delta, f"undo turn {turn} step {step}")
+    return manifest
+
+
+def restore(entry, files, journaled=False):
+    """Copy the before-images `files` ({rel: snapshot name or None}) of journal entry
+    directory `entry` back into the campaign; None means the batch created the file,
+    so it is deleted. With `journaled`, the active Batch snapshots each file first
+    (so the restore itself can be undone)."""
     root = campaign.root()
-    for rel, name in manifest.get("files", {}).items():
+    for rel, name in files.items():
         target = root / rel
+        if journaled and _active is not None:
+            _active.snapshot(str(target))
         if name is None:
             if target.exists():
                 target.unlink()
             continue
         tmp = str(target) + ".tmp"
-        shutil.copyfile(entry / name, tmp)
+        shutil.copyfile(Path(entry) / name, tmp)
         os.replace(tmp, target)
-    shutil.rmtree(entry, ignore_errors=True)
-    turn, step = manifest.get("turn"), manifest.get("step")
-    _without_journal(log_delta, f"undo turn {turn} step {step}")
-    return manifest
 
 
 def _without_journal(fn, *args, **kwargs):

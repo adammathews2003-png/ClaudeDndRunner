@@ -135,9 +135,9 @@ class Dispatch(CampaignCase):
         self.assertIn("campaign folder not found", lines[0])
 
     def test_global_flag_before_unknown_command(self):
-        code, lines = run_main(["--campaign", str(self.camp), "undo"])
+        code, lines = run_main(["--campaign", str(self.camp), "frobnicate"])
         self.assertEqual(code, 1)
-        self.assertEqual(lines[0], "[undo] unknown command 'undo'")
+        self.assertEqual(lines[0], "[frobnicate] unknown command 'frobnicate'")
         code, lines = run_main(["--json"])
         self.assertEqual(code, 1)
         self.assertEqual(lines[0], "[gm.py] no command given")

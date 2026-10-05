@@ -62,3 +62,97 @@ class CampaignCase(unittest.TestCase):
         dst = src.with_name(src.stem + ".crlf.md")
         dst.write_bytes(src.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
         return dst
+
+
+# ---------- Phase 2 helpers (test data only; the real poc/ files are never edited) ----------
+
+VESKAR_CUSTOM = (
+    'statblock: "custom: see below"   # test-only custom block (srd arrives in Phase 4)\n'
+    "scores: {str: 15, dex: 16, con: 14, int: 14, wis: 11, cha: 14}\n"
+    "prof: 2\n"
+    "saves: [str, dex, wis]\n"
+    "skills: {athletics: 4, deception: 4, stealth: 5}\n"
+    "ac: 15\n"
+    "hp: {current: 65, max: 65}\n"
+    "resistances: [poison]"
+)
+VESKAR_ATTACKS = (
+    "## Attacks\n"
+    "| name     | hit | damage         | range | notes |\n"
+    "|----------|-----|----------------|-------|-------|\n"
+    "| scimitar | +14 | 1d6+3 slashing | 5     | test value |\n"
+    "| dagger   | +5  | 1d4+3 pierce   | 20/60 |       |\n"
+    "\n"
+)
+
+COMBAT_BLOCK = """## Combat — round 2 · up: Kael
+Map: crossroads-inn / common-room (frame: site crossroads-inn; layout: locations/crossroads-inn.md)
+Bounds: x 0–45 · y 0–35 · z 0–10 · origin (0,0,0) = inside the front door, SW corner · +x east · +y north · +z up · ft
+
+### Combatants
+| init | name      | glyph | side  | pos       | size     | ref              | HP      | AC | conditions  | notes |
+|------|-----------|-------|-------|-----------|----------|------------------|---------|----|-------------|-------|
+| 18   | Veskar    | V     | foe   | (10,10,0) | M        | npcs/veskar      | 22/22   | 14 | —           |       |
+| 15   | Kael (PC) | K     | party | (10,5,0)  | M        | pcs/kael-ashford | 9/11    | 15 | poisoned 3r |       |
+| 12   | Thugs ×3  | T     | foe   | (25,15,0) | group r5 | srd:thug         | 7/11 ea | 12 | —           |       |
+
+### Moves log (this round; cleared at round end, summarized into the session log)"""
+
+
+def _edit(path, fn):
+    raw = path.read_bytes().decode("utf-8")
+    nl = "\r\n" if "\r\n" in raw else "\n"
+    text = fn(raw.replace("\r\n", "\n"))
+    path.write_bytes(text.replace("\n", nl).encode("utf-8"))
+
+
+def give_custom_veskar(case):
+    """Swap Veskar's SRD statblock for a custom block in the temp copy."""
+    def fn(t):
+        t = t.replace("statblock: bandit captain", VESKAR_CUSTOM, 1)
+        return t.replace("## Movements", VESKAR_ATTACKS + "## Movements", 1)
+    _edit(case.path("npcs/veskar.md"), fn)
+
+
+def start_combat(case):
+    """Replace `(not in combat)` with a Combat block (04 L507-538) in the temp copy."""
+    _edit(case.path("state/current.md"),
+          lambda t: t.replace("## Combat\n(not in combat)", COMBAT_BLOCK, 1))
+
+
+def set_front_raw(case, rel, key, value):
+    """Rewrite one frontmatter line in a temp copy (test setup only)."""
+    doc = md.load(case.path(rel))
+    doc.set_front(key, value)
+    doc.save()
+
+
+class Scripted:
+    """A dice.Roller stand-in that returns scripted die faces in order."""
+
+    def __init__(self, faces):
+        from lib import dice
+        self._faces = list(faces)
+        self._roller = dice.Roller(0)
+        self._roller.die = self.die
+
+    def die(self, sides):
+        if not self._faces:
+            raise AssertionError("scripted dice ran out")
+        v = self._faces.pop(0)
+        assert 1 <= v <= sides, (v, sides)
+        return v
+
+    def __getattr__(self, name):
+        return getattr(self._roller, name)
+
+
+def run_main(argv):
+    """Run gm.main in-process; returns (exit code, output lines)."""
+    import io
+    from contextlib import redirect_stdout
+    import gm
+    out = io.StringIO()
+    with redirect_stdout(out):
+        code = gm.main(argv)
+    return code, out.getvalue().splitlines()

@@ -20,12 +20,13 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from lib import campaign, gametime, journal  # noqa: E402
+from lib import campaign, dice, gametime, journal  # noqa: E402
+from lib.errors import ToolError  # noqa: E402
 
 USAGE_LINE = "gm.py [--campaign DIR] [--seed N] [--json] <command> [args…]"
 USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
-                   "srd", "pc", "world", "mutations", "roll", "rules")
+                   "srd", "pc", "world", "mutations", "inventory", "roll", "rules")
 
 
 class CommandError(Exception):
@@ -45,12 +46,28 @@ class Parser(argparse.ArgumentParser):
 class Ctx:
     """What a command gets: parsed args, campaign root, output sink."""
 
-    def __init__(self, args):
+    def __init__(self, args, batch_roller=None):
         self.args = args
         self.seed = getattr(args, "seed", None)
         self.json = bool(getattr(args, "json", False))
         self.lines = []
         self.result = {}
+        self.batch_roller = batch_roller
+        self._roller = None
+
+    @property
+    def roller(self):
+        """The dice for this command: its own `--seed`, else the `do` batch's shared
+        Roller (seeded from `gm.py --seed N do …`), else a SystemRandom one."""
+        if self._roller is None:
+            seed = getattr(self.args, "seed", None)
+            if seed is not None:
+                self._roller = dice.Roller(seed)
+            elif self.batch_roller is not None:
+                self._roller = self.batch_roller
+            else:
+                self._roller = dice.Roller()
+        return self._roller
 
     def emit(self, line):
         self.lines.append(line)
@@ -152,6 +169,58 @@ def split_steps(text):
     return [s.strip() for s in steps if s.strip()]
 
 
+GLOBAL_VALUES = ("--campaign", "--seed")
+GLOBAL_FLAGS = ("--json",)
+
+
+def split_globals(argv):
+    """Pull `--campaign X`, `--seed N` and `--json` out of a command line wherever they
+    stand (before `--`), so positional catch-alls never swallow them. Returns
+    (rest, {dest: value})."""
+    rest, found, i = [], {}, 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok == "--":
+            rest.extend(argv[i:])
+            break
+        if tok in GLOBAL_VALUES and i + 1 < len(argv):
+            val = argv[i + 1]
+            if tok == "--seed":
+                try:
+                    val = int(val)
+                except ValueError:
+                    raise CommandError(f"--seed wants a number, got {val!r}") from None
+            found[tok[2:]] = val
+            i += 2
+            continue
+        if tok in GLOBAL_FLAGS:
+            found[tok[2:]] = True
+        else:
+            rest.append(tok)
+        i += 1
+    return rest, found
+
+
+def clean_line(argv):
+    """The command line as recorded in the journal and log lines: global flags
+    (--campaign/--seed/--json) left out, also inside `do` steps."""
+    rest, _ = split_globals(argv)
+    if command_name(rest) == "do":
+        i = rest.index("do")
+        if i + 1 < len(rest):
+            steps = []
+            for step in split_steps(rest[i + 1]):
+                try:
+                    toks = split_args(step)
+                except ValueError:
+                    steps.append(step)
+                    continue
+                kept, found = split_globals(toks)
+                steps.append(" ".join(shlex.quote(t) for t in kept) if found else step)
+            rest = rest[:i + 1] + ["; ".join(steps)] + rest[i + 2:]
+    return "gm.py " + " ".join(shlex.quote(a) for a in rest)
+
+
 def split_args(step):
     """Tokenize one step like a shell, but with backslashes literal so Windows paths
     (`C:\\tmp\\poc`) survive."""
@@ -167,6 +236,7 @@ def cmd_do(ctx):
     if not steps:
         raise CommandError("do: no steps given")
     applied = []
+    shared = dice.Roller(ctx.seed) if ctx.seed is not None else None
     for i, step in enumerate(steps, start=1):
         try:
             argv = split_args(step)
@@ -175,7 +245,7 @@ def cmd_do(ctx):
         if argv and argv[0] == "do":
             raise CommandError(f"step {i} `{step}` failed: do cannot nest")
         try:
-            sub = run(argv, batch=False)
+            sub = run(argv, batch=False, roller=shared)
         except CommandError as e:
             done = ", ".join(f"{n} `{s}`" for n, s in zip(range(1, i), steps)) or "(none)"
             raise CommandError(f"step {i} `{step}` failed: {e}\n[do] applied: {done}",
@@ -188,10 +258,13 @@ def cmd_do(ctx):
 
 # ---------- dispatch ----------
 
-def run(argv, batch=True):
+def run(argv, batch=True, roller=None):
     """Parse and run one command line (a list of tokens). Returns its Ctx; raises
-    CommandError. With batch=True the command runs inside its own journal Batch."""
+    CommandError. With batch=True the command runs inside its own journal Batch;
+    `roller` is the `do` batch's shared Roller (Ctx.roller)."""
     parser = build_parser()
+    full = list(argv)
+    argv, found = split_globals(argv)
     name = command_name(argv)
     if not name:
         raise CommandError(f"no command given\n{USAGE}")
@@ -201,19 +274,21 @@ def run(argv, batch=True):
         args = parser.parse_args(argv)
     except CommandError as e:
         raise CommandError(f"{e}\n{USAGE}") from None
+    for key, value in found.items():
+        setattr(args, key, value)
     if hasattr(args, "campaign"):
         campaign.set_override(args.campaign)
-    ctx = Ctx(args)
+    ctx = Ctx(args, roller)
     try:
         if batch:
-            with journal.Batch("gm.py " + " ".join(shlex.quote(a) for a in argv)):
+            with journal.Batch(clean_line(full)):
                 args.func(ctx)
         else:
             args.func(ctx)
     except CommandError:
         raise
     except (campaign.CampaignError, journal.JournalError, gametime.TimeError,
-            FileNotFoundError) as e:
+            ToolError, FileNotFoundError) as e:
         if os.environ.get("GM_DEBUG"):
             traceback.print_exc()
         raise CommandError(str(e)) from None

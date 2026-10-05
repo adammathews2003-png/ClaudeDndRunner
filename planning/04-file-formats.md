@@ -381,7 +381,10 @@ Scenario-driven or conditional moves in prose ("if suspicion rises, leaves by ni
 ```
 
 Custom stat blocks (`statblock: custom`) use the same `scores`/`prof`/`saves`/`skills`
-frontmatter and `## Attacks` table as PCs, below.
+frontmatter and `## Attacks` table as PCs, below, plus `ac:` and `hp: {current, max}`.
+Optional on NPCs and PCs alike: `resistances: [poison]`, `immunities: [fire]`,
+`vulnerabilities: [radiant]` (inline lists of damage types; `gm.py dmg`/`atk` apply
+them: half rounded down, 0, double).
 
 ## PC file — `pcs/<slug>.md`
 
@@ -399,7 +402,7 @@ class: rogue
 subclass: thief                   # empty until the class's subclass level
 level: 3
 background: custom (dock runner)
-hp: {current: 30, max: 30}
+hp: {current: 30, max: 30}     # {current, max, temp}: `temp` only while temp HP last (gm.py hp +temp)
 ac: 14
 passive-perception: 15        # GM reads this every scene entry
 passive-investigation: 13
@@ -569,7 +572,8 @@ Column notes: `side` (party / foe / neutral) drives opportunity-attack checks. `
 T/S/M/L/H/G or `group rN`. `ref` points tools to the creature's numbers: a PC/NPC file
 (no `.md`) or `srd:<monster>`. Conditions may carry a duration (`3r` rounds, `10m`),
 which `combat next` / `clock` count down. `notes` may carry `reach 10`, `climb speed`,
-`fly speed`. HP `0/x` renders as a lowercase (down) glyph on the map.
+`fly speed`. HP `0/x` renders as a lowercase (down) glyph on the map. Temporary HP is
+written after the HP as `9/11 (+5 temp)` (a group: `7/11 ea`).
 
 ## Table rules — `state/table-rules.md` (player overrules)
 

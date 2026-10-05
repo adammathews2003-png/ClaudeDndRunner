@@ -253,6 +253,12 @@ def _stage_tier(state):
     return out
 
 
+def stage_matches(state=None):
+    """Everyone in the scene outside combat: Stage table rows plus On stage bullets,
+    one Match per name (the Stage/On stage tier of `resolve`)."""
+    return _stage_tier(state or load_state())
+
+
 def resolve(name, state=None):
     """Find a creature by display name, slug or unique prefix. Order (06:55-58):
     Combat block rows → Stage table / On stage bullets → pcs/ → npcs/. The first tier

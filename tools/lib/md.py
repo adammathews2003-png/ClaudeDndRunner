@@ -257,6 +257,15 @@ class Table:
         self.extras.append([])
         self.doc.body.insert(self._line_index(len(self.rows) - 1), self._render(full))
 
+    def insert(self, i, row):
+        """Insert a row before row index `i` (i == len(self) appends)."""
+        clean = {self._check(k): ("" if v is None else str(v).strip()) for k, v in row.items()}
+        full = {k: clean.get(k, "") for k in self.keys}
+        i = max(0, min(i, len(self.rows)))
+        self.rows.insert(i, full)
+        self.extras.insert(i, [])
+        self.doc.body.insert(self._line_index(i), self._render(full))
+
     def remove(self, i):
         del self.doc.body[self._line_index(i)]
         del self.extras[i]
