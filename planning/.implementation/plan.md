@@ -312,8 +312,8 @@ Permissions above.
 **Build:**
 1. `brief` (06:225-235): build the ≤ 20-line digest from `current.md` + the files it
    points to; line formats exactly as 06:227-234 (`[GM BRIEF] …`, `On stage:`, `Order:`
-   (only when a Stage/Combat table exists), `Party:` (adds `· XP n/next` per PC in an
-   `advancement: xp` campaign), `Rules:`, `Watch:` + `Next
+   (only when a Stage/Combat table exists), `Party:` (adds `· XP n/next` per PC while
+   XP tracking is on), `Rules:`, `Watch:` + `Next
    clock:`, `Combat:`, `Log:`). `--long` adds the Summary and the last 5 turns of the
    session log plus spoiler count (06:555-557). Absent PCs show `(autopilot)`
    (06:625-626).
@@ -414,8 +414,8 @@ pathfinding, `@feature`, LoS; see its docstring L1-16 and `Terrain` L84-100).
    back, sets `status: dead`, restores `(not in combat)`, ends `combat` rules. **Write-back
    is required, not optional:** during combat HP, temp HP and conditions live only in the
    Combatants row (Phase 2 mutations write the row), so `end` must copy them to each PC/NPC
-   file's frontmatter (`hp: {current, max, temp}`, `conditions`) or the files go stale. In an
-   `advancement: xp` campaign, `end` also writes `.gm/last-combat.json` (foes, outcome,
+   file's frontmatter (`hp: {current, max, temp}`, `conditions`) or the files go stale. Unless
+   `xp-tracking: off`, `end` also writes `.gm/last-combat.json` (foes, outcome,
    base XP from the stat blocks) and prints the un-applied `[XP available: …]` line
    (06 → combat end); Phase 6 applies it. `--frame`
    and `reframe` are Phase 8; reject with "not built yet".
@@ -517,13 +517,15 @@ L13-21 (HP max-or-roll, `hp-method`); `poc/pcs/_template.md` and `kael-ashford.m
    choices; on apply update HP, hit dice, prof, slots, Resources, features, scores,
    Attacks, spell DC/attack, a Journal line and a session delta; clear `level-pending`.
    Multiclassing is `custom` only (02:139-140).
-5. **XP advancement** (06 → `gm.py xp`; 04 → Advancement; 02 → Level-up flow): `lib/xp.py`
-   with the PHB threshold table as data; `xp award|show|set` gated on `advancement: xp`
-   (read from `campaign.md`, else `state/current.md`, default milestone); even split,
-   `xp-absent` handling, remainders dropped; crossing a threshold sets `level-pending`;
+5. **XP tracking and advancement** (06 → `gm.py xp`; 04 → Advancement; 02 → Level-up
+   flow): `lib/xp.py` with the PHB threshold table as data; settings read from
+   `campaign.md`, else `state/current.md` (defaults `advancement: milestone`,
+   `xp-tracking: on`); `xp award|show|set` work unless tracking is off; even split,
+   `xp-absent` handling, remainders dropped; crossing a threshold sets `level-pending`
+   only under `advancement: xp` and is just noted under milestone;
    `award from-combat` reads `.gm/last-combat.json` (written by Phase 4's `combat end`,
-   see below) and refuses double awards; `pc write`/`pc draft` add `xp:` set to the
-   threshold of the starting level in xp campaigns; switching modes per 04.
+   see below) and refuses double awards; `pc write`/`pc draft` always add `xp:` (the
+   threshold of the starting level); switching modes per 04.
 
 **Verify:** `pc draft grask --set race="half-orc" class=barbarian level=3
 subclass=berserker --equip "greataxe; 4 javelins; explorer's pack"` then `pc check`
@@ -534,9 +536,10 @@ lists an ASI choice; `--apply` with `hp-method: max` raises Kael's max HP by 8 +
 and adds a Journal line; `overrides: {ac: 17}` survives `edit`. XP: in a fixture with
 `advancement: xp`, `xp award 1800 --present` with Kael and Kira at 900 gives 900 each
 (1,800 < 2,700: no level-up); a second `xp award 1800` takes both to 2,700 and sets
-`level-pending: 4`; `xp-absent: half`
-gives an absent PC half a share; `undo` reverses an award; every `xp` command refuses
-in the POC (milestone).
+`level-pending: 4`; the same awards in the POC (milestone, tracking on by default)
+update `xp` but leave `level-pending` empty and print the milestone note; `xp-absent:
+half` gives an absent PC half a share; `undo` reverses an award; with `xp-tracking: off`
+every `xp` command refuses.
 
 **Guards:** the model never adds up HP or slots (06:563): every number comes from the
 SRD data + `hp-method`; player-stated values win after one question (02:92-95); no

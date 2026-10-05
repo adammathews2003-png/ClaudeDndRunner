@@ -39,8 +39,10 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
    Secrets in tool output: hidden by the table client (`planning/06-tools-spec.md`).
 7. ~~Advancement~~ **Decided (2026-10-05): per campaign.** `advancement: milestone`
    (default; GM announces levels, `gm.py pc level-pending`) or `advancement: xp` (PHB
-   thresholds; `gm.py xp award`, combat XP offered at `combat end`, level-ups flagged
-   automatically). Absent PCs' share is a campaign setting (`xp-absent`).
+   thresholds flag level-ups automatically). **XP is tracked by default in both modes**
+   (`xp-tracking: on`; `gm.py xp award`, combat XP offered at `combat end`) so the total
+   is available for other thresholds or a later switch; `xp-tracking: off` disables it.
+   Absent PCs' share is a campaign setting (`xp-absent`).
    HP per level **decided: max or roll**, chosen once per character (`hp-method`),
    revisited only if the player asks (house rule).
 8. ~~Map model~~ **Decided (2026-10-04):** nested coordinate frames: world (mi) → area (ft)

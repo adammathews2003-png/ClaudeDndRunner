@@ -320,11 +320,13 @@ exceptions`, `## Fill-in queue` (`| id | question | default | status |`), `## Au
 ledger` (`| when | what the driver was told | via |`).
 
 **Advancement** (frontmatter, defaults shown): `advancement: milestone` (`milestone |
-xp`), `xp-absent: full` (`full | half | none`: what an absent PC gets of an award),
-`xp-split: even` (`even` among the PCs receiving it). A campaign without `campaign.md`
-(the POC) reads the same keys from `state/current.md` frontmatter, defaulting to
-milestone. Switching mid-campaign is allowed: to `xp`, each PC's `xp` is set to the
-threshold of their current level; to `milestone`, `xp` is kept but ignored.
+xp`: what triggers level-ups), `xp-tracking: on` (`on | off`: whether XP is awarded and
+kept at all; independent of advancement), `xp-absent: full` (`full | half | none`: what
+an absent PC gets of an award), `xp-split: even`. A campaign without `campaign.md` (the
+POC) reads the same keys from `state/current.md` frontmatter, with the same defaults.
+`advancement: xp` requires tracking on. Switching to `xp` mid-campaign keeps each PC's
+tracked total, raised to at least the threshold of their current level; switching to
+`milestone` keeps the total and stops auto-levelling.
 
 **Encounter lines** (scenarios and locations, 07 → Difficulty scaled to the table):
 `- ENCOUNTER <easy|medium|hard|deadly> "<name>": <monster> ×n, <monster>, …` or
@@ -425,7 +427,7 @@ hp-method: max                    # max | roll — asked once at creation; chang
 autopilot: follows the group, defends herself, makes no major decisions
 present: true                     # this session's roster (gm.py pc roster)
 level-pending:                    # e.g. 4 — set at a milestone or by an XP threshold, cleared by level-up
-xp: 0                             # only used when the campaign's advancement is xp; tools keep it
+xp: 0                             # tracked unless xp-tracking: off; levels only when advancement: xp
 overrides: {}                     # player-insisted values the tools won't re-derive, e.g. {ac: 17}
 ---
 

@@ -343,7 +343,7 @@ Layout: common-room (9 features) — `gm.py space map` to draw
   combatant is still outside that site's footprint.
 - `end`: writes HP/conditions back to PC/NPC files, marks dead NPCs
   (`status: dead` in frontmatter), leaves `## Combat (not in combat)`, sets tempo.
-  In an `xp` campaign it also prints the fight's award, un-applied: `[XP available: 700
+  Unless `xp-tracking: off`, it also prints the fight's award, un-applied: `[XP available: 700
   (wolf ×3 defeated, 1 fled) → 175 each for 4 present · award with: xp award
   from-combat]`. Base XP per monster (not the encounter multiplier, per the DMG) for
   foes defeated, routed, captured or talked down; fled foes count only if the GM says
@@ -579,7 +579,7 @@ gm.py pc level-pending <pc> [--to 4]              # mark a milestone level-up (x
 gm.py pc levelup <pc> --plan                      # what level N+1 grants + required choices
 gm.py pc levelup <pc> --choose asi="dex+2" spells="+guiding bolt" --apply
 gm.py pc roster [--present Kira,Kael] [--absent Bren]   # session attendance → present: flags
-gm.py xp award <N | from-combat> [--to Kira,Kael | --present] --reason "..."   # xp campaigns only
+gm.py xp award <N | from-combat> [--to Kira,Kael | --present] --reason "..."   # unless xp-tracking: off
 gm.py xp show [<pc>]                              # xp, level, next threshold, to go
 gm.py xp set <pc> <N> --reason "..."              # correction; logged; journaled like any mutation
 ```
@@ -769,7 +769,7 @@ in a forked context (07 → Skills), not a tool.
 - `threat <place>`: recomputes `threat: {xp, fixed}` in a location's frontmatter from
   its hardest `ENCOUNTER` line (used by the authoring skills and `lint`).
 
-### `gm.py xp award | show | set` — only when `advancement: xp` (02 → Level-up flow)
+### `gm.py xp award | show | set` — unless `xp-tracking: off` (02 → Level-up flow)
 - Thresholds: the PHB table (L2 300 · L3 900 · L4 2,700 · L5 6,500 · L6 14,000 · L7
   23,000 · L8 34,000 · L9 48,000 · L10 64,000 · L11 85,000 · L12 100,000 · L13 120,000 ·
   L14 140,000 · L15 165,000 · L16 195,000 · L17 225,000 · L18 265,000 · L19 305,000 ·
@@ -779,12 +779,13 @@ in a forked context (07 → Skills), not a tool.
   `award from-combat` uses the last `combat end` tally (kept in `.gm/last-combat.json`)
   and refuses if there is none or it was already awarded.
 - Output: `[XP +175 each → Kael 900→1,075 · Kira 2,650→2,825 ★ L4 at 2,700: level-up
-  pending]`. Crossing a threshold sets `level-pending` (to the highest level reached; one
-  level-up flow per level). Every award writes one delta with the reason; awards are
+  pending]`. With `advancement: xp`, crossing a threshold sets `level-pending` (to the
+  highest level reached; one level-up flow per level). With `advancement: milestone` it
+  is only noted (`★ past the L4 threshold (milestone: no level-up)`). Every award writes one delta with the reason; awards are
   journaled, so `undo` reverses them.
 - `show` is safe to paste to players (`Kira: L3 · 2,825 XP · L4 at 2,700 — level-up
-  pending`); `brief`'s Party line adds `· XP 2,825/2,700` in xp campaigns.
-- In a milestone campaign every `xp` command refuses with a pointer to `pc level-pending`.
+  pending`); `brief`'s Party line adds `· XP 2,825/2,700` while tracking is on.
+- With `xp-tracking: off` every `xp` command refuses, and `combat end` prints no tally.
 
 ### `gm.py loot roll <table> [--seed N]` · `gm.py shop <merchant> [--buy|--sell <item>] [--restock]`
 `loot roll` rolls a `tables/loot-*.md` table and prints the result as an `item +`

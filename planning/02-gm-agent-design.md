@@ -112,10 +112,15 @@ messages.
 `milestone`):
 - **milestone:** the GM announces a level at a story milestone; `gm.py pc level-pending
   <pc>` marks it.
-- **xp:** levels come from XP thresholds (PHB). The GM awards XP with `gm.py xp award`
-  (combat XP is offered by `combat end`; quest, discovery and roleplay XP are the GM's
-  call, always with a reason). When a PC's `xp` crosses the next threshold the tool sets
-  `level-pending` itself and says so in its output.
+- **xp:** levels come from XP thresholds (PHB): when a PC's `xp` crosses the next
+  threshold the tool sets `level-pending` itself and says so in its output.
+
+**XP is tracked in both modes** unless the campaign sets `xp-tracking: off`. The GM
+awards it with `gm.py xp award` (combat XP is offered by `combat end`; quest, discovery
+and roleplay XP are the GM's call, always with a reason). In a milestone campaign the
+total is kept for other uses (a campaign threshold that opens a door, a sequel, a
+switch to xp leveling later) and a crossed PHB threshold is only noted, never
+levelled.
 
 Either way the flow runs immediately or at the next session start. Narration may say
 "you feel ready to grow" but never quotes XP numbers unless a player asks; players can
