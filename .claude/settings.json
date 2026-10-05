@@ -1,14 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python tools/gm.py:*)",
-      "Bash(python tools/space.py:*)",
-      "Bash(py tools/gm.py:*)",
-      "Bash(py tools/space.py:*)",
-      "PowerShell(python tools/gm.py:*)",
-      "PowerShell(python tools/space.py:*)",
-      "PowerShell(py tools/gm.py:*)",
-      "PowerShell(py tools/space.py:*)"
+      "Bash(python engine/gm.py:*)",
+      "Bash(python engine/space.py:*)",
+      "Bash(py engine/gm.py:*)",
+      "Bash(py engine/space.py:*)",
+      "PowerShell(python engine/gm.py:*)",
+      "PowerShell(python engine/space.py:*)",
+      "PowerShell(py engine/gm.py:*)",
+      "PowerShell(py engine/space.py:*)"
     ]
   },
   "hooks": {
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python tools/gm.py brief --hook",
+            "command": "python engine/gm.py brief --hook",
             "timeout": 10
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python tools/gm.py brief --hook --long",
+            "command": "python engine/gm.py brief --hook --long",
             "timeout": 30
           }
         ]

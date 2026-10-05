@@ -1,12 +1,12 @@
 ---
 name: travel
 description: Move the party between locations (a building's rooms, places in a town, or towns on the world map) with real route, time, encounter roll and the arrival scene. Use whenever the party goes somewhere.
-allowed-tools: Bash(python tools/gm.py:*), PowerShell(python tools/gm.py:*), Read
+allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), Read
 ---
 
 # Travel
 
-1. `python tools/gm.py travel <site[/area] or place id> [--pace fast|normal|slow] [--by foot|cart|horse|boat] [--night] [--light dim|dark]`
+1. `python engine/gm.py travel <site[/area] or place id> [--pace fast|normal|slow] [--by foot|cart|horse|boat] [--night] [--light dim|dark]`
    - It finds the route (no teleporting), derives the time, rolls the encounter table
      secretly, advances the clock, moves the party and enters the destination scene.
    - A locked way refuses: the party must deal with it first (a key, a check, force),

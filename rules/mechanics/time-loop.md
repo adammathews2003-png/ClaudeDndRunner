@@ -1,7 +1,7 @@
 # Mechanic: the time loop
 
 Loaded by `/gm` only when the campaign's `campaign.md` lists `mechanics: [time-loop]`
-(planning/07 → Time loop). The first section may be told to players as is; the second is
+(docs/design/07 → Time loop). The first section may be told to players as is; the second is
 the GM's.
 
 ## What the players know (say it plainly when they first notice the loop)
@@ -17,13 +17,13 @@ the GM's.
   the rest of the day.
 
 ## The GM's procedure
-- **Start:** `python tools/gm.py loop start [--bed site/area]` at the loop day's first
+- **Start:** `python engine/gm.py loop start [--bed site/area]` at the loop day's first
   moment (sets the clock, the beds, and the git baseline).
-- **Reset:** `python tools/gm.py loop reset --by death|sleep|time` the moment one of the
+- **Reset:** `python engine/gm.py loop reset --by death|sleep|time` the moment one of the
   triggers happens (the clock triggers `--by time` by itself at `loop-end`). Narrate the
   wake-up as the same morning, the same first sounds, word for word where you can.
 - **Consistency across loops:** `state/loops.md` (one row per reset: what was learned and
-  gained) and `python tools/gm.py loop status`. The world repeats exactly unless the
+  gained) and `python engine/gm.py loop status`. The world repeats exactly unless the
   party changes something: "the guard still sneezes at 09:10". NPC schedules repeat
   (`clock advance` runs them every loop).
 - **NPCs don't remember**, except an NPC with `## Memory across loops`: append what they

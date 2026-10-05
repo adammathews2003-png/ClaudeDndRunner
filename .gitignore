@@ -9,3 +9,8 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+
+# Campaigns are their own git repositories (data + history live with the campaign);
+# the engine repo keeps only campaigns/README.md. campaigns/.active is a local choice.
+campaigns/*/
+campaigns/.active

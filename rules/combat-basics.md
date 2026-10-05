@@ -26,7 +26,7 @@ advantage; attacking an unseen target: disadvantage.
 ## Cover
 Half cover +2 AC/DEX saves · three-quarters +5 · total cover: untargetable.
 
-## Positions & distance (house model — see planning/02, Spatial model)
+## Positions & distance (house model — see docs/design/02, Spatial model)
 - Space is a grid of 5-ft cells. A position `(x,y,z)` in feet, multiples of 5, names a
   **cell center**. +z is up.
 - **Distance = max(|dx|, |dy|, |dz|).** (5e grid rule: diagonals cost 5 ft, extended to 3D.)
@@ -63,7 +63,7 @@ creature occupies (a creature is hit if any of its cells is in).
   caster's cell corner (diagonal cone). For a cell center at offset v from the apex,
   with f = distance along the aim and s = distance off the aim line:
   **in if 0 < f ≤ L and s ≤ f / 2** (5e: a cone's width equals its distance from the
-  origin). Works in 3D unchanged. Templates below; anything else → `tools/space.py cone`.
+  origin). Works in 3D unchanged. Templates below; anything else → `engine/space.py cone`.
 - **Line (L × 5 ft):** cells whose center lies within 2.5 ft of the line segment from
   the caster's cell face out to L.
 
@@ -81,7 +81,7 @@ creature occupies (a creature is hit if any of its cells is in).
 Templates are the cells at the caster's height. Areas are 3D: a 30-ft cone also reaches
 a few cells above/below the aim line, which matters for flyers and balconies. 60-ft
 cones (61 / 70 cells), aims that aren't straight or diagonal, and anything with height
-differences → `python tools/space.py cone ...`.
+differences → `python engine/space.py cone ...`.
 
 ## Dropping to 0 HP
 PCs fall unconscious and make death saves (d20: 10+ success, three successes stabilize,

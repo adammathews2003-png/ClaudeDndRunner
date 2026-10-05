@@ -2,7 +2,7 @@
 name: spoilers
 description: Answer a player's question about the secrets behind the screen or a "what if" alternative, between spoiler banners, and record it. Players type /spoilers; it is the only exception to the behind-the-screen rules.
 disable-model-invocation: true
-allowed-tools: Bash(python tools/gm.py:*), PowerShell(python tools/gm.py:*), Read
+allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), Read
 ---
 
 # Spoilers
@@ -21,9 +21,9 @@ Honor-based: typing the command is the decision. Answer right away.
 ## 2. Gather (you may read anything now)
 Scenario `## The truth` and beats; NPC files (secrets, Movements); the session log
 including `(GM)` lines and `sessions/history/`; clocks and state;
-`python tools/gm.py trace <name|place> [--from "Day 1 18:00"]` for where someone was;
-`python tools/gm.py odds atk|save|check|contest …` for exact chances;
-`python tools/gm.py spoil list` for what's already been revealed.
+`python engine/gm.py trace <name|place> [--from "Day 1 18:00"]` for where someone was;
+`python engine/gm.py odds atk|save|check|contest …` for exact chances;
+`python engine/gm.py spoil list` for what's already been revealed.
 
 ## 3. Answer between the markers (the client draws them as a banner)
 ```
@@ -44,7 +44,7 @@ including `(GM)` lines and `sessions/history/`; clocks and state;
   Secrets never change because they were revealed.
 
 ## 4. Record it, right after the answer
-`python tools/gm.py spoil log "<the question>" --level <none|minor|major> --depth <hint|answer|full> --reveals "<one line of what was revealed>" [--what-if]`
+`python engine/gm.py spoil log "<the question>" --level <none|minor|major> --depth <hint|answer|full> --reveals "<one line of what was revealed>" [--what-if]`
 
 ## 5. Resume play under the normal rules
 Characters don't learn what players learned; NPCs react to what the characters did. From

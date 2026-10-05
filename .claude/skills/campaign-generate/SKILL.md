@@ -2,16 +2,16 @@
 name: campaign-generate
 description: Generate a campaign's first arc (truth, scenario, NPCs, places, tables, threat metadata) from its campaign.md and seed, in a forked context, and return only the player-safe shape card. Invoked by /campaign-new with the campaign slug.
 context: fork
-allowed-tools: Bash(python tools/gm.py:*), PowerShell(python tools/gm.py:*), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), Read, Write, Edit, Glob, Grep
 ---
 
 # Generate a campaign (forked: the driver never sees this)
 
 Campaign slug: $ARGUMENTS
 
-Read first: `<slug>/campaign.md`, `<slug>/campaign-seed.md`, `planning/07-campaign-authoring.md`
-(shapes, difficulty, items, mechanics), `planning/04-file-formats.md` (every file format:
-follow them exactly), and as a worked example `poc/` (scenario, NPCs, locations).
+Read first: `campaigns/<slug>/campaign.md`, `campaigns/<slug>/campaign-seed.md`, `docs/design/07-campaign-authoring.md`
+(shapes, difficulty, items, mechanics), `docs/design/04-file-formats.md` (every file format:
+follow them exactly), and as a worked example `campaigns/poc/` (scenario, NPCs, locations).
 
 ## Write
 1. **The truth and the arcs** in `campaign.md ## Author notes (GM-only)`: what's really
