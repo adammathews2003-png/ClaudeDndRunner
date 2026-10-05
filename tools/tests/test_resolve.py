@@ -208,11 +208,11 @@ class CommandLines(CampaignCase):
 
     def test_save(self):
         line, _ = roll.saving_throw("Kael", "dex", 14, d20=14)
-        self.assertEqual(line, "[Kael Ashford DEX save: d20 14+0=14 vs DC 14 — SAVE (tie→PC)]")
+        self.assertEqual(line, "[Kael Ashford DEX save: d20 14+0=14 vs DC 14 — SAVE by 0 (tie→PC)]")
         line, _ = roll.saving_throw("Veskar", "wis", 13, by="Kael", roller=Scripted([9]))
-        self.assertEqual(line, "[Veskar WIS save: d20 9+2=11 vs DC 13 — FAIL]")
+        self.assertEqual(line, "[Veskar WIS save: d20 9+2=11 vs DC 13 — FAIL by 2]")
         line, _ = roll.saving_throw("Veskar", "wis", 13, by="Kael", roller=Scripted([11]))
-        self.assertEqual(line, "[Veskar WIS save: d20 11+2=13 vs DC 13 — FAIL (tie→PC)]")
+        self.assertEqual(line, "[Veskar WIS save: d20 11+2=13 vs DC 13 — FAIL by 0 (tie→PC)]")
 
     def test_d20_and_total_exclusive(self):
         code, lines = run_main(["atk", "Kira", "Veskar", "--d20", "12", "--total", "15"])
@@ -229,22 +229,22 @@ class CommandLines(CampaignCase):
 
     def test_check_secret(self):
         code, lines = run_main(["check", "Veskar", "deception", "12", "--secret", "--seed", "1"])
-        self.assertEqual(lines, ["[SECRET Veskar deception: d20 5+4=9 vs DC 12 — FAIL]"])
+        self.assertEqual(lines, ["[SECRET Veskar deception: d20 5+4=9 vs DC 12 — FAIL by 3]"])
         log = self.path("sessions/session-current.md").read_text(encoding="utf-8").splitlines()
-        self.assertEqual(log[-1], "  - (GM) roll SECRET Veskar deception: d20 5+4=9 vs DC 12 — FAIL")
+        self.assertEqual(log[-1], "  - (GM) roll SECRET Veskar deception: d20 5+4=9 vs DC 12 — FAIL by 3")
         public = [x for x in log if x.startswith("  - ") and "(GM)" not in x]
         self.assertFalse(any("9" in x for x in public))
 
     def test_check_vs_pc_passive(self):
         line, _ = roll.ability_check("Veskar", "stealth", 15, vs="Kira", roller=Scripted([10]))
-        self.assertEqual(line, "[Veskar stealth: d20 10+5=15 vs DC 15 — FAIL (tie→PC)]")
+        self.assertEqual(line, "[Veskar stealth: d20 10+5=15 vs DC 15 — FAIL by 0 (tie→PC)]")
 
     def test_contest(self):
         code, lines = run_main(["contest", "Kira", "stealth", "Veskar", "perception", "--d20", "15", "--seed", "1"])
-        self.assertEqual(lines, ["[Kira Thornwood stealth d20 15+7=22 vs Veskar perception d20 5+0=5 — Kira Thornwood wins]"])
+        self.assertEqual(lines, ["[Kira Thornwood stealth d20 15+7=22 vs Veskar perception d20 5+0=5 — Kira Thornwood wins by 17]"])
         # bare adv/dis like the other commands (--mode stays an alias)
         code, lines = run_main(["contest", "Veskar", "stealth", "adv", "Kira", "perception", "--d20", "3", "--seed", "1"])
-        self.assertEqual(lines, ["[Veskar stealth d20 (5, 19)→19+5=24 vs Kira Thornwood perception d20 3+5=8 — Veskar wins]"])
+        self.assertEqual(lines, ["[Veskar stealth d20 (5, 19)→19+5=24 vs Kira Thornwood perception d20 3+5=8 — Veskar wins by 16]"])
         code, lines = run_main(["contest", "Veskar", "stealth", "Kira", "perception", "--mode", "adv",
                                 "--d20", "3", "--seed", "1"])
         self.assertEqual(code, 0, lines)
@@ -252,12 +252,12 @@ class CommandLines(CampaignCase):
     def test_contest_tie_defender_pc(self):
         line, _ = roll.contest("Veskar", "deception", "Kira", "insight", d20=11, roller=Scripted([10]))
         self.assertEqual(line, "[Veskar deception d20 10+4=14 vs Kira Thornwood insight d20 11+3=14 — "
-                               "Kira Thornwood wins (tie→PC)]")
+                               "Kira Thornwood wins by 0 (tie→PC)]")
 
     def test_contest_passive(self):
         code, lines = run_main(["contest", "Veskar", "stealth", "passive", "--seed", "1"])
         self.assertEqual(lines, ["[Veskar stealth d20 5+5=10 vs passive perception: Kael Ashford 13 — "
-                                 "Kael Ashford wins · Kira Thornwood 15 — Kira Thornwood wins]"])
+                                 "Kael Ashford wins by 3 · Kira Thornwood 15 — Kira Thornwood wins by 5]"])
 
     def test_contest_passive_skips_srd_npcs(self):
         code, lines = run_main(["contest", "Kira", "stealth", "passive", "--d20", "10"])
@@ -270,7 +270,7 @@ class CommandLines(CampaignCase):
         code, lines = run_main(["contest", "Kira", "stealth", "passive", "--d20", "10"])
         self.assertEqual(lines, ["[Kira Thornwood stealth d20 10+7=17 vs passive perception: "
                                  "Mara — no numbers (srd not built yet) · Tobin — no numbers (srd not built yet) · "
-                                 "Veskar 10 — Kira Thornwood wins]"])
+                                 "Veskar 10 — Kira Thornwood wins by 7]"])
 
     def test_srd_statblock_refused(self):
         code, lines = run_main(["check", "Mara", "insight", "12", "--seed", "1"])

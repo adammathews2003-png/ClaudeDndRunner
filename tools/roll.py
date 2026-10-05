@@ -22,9 +22,10 @@ when the player reported the d20.
 Lines:
     [Veskar → Kael: d20 13+5=18 vs AC 18 — MISS (tie→PC)]
     [Veskar → Kael: d20 19+5=24 vs AC 18 — HIT · 7 slashing · Kael 30→23/30]
-    [Kael DEX save: d20 12+0=12 vs DC 14 — FAIL]
-    [Mara insight: d20 9+2=11 vs DC 12 — FAIL]
-    [Kira stealth d20 15+7=22 vs Mara perception d20 8+3=11 — Kira wins]
+    [Kael DEX save: d20 12+0=12 vs DC 14 — FAIL by 2]
+    [Mara insight: d20 9+2=11 vs DC 12 — FAIL by 1]
+    [Kira stealth d20 15+7=22 vs Mara perception d20 8+3=11 — Kira wins by 11]
+The margin (`by N`, 06 → Margin) is |total − DC| or |A − B|; a tie shows `by 0`.
 `--secret` prefixes `SECRET` and logs the delta as `(GM)`.
 """
 import re
@@ -61,8 +62,11 @@ def _d20(roller, c, bonus, mode, d20, total, state, rules, label=""):
     return roller.d20(bonus, mode)
 
 
-def _outcome(outcome, note):
-    return f"{outcome} ({note})" if note else outcome
+def _outcome(outcome, note, margin=None):
+    """`SUCCESS by 6 (note)`: the margin is how far the total landed from the DC or the
+    other side (02 → Player plans, outcome tiers); None leaves it out (total cover)."""
+    by = f" by {abs(margin)}" if margin is not None else ""
+    return f"{outcome}{by} ({note})" if note else f"{outcome}{by}"
 
 
 def _log(body, secret):
@@ -229,10 +233,12 @@ def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None,
                                  cover=cover, ability=ab, rules=rules)
     shown = resolve.save_total(roll, cover, ab)
     rtext = roll.text if shown == roll.total else f"{roll.text} → {shown}"
-    body = f"{c.name} {ab.upper()} save: {rtext} vs DC {dc} — {_outcome(outcome, note)}"
+    margin = None if note == "total cover" else shown - dc
+    body = f"{c.name} {ab.upper()} save: {rtext} vs DC {dc} — {_outcome(outcome, note, margin)}"
     _log(body, secret)
     return _wrap(body, secret), {"name": c.name, "ability": ab, "dc": dc, "roll": roll.as_dict(),
-                                 "outcome": outcome, "note": note}
+                                 "outcome": outcome, "note": note,
+                                 "margin": None if margin is None else abs(margin)}
 
 
 def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, secret=False,
@@ -244,10 +250,12 @@ def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, 
     bonus = c.skill_bonus(skill)
     roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
     outcome, note = resolve.check(roll, dc, checker_is_pc=c.is_pc, vs_pc=vs_pc, rules=rules)
-    body = f"{c.name} {creatures.skill_key(skill)}: {roll.text} vs DC {dc} — {_outcome(outcome, note)}"
+    margin = roll.total - dc
+    body = f"{c.name} {creatures.skill_key(skill)}: {roll.text} vs DC {dc} — {_outcome(outcome, note, margin)}"
     _log(body, secret)
     return _wrap(body, secret), {"name": c.name, "skill": creatures.skill_key(skill), "dc": dc,
-                                 "roll": roll.as_dict(), "outcome": outcome, "note": note}
+                                 "roll": roll.as_dict(), "outcome": outcome, "note": note,
+                                 "margin": abs(margin)}
 
 
 def cmd_save(ctx):
@@ -314,9 +322,11 @@ def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, 
                 continue
             win, note = resolve.contest(a_roll.total, p, a_is_pc=a.is_pc, b_is_pc=c.is_pc, rules=rules)
             who = {"A": a.name, "B": c.name}.get(win)
-            verdict = f"{who} wins" + (f" ({note})" if note else "") if who else f"TIE ({note})"
+            by = f" by {abs(a_roll.total - p)}"
+            verdict = f"{who} wins{by}" + (f" ({note})" if note else "") if who else f"TIE ({note})"
             parts.append(f"{c.name} {p} — {verdict}")
-            results.append({"name": c.name, "passive": p, "winner": who or "TIE", "note": note})
+            results.append({"name": c.name, "passive": p, "winner": who or "TIE", "note": note,
+                            "margin": abs(a_roll.total - p)})
         if not parts:
             raise RollError("contest passive: nobody on stage to contest")
         if all(r["passive"] is None for r in results):
@@ -335,11 +345,13 @@ def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, 
     if win == "TIE":
         verdict = f"TIE ({note})"
     else:
-        verdict = f"{a.name if win == 'A' else b.name} wins" + (f" ({note})" if note else "")
+        by = f" by {abs(a_roll.total - b_roll.total)}"
+        verdict = f"{a.name if win == 'A' else b.name} wins{by}" + (f" ({note})" if note else "")
     body = f"{a_txt} vs {b_txt} — {verdict}"
     _log(body, secret)
     return _wrap(body, secret), {"a": a.name, "b": b.name, "a_roll": a_roll.as_dict(),
-                                 "b_roll": b_roll.as_dict(), "winner": win, "note": note}
+                                 "b_roll": b_roll.as_dict(), "winner": win, "note": note,
+                                 "margin": abs(a_roll.total - b_roll.total)}
 
 
 def cmd_contest(ctx):

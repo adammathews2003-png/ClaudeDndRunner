@@ -115,6 +115,57 @@ def load_state():
     return md.load(state_path())
 
 
+# ---------- campaign settings ----------
+
+# Table configuration keys and their defaults (04 → Campaign file: Advancement,
+# Wacky Juice). Read from campaign.md frontmatter, else current.md's (the POC has no
+# campaign.md), else the default.
+SETTINGS = {
+    "advancement": "milestone",
+    "xp-tracking": "on",
+    "xp-absent": "full",
+    "xp-split": "even",
+    "wacky-juice": "on",
+    "wacky-juice-value": 5,
+    "wacky-juice-cooldown": 3,
+}
+
+
+def campaign_doc_path():
+    """`<campaign>/campaign.md` (may not exist)."""
+    return root() / "campaign.md"
+
+
+def settings_doc():
+    """The Doc that holds the settings keys: campaign.md when it exists, else current.md."""
+    p = campaign_doc_path()
+    return md.load(p) if p.exists() else load_state()
+
+
+def settings(state=None):
+    """{key: value} for every SETTINGS key. A key missing from campaign.md falls back to
+    current.md, then to the default. `on`/`off` values are kept as written (strings);
+    true/false are normalised to on/off."""
+    docs = []
+    p = campaign_doc_path()
+    if p.exists():
+        docs.append(md.load(p))
+    docs.append(state or load_state())
+    out = {}
+    for key, default in SETTINGS.items():
+        value = default
+        for doc in docs:
+            if doc.front.get(key) is not None:
+                value = doc.front[key]
+                break
+        if value is True:
+            value = "on"
+        elif value is False:
+            value = "off"
+        out[key] = value
+    return out
+
+
 # ---------- name resolution ----------
 
 class Match:

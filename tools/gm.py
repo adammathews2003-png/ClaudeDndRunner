@@ -6,7 +6,9 @@ command or after it, so a `do` step can carry its own. Subcommands come from the
 command modules that exist beside this file (each exposes `register(sub, globals)`);
 `space` forwards to space.py; `do "<cmd>; <cmd>"` runs the steps left to right inside
 one undo batch and stops at the first failure, listing what already applied; `log
-"<summary>"` closes the open turn block (06 L156-168). Nothing else lives here.
+"<summary>"` closes the open turn block (06 L156-168). Both `do` and `log` first log
+a pending Wacky Juice (lib/wacky.py; skipped when the batch has `juice waive`).
+Nothing else lives here.
 """
 import argparse
 import contextlib
@@ -20,13 +22,14 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from lib import campaign, dice, gametime, journal  # noqa: E402
+from lib import campaign, dice, gametime, journal, wacky  # noqa: E402
 from lib.errors import ToolError  # noqa: E402
 
 USAGE_LINE = "gm.py [--campaign DIR] [--seed N] [--json] <command> [args…]"
 USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
-                   "srd", "pc", "world", "mutations", "inventory", "roll", "rules")
+                   "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
+                   "brief", "juice")
 
 
 class CommandError(Exception):
@@ -116,6 +119,7 @@ def build_parser():
 # ---------- built-in commands ----------
 
 def cmd_log(ctx):
+    wacky.consume()
     n = journal.log_turn(ctx.args.summary)
     ctx.emit(f"[turn {n} logged]")
     ctx.result = {"turn": n}
@@ -237,6 +241,26 @@ def cmd_do(ctx):
         raise CommandError("do: no steps given")
     applied = []
     shared = dice.Roller(ctx.seed) if ctx.seed is not None else None
+    if not any(_is_waive(step) for step in steps):
+        wacky.consume()
+    wacky._suppress = True
+    try:
+        _run_steps(ctx, steps, applied, shared)
+    finally:
+        wacky._suppress = False
+    for line in applied:
+        ctx.emit(line)
+
+
+def _is_waive(step):
+    try:
+        toks, _ = split_globals(split_args(step))
+    except (ValueError, CommandError):
+        return False
+    return [t.lower() for t in toks[:2]] == ["juice", "waive"]
+
+
+def _run_steps(ctx, steps, applied, shared):
     for i, step in enumerate(steps, start=1):
         try:
             argv = split_args(step)
@@ -252,8 +276,6 @@ def cmd_do(ctx):
                                output=applied) from None
         applied.extend(sub.lines)
         ctx.result[f"step {i}"] = sub.result
-    for line in applied:
-        ctx.emit(line)
 
 
 # ---------- dispatch ----------

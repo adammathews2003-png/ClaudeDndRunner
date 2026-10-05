@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python tools/gm.py:*)",
+      "Bash(python tools/space.py:*)",
+      "Bash(py tools/gm.py:*)",
+      "Bash(py tools/space.py:*)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "python tools/gm.py brief --hook", "timeout": 10 } ] }
+    ],
+    "SessionStart": [
+      { "matcher": "startup|resume|compact|clear",
+        "hooks": [ { "type": "command", "command": "python tools/gm.py brief --hook --long", "timeout": 30 } ] }
+    ]
+  }
+}

@@ -96,13 +96,13 @@ class RuleCommands(Base):
     def test_ties_raw_rule(self):
         self.ok("rule", "add", "RAW ties tonight", "--scope", "session", "--key", "ties=raw")
         code, lines = run_main(["save", "Kael", "dex", "14", "--d20", "14"])
-        self.assertEqual(lines, ["[Kael Ashford DEX save: d20 14+0=14 vs DC 14 — SAVE]"])
+        self.assertEqual(lines, ["[Kael Ashford DEX save: d20 14+0=14 vs DC 14 — SAVE by 0]"])
 
     def test_dice_mode_rule(self):
         self.assertIn("rolls their own d20", self.fails("save", "Kael", "dex", "14"))
         self.ok("rule", "add", "GM rolls everything", "--scope", "scene", "--key", "dice-mode=gm-rolls-all")
         self.assertEqual(self.ok("save", "Kael", "dex", "14", "--seed", "1"),
-                         ["[Kael Ashford DEX save: d20 5+0=5 vs DC 14 — FAIL]"])
+                         ["[Kael Ashford DEX save: d20 5+0=5 vs DC 14 — FAIL by 9]"])
 
 
 class Scopes(Base):

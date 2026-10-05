@@ -770,3 +770,28 @@ outcome rules, incl. `attack_mode`, ties-go-to-PC, table-rule keys), `lib/creatu
 - Split group members are single creatures (size `M` until Phase 4 reads stat-block size).
 - **For Phase 4:** `combat end` must write HP/temp/conditions from the Combatants rows
   back to PC/NPC frontmatter (added to Phase 4's build list).
+
+## Phase 3 — completion notes (2026-10-05)
+
+Built and verified (205 tests). `tools/brief.py` (`brief`, `--long`, `--hook`),
+`tools/juice.py` + `lib/wacky.py` (Wacky Juice), `campaign.settings()` /
+`settings_doc()` (campaign.md → current.md → defaults, for the advancement and juice
+keys), check/save/contest margins in `roll.py`, `.claude/settings.json`. Decisions the
+spec left open:
+- `.gm/brief-hash` holds `hash`, `prompts` (since the last full brief) and `turn` (the
+  turn of the last full brief, shown in the heartbeat). `.gm/juice` holds
+  `prompts-since` (blank = never fired), `pending`, `pending-name`.
+- The brief's Party line shows `XP n/next` only for PCs that carry an `xp:` key (Phase 6
+  adds it); `Watch:` drops file paths; `Next clock:` is the earliest Clocks bullet at or
+  after now, its trailing `(…)` dropped.
+- Juice eligibility: in combat, non-party Combatants rows that can act; otherwise Stage
+  rows / On stage bullets that aren't PCs (an On stage bullet with no file, like "The
+  wolves", is eligible). Prompts starting with `/` or `!` neither fire nor count toward
+  the cooldown.
+- The hook catches every exception and prints `[GM BRIEF] unavailable: <type>: <msg>`.
+  It reads stdin only when it isn't a TTY; tests must patch `sys.stdin`.
+- Real-session check (headless `claude -p` in `dnd-adventure/`, POC `in-session: true`):
+  both SessionStart and UserPromptSubmit briefs were injected. **The permission
+  allowlist is ignored until the workspace is trusted** (open Claude Code interactively
+  in `dnd-adventure/` once and accept the trust dialog); re-check `gm.py roll 1d20` runs
+  without a prompt after that.

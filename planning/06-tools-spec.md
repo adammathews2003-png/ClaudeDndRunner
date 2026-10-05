@@ -231,7 +231,7 @@ latest batch and logs `undo turn 14 step 2`. This covers "check the record" corr
 - `waive` (normally inside the turn's `do`) clears `pending` and logs
   `(GM) [juice] Tobin — waived`.
 - `status` prints `Juice: on · 5% · cooldown 3 · 1 prompt since last · pending: —`,
-  plus this session's fired/waived/unused counts from the log (for play-test tuning).
+  plus this session's used/waived/unlogged counts from the log (for play-test tuning).
 - Every `do` batch that runs while `pending` is set and doesn't contain `juice waive`
   logs `(GM) [juice] Tobin` and clears `pending`, so a used juice costs the GM nothing.
 
@@ -283,7 +283,9 @@ Hooks in the project `.claude/settings.json`:
   `Juice: Tobin — an unexpected, funny move this turn (02 → Wacky Juice)` to whatever
   the hook prints (full brief **or** heartbeat). The juice line is never part of the
   hash. A pending juice that no `do` consumes is cleared by the next prompt's roll
-  and logged as `(GM) [juice] Tobin — unused`.
+  and logged as `(GM) [juice] Tobin — no turn logged` (the GM may still have used it
+  in narration; the line is written outside the undo journal). `log` consumes a
+  pending juice the same way `do` does.
 - Why: injecting the full brief every message costs ~350 tokens/prompt (~50k per
   150-turn session, all repeats on talk-heavy turns), which brings compaction sooner.
   Injecting only on change risks the model leaning on a brief 10–20 messages back. The
