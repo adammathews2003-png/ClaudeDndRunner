@@ -23,6 +23,7 @@ hp-method:                        # max | roll — asked once at creation; chang
 autopilot: follows the group, defends themselves, makes no major decisions
 present: true
 level-pending:
+xp:                               # the starting level's threshold (gm.py pc write sets it)
 overrides: {}
 ---
 

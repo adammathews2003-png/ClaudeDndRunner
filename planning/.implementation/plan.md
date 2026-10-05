@@ -851,3 +851,33 @@ Built and verified (241 tests + the live checks in `tools/tests/CLIENT-CHECKS.md
   `python tools/gm.py <command>` (it tried `python gm.py …` first), never mention a
   denial to the players, and never invent a roll when a tool fails (the first run did,
   before the denial message named the allowed form).
+
+## Phase 6 — completion notes (2026-10-05)
+
+Built and verified (258 tests). `lib/chargen.py` (derivation + check/card text),
+`lib/xp.py`, `tools/pc.py`, `tools/xp.py`; `fetch_srd.py --only …` pulled Classes,
+Subclasses, Levels, Features, Races, Subraces, Traits, Equipment, Backgrounds,
+Proficiencies, Skills into `data/srd/` (3.0 MB total). PC templates gained `xp:`.
+Decisions the spec left open:
+- **Editing an existing PC infers its build from the file** (no hidden build data):
+  proficient skills and expertise from the skill totals, equipment from the
+  Inventory's `Equipped:` line, cantrips/spells from the Spells table. Kael's POC sheet
+  re-derives exactly (AC 18, HP 30, skills, mace +4, DC 13).
+- Updates keep hand-written rows the tools don't derive (spell attack rows, custom
+  resources, prose); spell DC/attack numbers are refreshed wherever the file states
+  them (Spells line, spell rows in Attacks, Stats prose), as are save/skill totals in
+  the Stats prose. Narrative text (e.g. "cleric 3") is left alone.
+- Draft fields: `scores` = final (player-stated) or `base-scores` = before racial
+  bonuses; lists accept `a, b` or `a; b`; `--set str=15` sets one score.
+- `hp-method: roll` rolls missing hit dice publicly in `pc draft` (logged); `--hp-rolls`
+  / `--hp-roll` take reported rolls. A CON increase at level-up is retroactive (PHB).
+- Level-up is one level per flow and needs `level-pending` above the current level.
+  Choices: `asi=dex+2` / `asi="str+1 con+1"`, `feat=…` (custom), `subclass=`,
+  `expertise=`, `fighting-style=`, `cantrips=+x`, `spells=+a,-b`; other choose-features
+  are free text keyed by the feature name. Multiclassing stays custom.
+- Resources derived: spell slots, rage, channel divinity, action surge + second wind,
+  ki, sorcery points, bardic inspiration, lay on hands, wild shape.
+- XP: an absent PC named in `--to` gets `xp-absent` of a share; `from-combat` marks
+  `.gm/last-combat.json` awarded (not journaled, so `undo` of that award does not
+  re-open it). Under `advancement: xp`, totals below the level's threshold are raised
+  to it first (04 → switching modes).

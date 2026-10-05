@@ -9,5 +9,5 @@ Wizards of the Coast LLC, available at https://dnd.wizards.com/resources/systems
 The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License,
 available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
-Files: 5e-SRD-Conditions.json, 5e-SRD-Monsters.json, 5e-SRD-Spells.json
+Files: 5e-SRD-Backgrounds.json, 5e-SRD-Classes.json, 5e-SRD-Conditions.json, 5e-SRD-Equipment.json, 5e-SRD-Features.json, 5e-SRD-Levels.json, 5e-SRD-Monsters.json, 5e-SRD-Proficiencies.json, 5e-SRD-Races.json, 5e-SRD-Skills.json, 5e-SRD-Spells.json, 5e-SRD-Subclasses.json, 5e-SRD-Subraces.json, 5e-SRD-Traits.json
 Downloaded by `tools/fetch_srd.py`; not edited by hand.
