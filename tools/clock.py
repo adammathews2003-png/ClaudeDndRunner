@@ -263,6 +263,21 @@ def advance(spec, *, log_time=True):
         tail += f" · next: {gametime.fmt(nxt[0])} {short} (in {gametime.fmt_delta(gametime.diff(new, nxt[0]))})"
     lines.append("  Clocks: " + tail)
     lines += lint
+    if new[0] > old[0]:   # merchants restock on day boundaries (07 → merchants)
+        import loot
+        kinds = {"daily"} | ({"weekly"} if any((d - 1) % 7 == 0 for d in range(old[0] + 1, new[0] + 1)) else set())
+        restocked = loot.restock_all(kinds)
+        if restocked:
+            lines.append("  Restocked: " + ", ".join(restocked))
+    import loop
+    if loop.is_loop_campaign():
+        st = campaign.load_state()
+        try:
+            end = gametime.parse(st.front.get("loop-end"))
+        except gametime.TimeError:
+            end = None
+        if end is not None and isinstance(st.front.get("loop"), int) and st.front["loop"] >= 1                 and gametime.diff(end, new) >= 0:
+            lines += loop.reset("time")
     return lines, {"from": gametime.fmt(old), "to": gametime.fmt(new), "minutes": minutes,
                    "fired": [gametime.fmt(t) for t, _, _ in fired], "expired": expired}
 

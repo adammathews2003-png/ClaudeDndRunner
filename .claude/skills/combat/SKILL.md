@@ -10,13 +10,20 @@ allowed-tools: Bash(python tools/gm.py:*), Bash(python tools/space.py:*), PowerS
 1. If the scene isn't tense yet, place everyone by name first:
    `python tools/gm.py tempo tense --pos "Mara @bar" --pos "Kira near Tobin" …`
    (the Stage table's positions carry into combat).
-2. Ask the players for their initiative rolls (d20 + DEX; they roll), then:
+2. **Authored fights** (an `ENCOUNTER "<name>"` line in the place or scenario): build the
+   roster for who is actually present —
+   `python tools/gm.py encounter build "<name>"` — and use the `--add` arguments it prints
+   (a template scales its monster count to the table; a `fixed` fight keeps its roster
+   and may warn that it is above the party: let it be a wall, and let them run).
+   Improvised fights: pick SRD monsters that fit the fiction and check the pressure with
+   `encounter budget`.
+3. Ask the players for their initiative rolls (d20 + DEX; they roll), then:
    `python tools/gm.py combat start --init Kael=15 --init Kira=12 [--add "srd:thug x3 @25,15,0"] [--add "srd:wolf @near Kira"] [--surprised Tobin]`
    - New monsters come from the SRD (`srd:<name>`; `xN` makes a group row). Their numbers
      are looked up, never recalled. `srd monster <name>` shows a stat block (for you only).
    - Anyone unplaced is listed: `python tools/gm.py pos <name> @<feature>`.
    - If there was no Layout for the room, describe the space and add what matters.
-3. Show the map with the `/map` skill (only the `--player-view` render is ever pasted)
+4. Show the map with the `/map` skill (only the `--player-view` render is ever pasted)
    and narrate the opening: who is where, who acts first (the order, not numbers).
 
 ## Each turn

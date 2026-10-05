@@ -45,7 +45,9 @@ arithmetic and the bookkeeping.
 
 ## Session start (run once, now)
 
-1. `python tools/gm.py session start` (turns the brief on).
+1. `python tools/gm.py session start` (turns the brief on). If the campaign's
+   `campaign.md` lists `mechanics:`, Read `rules/mechanics/<name>.md` for each (e.g.
+   `rules/mechanics/time-loop.md`) and follow it.
 2. **Roster:** ask "Who's at the table today?" Match each name to a PC file.
    Absent PCs → `pc roster --absent Name` (they run on their `autopilot` line).
    A new player or new PC → the `/character` skill (offer a pregen as the fast path).
@@ -192,6 +194,18 @@ distances only when the character can see the target in adequate light within ~1
 (≤120) · distant. Mechanics always use the exact value. The GM names destinations, not
 coordinates: `pos Mara @bar`, `space move Kael --to Veskar`.
 
+## Danger, loot and shops
+
+- **The danger stone** (or any "how dangerous is that?" sense): `danger <place>` or
+  `danger --bearing N` → green / yellow / red. Narrate the colour as a feeling; never
+  numbers.
+- **Loot:** a place's `## Loot` rows are what's there (`where`, `guard`); a `random`
+  table → `loot roll <table>`, which only suggests: you apply with `item`/`coin` when the
+  party actually takes it.
+- **Merchants:** `shop <merchant>` lists the stock (for you; describe it in fiction);
+  `shop <merchant> --buy "<item>" --pc Kira` / `--sell "<item>" --pc Kira [--price "N gp"]`
+  moves coin and items. Stock restocks itself on the clock.
+
 ## Improvised canon and the open world
 
 A new named NPC, place or rumor that might recur → file it the same turn:
@@ -249,3 +263,5 @@ by players only.
 - Reference: `srd monster|spell|condition <name>` · `where <name|place>` · `trace <name>` · `odds check Mara insight 12`
 - World & canon: `stub npc|location|place …` · `world add|lead|place|show` · `lint`
 - Wacky Juice: `juice waive` (inside the turn's `do`) · `juice status`
+- Encounters & stuff: `encounter build "<name>"` · `danger <place>` · `loot roll <table>` · `shop <merchant> [--buy x --pc Kira]`
+- Time loop (only with the mechanic): `loop start` · `loop reset --by death|sleep|time` · `loop status`

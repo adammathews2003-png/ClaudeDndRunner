@@ -35,14 +35,14 @@ class NothingToUndo(JournalError):
     pass
 
 
-def journal_dir():
-    """`<campaign>/.gm/journal`."""
-    return campaign.root() / ".gm" / "journal"
+def journal_dir(root=None):
+    """`<campaign>/.gm/journal` (of `root`, default the active campaign)."""
+    return (root or campaign.root()) / ".gm" / "journal"
 
 
-def _entries():
+def _entries(root=None):
     """Batch directories, numerically ordered (0001 … 9999, 10000 …)."""
-    d = journal_dir()
+    d = journal_dir(root)
     if not d.is_dir():
         return []
     return sorted((p for p in d.iterdir() if p.is_dir() and p.name.isdigit()),
@@ -70,6 +70,7 @@ class Batch:
         self.touched = []
         self.files = {}  # rel path -> snapshot file name or None (did not exist)
         self.dir = None
+        self.root = None
         self.turn = None
         self.step = None
         self._outer = None
@@ -93,14 +94,15 @@ class Batch:
         _active = None
         if self.dir is not None:
             self._write_manifest()
-            _prune()
+            _prune(self.root)
         return False
 
     def _open(self):
         """First write: number the turn/step and create the entry directory."""
         self.turn, _ = current_turn()
-        self.step = 1 + sum(1 for e in _entries() if _manifest(e).get("turn") == self.turn)
-        self.dir = _next_dir()
+        self.root = campaign.root()   # a command may switch campaigns later (scaffold)
+        self.step = 1 + sum(1 for e in _entries(self.root) if _manifest(e).get("turn") == self.turn)
+        self.dir = _next_dir(self.root)
         self.dir.mkdir(parents=True, exist_ok=True)
 
     # -- snapshots --
@@ -141,11 +143,11 @@ def current():
     return _active
 
 
-def _next_dir():
+def _next_dir(root=None):
     """The next entry directory: highest number + 1, zero-padded to four digits."""
-    entries = _entries()
+    entries = _entries(root)
     n = max(int(e.name) for e in entries) + 1 if entries else 1
-    return journal_dir() / f"{n:04d}"
+    return journal_dir(root) / f"{n:04d}"
 
 
 def _manifest(entry):
@@ -155,8 +157,8 @@ def _manifest(entry):
         return {}
 
 
-def _prune():
-    entries = _entries()
+def _prune(root=None):
+    entries = _entries(root)
     for old in entries[:-KEEP] if len(entries) > KEEP else []:
         shutil.rmtree(old, ignore_errors=True)
 

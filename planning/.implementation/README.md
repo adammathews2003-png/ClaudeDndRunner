@@ -28,7 +28,7 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 7 | 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `world`, `trace`, `odds`, `spoil` | [x] 2026-10-05 |
 | 8 | 2a.7 | `combat reframe`, `world place` suggestions, `world import`, `space.py map --place` | [ ] |
 | 9 | 2b | GM skills in `.claude/skills/` | [x] 2026-10-05 |
-| 11 | 2c | `campaign`, `encounter`, `danger`, `loop` tools; `/campaign` authoring skills; time-loop rules sheet (`planning/07`) | [ ] |
+| 11 | 2c | `campaign`, `encounter`, `danger`, `loop` tools; `/campaign` authoring skills; time-loop rules sheet (`planning/07`) | [x] 2026-10-05 |
 | 10 | Phase 3 | Verification sweep + dry-run readiness | [ ] |
 
 Tick a phase here when its verification checklist in `plan.md` passes. Phases 1→7 are

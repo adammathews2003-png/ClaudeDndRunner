@@ -378,6 +378,27 @@ def _notes(frame, pid):
     return ""
 
 
+def check_loop(out):
+    """Time-loop campaigns need a baseline once the loop runs; `## Memory across loops`
+    outside such a campaign is a leftover (07 → Time loop)."""
+    p = campaign.campaign_doc_path()
+    front = md.load(p).front if p.exists() else {}
+    mech = front.get("mechanics") or []
+    looping = "time-loop" in (mech if isinstance(mech, list) else [mech])
+    if looping:
+        st = campaign.load_state().front
+        n = st.get("loop")
+        sha = str(st.get("loop-baseline") or "")
+        if isinstance(n, int) and n >= 1 and (not sha or sha == "pending"):
+            out.err("state/current.md", f"loop {n} is running without a loop-baseline (gm.py loop start)")
+        elif not isinstance(n, int) or n < 1:
+            out.warn("state/current.md", "time loop not started yet (gm.py loop start at the loop day's first moment)")
+    else:
+        for d in campaign.npcs():
+            if d.section("Memory across loops") is not None:
+                out.warn(_rel(d.path), "`## Memory across loops` in a campaign without the time-loop mechanic")
+
+
 def check_party_together(out):
     locs = {}
     for d in campaign.pcs():
@@ -431,6 +452,7 @@ def run(files=None, fix_safe=False):
         check_file(out, campaign.state_path(), fix_safe)
     check_world(out)
     check_party_together(out)
+    check_loop(out)
     return out
 
 

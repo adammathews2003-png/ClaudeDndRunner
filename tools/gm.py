@@ -29,7 +29,7 @@ USAGE_LINE = "gm.py [--campaign DIR] [--seed N] [--json] <command> [args…]"
 USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
                    "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
-                   "brief", "juice", "tempo", "xp", "stub", "where", "trace", "odds", "spoil", "scaffold")
+                   "brief", "juice", "tempo", "xp", "stub", "where", "trace", "odds", "spoil", "scaffold", "encounter", "loot", "loop", "campaign_cmd")
 
 
 class CommandError(Exception):

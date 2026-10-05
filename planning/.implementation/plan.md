@@ -955,3 +955,31 @@ Fixed from the live runs:
 
 For Phase 10 (dry run): watch for invented physical details and retyped roll lines;
 the skills now forbid both, but only a longer run shows whether that holds.
+
+## Phase 11 — completion notes (2026-10-05)
+
+Built and verified (294 tests + a live `/campaign-new` run). `lib/encounter.py` (DMG
+thresholds and multipliers as data, ENCOUNTER parser, item power, fitting),
+`encounter.py` (`encounter budget|build|threat`, `danger`), `loot.py` (`loot roll`, `shop`,
+restock), `loop.py` (`loop start|reset|status`), `campaign_cmd.py` (`campaign
+new|fill|status|ledger`), skills `campaign-new`, `campaign-generate` (fork),
+`campaign-scenario` (fork), `campaign-fill`, `campaign-status`, `rules/mechanics/time-loop.md`.
+Decisions the spec left open:
+- `build` picks the count whose adjusted XP is closest to the word's threshold at
+  start-level (+ item power) × PCs present (ties → more monsters); party < 3 / ≥ 6 shift
+  the multiplier a step. Item power rounds to half-steps, halves up.
+- `threat` skips non-SRD rosters with a note (loop-play's glacier uses a **yeti**, not
+  in SRD 5.1). The generators hand-wrote some `threat:` values that differ from the
+  tool's (castle-lark 2,000 vs 1,600): run `encounter threat <place>` on authored places.
+- `loop start` sets the clock and beds, then commits (`git add -A` from the repo root)
+  and records the sha. `reset` also refills hit dice and resources (a new morning);
+  files created after the baseline stay. `clock advance` restocks `daily`/`weekly`
+  merchants at day boundaries and triggers `reset --by time` at `loop-end`.
+- Selling pays half; a price-less row uses the DMG rarity band (`RARITY_PRICE`).
+- `--via` values carry no leading slash (Git Bash rewrites `/x` into a path).
+- `journal.Batch` remembers its campaign root (a command that switches campaigns,
+  `campaign new` → `scaffold`, pruned the wrong journal before).
+- **Live:** `/campaign-new` on a toy seed: the parent transcript contained no secret
+  markers (138 fork messages excluded); the generated campaign linted clean. Open: the
+  generator computed danger readings by hand because `danger` needs PCs — add an
+  authoring form (`danger <place> --party 2xL1`) and point the skill at it.
