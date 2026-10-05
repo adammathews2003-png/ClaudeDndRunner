@@ -37,8 +37,10 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
 6. ~~Tools~~ **Decided:** stdlib frontmatter parser; hybrid brief injection; lint at
    write time, per batch on touched files, and fully at scene/session boundaries.
    Secrets in tool output: hidden by the table client (`planning/06-tools-spec.md`).
-7. **Advancement:** milestone leveling assumed (GM announces levels at story beats;
-   `gm.py pc level-pending`). XP tracking would need an `xp` field and award steps.
+7. ~~Advancement~~ **Decided (2026-10-05): per campaign.** `advancement: milestone`
+   (default; GM announces levels, `gm.py pc level-pending`) or `advancement: xp` (PHB
+   thresholds; `gm.py xp award`, combat XP offered at `combat end`, level-ups flagged
+   automatically). Absent PCs' share is a campaign setting (`xp-absent`).
    HP per level **decided: max or roll**, chosen once per character (`hp-method`),
    revisited only if the player asks (house rule).
 8. ~~Map model~~ **Decided (2026-10-04):** nested coordinate frames: world (mi) → area (ft)

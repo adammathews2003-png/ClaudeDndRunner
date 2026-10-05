@@ -108,9 +108,18 @@ messages.
   constraints. The GM doesn't pin coordinates the player didn't imply.
 
 ### Level-up flow (`/level-up`)
-**Trigger:** the GM announces a level at a story milestone (default: milestone
-leveling; see Open decisions in the README). `gm.py pc level-pending <pc>` marks it,
-and the flow runs immediately or at the next session start.
+**Trigger** depends on the campaign's `advancement` (04 → Campaign file; default
+`milestone`):
+- **milestone:** the GM announces a level at a story milestone; `gm.py pc level-pending
+  <pc>` marks it.
+- **xp:** levels come from XP thresholds (PHB). The GM awards XP with `gm.py xp award`
+  (combat XP is offered by `combat end`; quest, discovery and roleplay XP are the GM's
+  call, always with a reason). When a PC's `xp` crosses the next threshold the tool sets
+  `level-pending` itself and says so in its output.
+
+Either way the flow runs immediately or at the next session start. Narration may say
+"you feel ready to grow" but never quotes XP numbers unless a player asks; players can
+always ask for their XP and the next threshold.
 
 1. **Compute.** `gm.py pc levelup <pc> --plan` lists what level N+1 grants
    automatically (proficiency bonus, hit dice, spell slots, class and subclass

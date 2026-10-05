@@ -319,6 +319,13 @@ status); sections `## Premise (player-safe)`, `## Author notes (GM-only)`, `## R
 exceptions`, `## Fill-in queue` (`| id | question | default | status |`), `## Author
 ledger` (`| when | what the driver was told | via |`).
 
+**Advancement** (frontmatter, defaults shown): `advancement: milestone` (`milestone |
+xp`), `xp-absent: full` (`full | half | none`: what an absent PC gets of an award),
+`xp-split: even` (`even` among the PCs receiving it). A campaign without `campaign.md`
+(the POC) reads the same keys from `state/current.md` frontmatter, defaulting to
+milestone. Switching mid-campaign is allowed: to `xp`, each PC's `xp` is set to the
+threshold of their current level; to `milestone`, `xp` is kept but ignored.
+
 **Encounter lines** (scenarios and locations, 07 → Difficulty scaled to the table):
 `- ENCOUNTER <easy|medium|hard|deadly> "<name>": <monster> ×n, <monster>, …` or
 `- ENCOUNTER fixed L<level> <word> "<name>": <roster>`. Adventure places carry
@@ -417,7 +424,8 @@ hit-dice: {die: d8, left: 3}
 hp-method: max                    # max | roll — asked once at creation; changed only on request
 autopilot: follows the group, defends herself, makes no major decisions
 present: true                     # this session's roster (gm.py pc roster)
-level-pending:                    # e.g. 4 — set at a milestone, cleared by level-up
+level-pending:                    # e.g. 4 — set at a milestone or by an XP threshold, cleared by level-up
+xp: 0                             # only used when the campaign's advancement is xp; tools keep it
 overrides: {}                     # player-insisted values the tools won't re-derive, e.g. {ac: 17}
 ---
 

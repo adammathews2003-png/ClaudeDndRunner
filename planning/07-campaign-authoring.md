@@ -35,6 +35,8 @@ weirdness: 3                # 1 grounded … 5 surreal: how strange the world is
 jokes: 3                    # 1 dry … 5 constant: how often a scene goes for a laugh
 references: light           # none | light (≈1 in 4 named NPCs) | heavy
 sidekick: either            # none | orphan | animal | either: an optional helper (below)
+advancement: milestone      # milestone | xp (04 → Campaign file → Advancement; 06 → xp)
+xp-absent: full             # xp campaigns: full | half | none of an award for absent PCs
 reveal-policy: paired       # shape-only | fill-in | outline | full | paired (see below)
 mechanics: [time-loop]      # optional modules (below); empty for a standard campaign
 seed-file: campaign-seed.md # the driver's own words, kept verbatim

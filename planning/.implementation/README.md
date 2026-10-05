@@ -24,7 +24,7 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 3 | 2a.3 | `brief` + hooks + permissions allowlist (`.claude/settings.json`) | [ ] |
 | 4 | 2a.4 | `lib/geo.py`, `scene enter`, `tempo/pos/intent/onstage`, `combat start/next/end`, `srd` + data download, `space.py` on `md.py` + Stage table + `secret` | [ ] |
 | 5 | 2a.5 | `table.py` client, `space.py map --player-view` | [ ] |
-| 6 | 2a.5b | `gm.py pc` + SRD class/race/equipment data | [ ] |
+| 6 | 2a.5b | `gm.py pc` + SRD class/race/equipment data + `gm.py xp` (XP advancement, per campaign) | [ ] |
 | 7 | 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `world`, `trace`, `odds`, `spoil` | [ ] |
 | 8 | 2a.7 | `combat reframe`, `world place` suggestions, `world import`, `space.py map --place` | [ ] |
 | 9 | 2b | GM skills in `.claude/skills/` | [ ] |
