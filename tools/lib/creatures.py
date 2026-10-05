@@ -6,14 +6,17 @@ L349-350, Combat block L507-538; plan.md Phase 2 items 4-5).
 Combatants row (when in combat) or Stage row (positions only). Numbers come from:
 - a PC file (Attacks table, `scores`/`prof`/`saves`/`skills`, `ac`, `hp`), or
 - an NPC file whose `statblock:` is `custom…` (same frontmatter + `## Attacks`), or
+- the SRD stat block (lib/srd.py) named by `ref: srd:<monster>` or an NPC file's
+  `statblock: <monster>` (Phase 4), or
 - the Combatants row (`HP`, `AC`) for hit points and armour class.
-Anything that needs an SRD stat block (`statblock: commoner`, `ref: srd:thug`) raises
-SrdNotBuilt: `srd` arrives in Phase 4 and numbers are never invented here.
+An NPC file's own `## Attacks` table wins over the SRD actions (`srd --write` fills it).
+SrdNotBuilt is raised only when the SRD data isn't downloaded (tools/fetch_srd.py);
+numbers are never invented here.
 """
 import re
 from pathlib import Path
 
-from . import campaign, md
+from . import campaign, md, srd
 from .errors import ToolError
 
 ABILITIES = {"str": "str", "strength": "str", "dex": "dex", "dexterity": "dex",
@@ -74,6 +77,7 @@ class Creature:
             self.name = norm_name(row.get("name"))  # in the scene, the row's name is shown
         self._doc = None
         self._doc_loaded = False
+        self._monster = False  # not looked up yet
 
     def _find(self, table):
         """Index of this creature's row: same display name, or a `ref` pointing at
@@ -151,23 +155,49 @@ class Creature:
         return "party" if self.is_pc else "npc"
 
     # -- numbers --
+    def srd_name(self):
+        """The SRD monster this creature's numbers come from, or None (PC, custom block)."""
+        if self.ref.lower().startswith("srd:"):
+            return self.ref.split(":", 1)[1].strip()
+        if self.is_pc or self.doc is None:
+            return None
+        sb = str(self.front.get("statblock") or "").strip()
+        if not sb or sb.lower().startswith("custom"):
+            return None
+        return sb
+
+    @property
+    def monster(self):
+        """The lib/srd Monster, or None. Raises SrdNotBuilt when the data is missing."""
+        if self._monster is False:
+            name = self.srd_name()
+            if name is None:
+                self._monster = None
+            else:
+                try:
+                    self._monster = srd.monster(name)
+                except srd.SrdMissing as e:
+                    raise SrdNotBuilt(f"{self.name}: {e}") from None
+                except srd.SrdError as e:
+                    raise CreatureError(f"{self.name}: {e}") from None
+        return self._monster
+
+    def _srd_only(self):
+        """True when numbers come from the SRD block (no own scores in the file)."""
+        return self.monster is not None and "scores" not in self.front
+
     def require_numbers(self):
-        """PCs and custom-statblock NPCs have numbers; anything SRD raises."""
+        """PCs, custom-statblock NPCs and SRD creatures have numbers."""
         if self.is_pc and self.doc is not None:
             return
-        if self.ref.lower().startswith("srd:"):
-            raise SrdNotBuilt(f"{self.name}: {self.ref} needs the SRD stat block — "
-                              "srd not built yet (Phase 4)")
+        if self.monster is not None:
+            return
         if self.doc is None:
             raise CreatureError(f"{self.name}: no PC/NPC file to read numbers from")
         sb = str(self.front.get("statblock") or "").strip()
         if sb.lower().startswith("custom"):
             return
-        if not sb:
-            raise CreatureError(f"{self.name}: no statblock in {Path(self.doc.path).name}")
-        raise SrdNotBuilt(f"{self.name}: statblock {sb!r} is an SRD stat block — srd not "
-                          "built yet (Phase 4); give the NPC a custom block "
-                          "(statblock: custom + scores/prof/saves/skills/ac/hp and ## Attacks)")
+        raise CreatureError(f"{self.name}: no statblock in {Path(self.doc.path).name}")
 
     def _need(self, key):
         self.require_numbers()
@@ -179,18 +209,27 @@ class Creature:
         ab = ABILITIES.get(ability.lower())
         if not ab:
             raise CreatureError(f"unknown ability {ability!r}")
+        self.require_numbers()
+        if self._srd_only():
+            return self.monster.mod(ab)
         scores = self._need("scores")
         if not isinstance(scores, dict) or ab not in scores:
             raise CreatureError(f"{self.name}: no {ab} score")
         return (int(scores[ab]) - 10) // 2
 
     def prof(self):
+        self.require_numbers()
+        if self._srd_only():
+            return self.monster.prof
         return int(self._need("prof"))
 
     def save_bonus(self, ability):
         ab = ABILITIES.get(ability.lower())
         if not ab:
             raise CreatureError(f"unknown ability {ability!r} (str dex con int wis cha)")
+        self.require_numbers()
+        if self._srd_only():
+            return self.monster.save_bonus(ab)
         saves = [str(s).lower() for s in (self.front.get("saves") or [])]
         return self.mod(ab) + (self.prof() if ab in saves else 0)
 
@@ -203,6 +242,8 @@ class Creature:
         if key not in SKILLS:
             raise CreatureError(f"unknown skill {skill!r}")
         self.require_numbers()
+        if self._srd_only():
+            return self.monster.skills.get(key, self.mod(SKILLS[key]))
         skills = self.front.get("skills") or {}
         if isinstance(skills, dict):
             for k, v in skills.items():
@@ -216,15 +257,49 @@ class Creature:
         v = self.front.get(f"passive-{key}")
         if isinstance(v, int):
             return v
+        if key == "perception" and self._srd_only():
+            return self.monster.passive_perception()
         return 10 + self.skill_bonus(key)
 
     def ac(self):
         if self.combat_row and self.combat_row.get("ac", "").strip().isdigit():
             return int(self.combat_row["ac"])
+        self.require_numbers()
+        if self.monster is not None and "ac" not in self.front:
+            return self.monster.ac
         return int(self._need("ac"))
 
+    def max_hp(self):
+        """Max HP from the file's `hp`, else the SRD average."""
+        hp = self.front.get("hp")
+        if isinstance(hp, dict) and hp.get("max") is not None:
+            return int(hp["max"])
+        self.require_numbers()
+        if self.monster is not None:
+            return self.monster.hp
+        raise CreatureError(f"{self.name}: no `hp` in {Path(self.doc.path).name}")
+
+    def size(self):
+        """T/S/M/L/H/G from the file's `size`, the SRD block, else M."""
+        s = str(self.front.get("size") or "").strip()[:1].upper()
+        if s in ("T", "S", "M", "L", "H", "G"):
+            return s
+        try:
+            if self.monster is not None:
+                return self.monster.size
+        except (SrdNotBuilt, CreatureError):
+            pass
+        return "M"
+
     def damage_traits(self):
-        """(resist, immune, vuln) lists from the file, empty when absent or SRD."""
+        """(resist, immune, vuln) lists from the file, else the SRD block's."""
+        try:
+            m = self.monster
+        except (SrdNotBuilt, CreatureError):
+            m = None
+        own = any(k in self.front for k in ("resistances", "immunities", "vulnerabilities"))
+        if m is not None and not own:
+            return list(m.resist), list(m.immune), list(m.vuln)
         if self.doc is None:
             return [], [], []
         f = self.front
@@ -236,10 +311,13 @@ class Creature:
         """The Attacks-table row to use: `name` by prefix, else the first row with a
         to-hit bonus. -> dict(name, hit, damage, dtype, range, notes)."""
         self.require_numbers()
-        table = self.doc.table("Attacks")
-        if table is None or not table.rows:
+        table = self.doc.table("Attacks") if self.doc is not None else None
+        if table is not None and table.rows:
+            rows = table.rows
+        elif self.monster is not None:
+            rows = self.monster.attacks()
+        else:
             raise CreatureError(f"{self.name}: no ## Attacks table")
-        rows = table.rows
         if name:
             want = name.strip().lower()
             hits = [r for r in rows if r.get("name", "").lower() == want] or \

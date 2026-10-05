@@ -105,8 +105,12 @@ class HitPoints(Base):
         self.assertEqual(self.ok("dmg", "Kael", "4"),
                          ["[dmg Kael Ashford 4 · Kael Ashford 0→0/30 (at 0 HP: death save failure (2 on a crit))]"])
 
-    def test_npc_without_numbers(self):
-        self.assertIn("srd not built yet (Phase 4)", self.fails("hp", "Mara", "-3"))
+    def test_srd_npc_without_hp_line(self):
+        # Mara is an SRD commoner (4 HP) with no hp: line; the first change writes one
+        code, lines = run_main(["hp", "Mara", "-3"])
+        self.assertEqual(code, 0, lines)
+        from lib import md
+        self.assertEqual(md.load(self.path("npcs/mara-fennick.md")).front["hp"], {"current": 1, "max": 4})
 
     def test_bad_hp_args(self):
         self.assertIn("want -N", self.fails("hp", "Kael", "six"))

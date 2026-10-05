@@ -29,7 +29,7 @@ USAGE_LINE = "gm.py [--campaign DIR] [--seed N] [--json] <command> [args…]"
 USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
                    "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
-                   "brief", "juice")
+                   "brief", "juice", "tempo")
 
 
 class CommandError(Exception):
@@ -132,6 +132,13 @@ def cmd_space(ctx):
     argv = list(ctx.args.rest)
     if argv[:1] == ["--"]:
         argv = argv[1:]
+    if "--state" not in argv:  # the active campaign's state file, when there is one
+        try:
+            state = campaign.state_path()
+        except campaign.CampaignError:
+            state = None
+        if state is not None and state.exists():
+            argv += ["--state", str(state)]
     old = sys.argv
     sys.argv = ["space.py"] + argv
     out = io.StringIO()

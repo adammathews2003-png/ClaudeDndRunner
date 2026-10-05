@@ -294,7 +294,11 @@ Hooks in the project `.claude/settings.json`:
 ### Permissions
 Project `.claude/settings.json` allowlist: `Bash(python tools/gm.py:*)`,
 `Bash(python tools/space.py:*)` (plus `py` variants for Windows if `python` isn't on
-PATH). A permission prompt mid-turn is the single slowest thing that can happen.
+PATH), and the same four as `PowerShell(...)` rules: on Windows the session may run
+commands through the PowerShell tool, which Bash rules don't cover (found 2026-10-05).
+The rules apply only once the folder is trusted (open Claude Code interactively in
+`dnd-adventure/` once). A permission prompt mid-turn is the single slowest thing that
+can happen.
 
 ## Tier 2 — scene changes & combat
 
@@ -322,8 +326,8 @@ Layout: common-room (9 features) — `gm.py space map` to draw
 - **Exits and Nearby are derived** (`lib/geo.py`, 04 → Location files). Exits come from
   the site's `## Areas` plus every route in the parent frame that touches this site.
   Nearby lists the places in the same area (and, at an area's edge, routes out into the
-  world): bearing as an 8-point compass word, exact distance edge to edge (ft under a
-  mile, then mi to 0.1), and route time at normal pace. The GM turns these into
+  world): bearing as an 8-point compass word, exact distance edge to edge (ft under
+  1,000 ft, then mi to 0.1), and route time at normal pace. The GM turns these into
   player-facing bands per 02 → Telling players distances. Places with no coordinates yet show as
   `(unplaced)` with their route time if one exists. `secret` routes and places are
   omitted until discovered, like terrain.

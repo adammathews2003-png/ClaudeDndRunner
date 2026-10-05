@@ -795,3 +795,37 @@ spec left open:
   allowlist is ignored until the workspace is trusted** (open Claude Code interactively
   in `dnd-adventure/` once and accept the trust dialog); re-check `gm.py roll 1d20` runs
   without a prompt after that.
+
+## Phase 4 — completion notes (2026-10-05)
+
+Built and verified (228 tests). `lib/geo.py`, `lib/srd.py`, `tools/fetch_srd.py`
+(data in `data/srd/`: Monsters, Spells, Conditions + LICENSE.md, committed so play never
+needs the network), `scene.py` (`scene enter`, `onstage`), `tempo.py` (`tempo`, `pos`,
+`intent`, and the shared `set_section`/`set_tempo` helpers), `combat.py`, `srd.py`
+(the command). `lib/creatures.py` now reads SRD numbers; `hp` on an SRD-statted NPC
+with no `hp:` line starts from the stat block's average and writes it. Decisions the
+spec left open:
+- The 5e-bits files live under `src/2014/en/` (not `src/2014/`); found by listing.
+- Distances switch from ft to mi at 1,000 ft (06 said "under a mile", but its own
+  example and this plan's check print the mill at 0.8 mi); 06 updated.
+- Route time through a shared place ignores the walk across it (inn → square → mill
+  road); Nearby says `no route` when no route chain exists.
+- Exits from a site's own Routes get a bearing from the area's Layout centre to the
+  matching exit row; parent-frame routes get the site→place bearing and `adjacent`.
+- Beats are numbered by their order among WHEN/CLOCK lines in the scenario file.
+- `scene enter --write` also takes `--summary` and `--scene`; it keeps existing Clocks
+  and adds scenario CLOCK lines not yet passed. `onstage` also takes `--remove`.
+- `tempo tense` re-run keeps rows' pos/adj/intent. NPC side = `foe` when
+  `attitude-to-party` is hostile, else `neutral`.
+- `combat start --add "srd:<name> [xN] [@x,y,z | @feature [N|S|E|W] | @near <creature>]"`;
+  xN > 1 makes one `group r5` row named `<Name>s ×N`. A failed placement leaves the row
+  `?` and says so instead of aborting. With no Layout the block has no Bounds/Terrain.
+- `combat end` drops round-based (`Nr`) conditions, keeps the rest; XP counts foes at
+  0 HP, `--count <name>` (routed, captured, talked down) and `--count-fled`.
+- **space.py bug fixed:** pathfinding let a creature without a fly/climb speed walk
+  through the air above the floor (the 2026-10-04 fixture's `move Kael --to Brute
+  --stop 10` ended at z 5). Now grounded movers only enter raised cells that terrain
+  supports (stairs, a landing). That one fixture output changed; every other is
+  byte-identical.
+- `space.py map --player-view` (Phase 5's filter) is already in; Phase 5 only needs the
+  table client to use it. `gm.py space …` adds `--state` for the active campaign.

@@ -3,6 +3,7 @@ rules/house-rules.md L24-32; rules/combat-basics.md L20-27; plan.md Phase 2 item
 and 4 and Verify): one test per tie case, crit/cover rules, and the line formats of
 06 L112-119 by string equality."""
 import unittest
+from unittest import mock
 
 from fixture import CampaignCase, Scripted, give_custom_veskar, set_front_raw, start_combat
 from lib import dice, resolve
@@ -260,22 +261,27 @@ class CommandLines(CampaignCase):
                                  "Kael Ashford wins by 3 · Kira Thornwood 15 — Kira Thornwood wins by 5]"])
 
     def test_contest_passive_skips_srd_npcs(self):
-        code, lines = run_main(["contest", "Kira", "stealth", "passive", "--d20", "10"])
-        self.assertEqual(code, 1)  # Mara and Tobin are SRD commoners: nobody has numbers
-        self.assertIn("srd not built yet", lines[0])
         from lib import md
         doc = md.load(self.path("state/current.md"))
         doc.append_line("On stage", "- **Veskar** (npcs/veskar.md) — at the bar")
         doc.save()
         code, lines = run_main(["contest", "Kira", "stealth", "passive", "--d20", "10"])
         self.assertEqual(lines, ["[Kira Thornwood stealth d20 10+7=17 vs passive perception: "
-                                 "Mara — no numbers (srd not built yet) · Tobin — no numbers (srd not built yet) · "
+                                 "Mara 10 — Kira Thornwood wins by 7 · Tobin 10 — Kira Thornwood wins by 7 · "
                                  "Veskar 10 — Kira Thornwood wins by 7]"])
 
-    def test_srd_statblock_refused(self):
+    def test_srd_statblock_numbers(self):
+        # commoner: WIS 10, no skills → insight +0
         code, lines = run_main(["check", "Mara", "insight", "12", "--seed", "1"])
+        self.assertEqual(code, 0, lines)
+        self.assertRegex(lines[0], r"^\[Mara insight: d20 \d+\+0=\d+ vs DC 12")
+
+    def test_srd_missing_data(self):
+        from lib import srd
+        with mock.patch.object(srd, "DATA", self.tmp / "no-srd"), mock.patch.dict(srd._cache, clear=True):
+            code, lines = run_main(["check", "Mara", "insight", "12", "--seed", "1"])
         self.assertEqual(code, 1)
-        self.assertIn("srd not built yet (Phase 4)", lines[0])
+        self.assertIn("run `python tools/fetch_srd.py` once", lines[0])
 
     def test_out_of_reach(self):
         start_combat(self)
@@ -291,12 +297,16 @@ class CommandLines(CampaignCase):
         self.assertEqual(lines, ["[Veskar → Kael: d20 (10, 14)→10+5=15 vs AC 15 — MISS "
                                  "(long range: disadvantage, tie→PC)]"])
 
-    def test_srd_ref_in_combat_refused(self):
+    def test_srd_ref_in_combat(self):
+        # thug: Mace +4, 1d6+2 bludgeoning; AC from the row (Kael 15)
         start_combat(self)
-        code, lines = run_main(["atk", "Thugs", "Kael", "--seed", "1"])
-        self.assertEqual(code, 1)
-        self.assertIn("srd:thug", lines[0])
-        self.assertIn("srd not built yet (Phase 4)", lines[0])
+        from lib import md
+        doc = md.load(self.path("state/current.md"))
+        t = doc.table("Combatants")
+        t.set(t.find("name", "Kael (PC)"), "pos", "(15,10,0)")  # 5 ft from the group's edge
+        doc.save()
+        lines, _ = roll.attack("Thugs", "Kael", roller=Scripted([12, 3]))
+        self.assertEqual(lines, ["[Thugs ×3 → Kael: d20 12+4=16 vs AC 15 — HIT · 5 bludgeoning · Kael 9→4/11]"])
 
     def test_combat_row_ac_and_hp(self):
         start_combat(self)

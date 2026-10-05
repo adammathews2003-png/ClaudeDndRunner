@@ -102,9 +102,11 @@ def _apply_hp(name, op, n, *, verb="hp", dtype=None, rules=None, log=True):
     else:
         doc = c.doc
         if doc is None or not isinstance(doc.front.get("hp"), dict):
-            if doc is not None and not c.is_pc:
-                c.require_numbers()  # SRD stat block → srd not built yet
-            raise MutationError(f"{c.name}: no hp in frontmatter or Combatants row")
+            if doc is not None and not c.is_pc and c.monster is not None:
+                # an SRD-statted NPC starts at the stat block's average; written on save
+                doc.front["hp"] = {"current": c.monster.hp, "max": c.monster.hp}
+            else:
+                raise MutationError(f"{c.name}: no hp in frontmatter or Combatants row")
         h = doc.front["hp"]
         cur, mx, temp, each = int(h.get("current") or 0), int(h.get("max") or 0), int(h.get("temp") or 0), False
         who = c.name

@@ -12,47 +12,40 @@ Reads the `## Combat` block of a campaign's state/current.md when --state is giv
   python tools/space.py sphere 22.5,12.5,0 --radius 20 --state ...
   python tools/space.py emanation Kael --radius 15 --state ...
   python tools/space.py line  Kael --toward 40,5,0 --length 60 --state ...
-  python tools/space.py map   --state ... [--from Kael]
+  python tools/space.py map   --state ... [--from Kael] [--player-view]
+
+Reads the Combat block; outside combat it reads the Stage table (tense tempo) with the
+terrain and bounds of the party's sub-area Layout (`party-location: site/area`).
+`--player-view` leaves out `secret` terrain and creatures that are hidden, invisible or
+unseen (02 → Behind the screen). `State.place(spec)` turns `@feature`, `@feature N|S|E|W`,
+`near <creature>` or `x,y,z` into a cell (used by `gm.py tempo/pos/combat`). Files are
+parsed with lib/md.py.
 """
 import argparse
 import math
+import os
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib import md  # noqa: E402
+from lib.md import parse_point  # noqa: E402
 
 CELL = 5
 SIZE_CELLS = {"T": 1, "S": 1, "M": 1, "L": 2, "H": 3, "G": 4}
 EPS = 1e-9
 
 
+HIDDEN = ("hidden", "invisible", "unseen")
+SIDES = ("N", "S", "E", "W")
+
+
+class SpaceError(Exception):
+    """A placement/lookup failure; the CLI prints it and exits 1."""
+
+
 # ---------- state parsing ----------
-
-def parse_point(text):
-    nums = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", text)]
-    if len(nums) == 2:
-        nums.append(0.0)
-    if len(nums) != 3:
-        raise ValueError(f"not a point: {text!r}")
-    return tuple(nums)
-
-
-def table_rows(lines, start):
-    """Rows of the first markdown table at/after `start`, as dicts keyed by header."""
-    i = start
-    while i < len(lines) and not lines[i].lstrip().startswith("|"):
-        if lines[i].startswith("#"):
-            return []
-        i += 1
-    if i >= len(lines):
-        return []
-    header = [h.strip().lower() for h in lines[i].strip().strip("|").split("|")]
-    rows = []
-    for line in lines[i + 2:]:
-        if not line.lstrip().startswith("|"):
-            break
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        rows.append(dict(zip(header, cells)))
-    return rows
-
 
 class Combatant:
     def __init__(self, row):
@@ -69,6 +62,8 @@ class Combatant:
         self.climbs = bool(re.search(r"climb speed", row.get("notes", ""), re.I))
         self.flies = bool(re.search(r"fly(ing)? speed|flying", row.get("notes", ""), re.I))
         self.down = row.get("hp", "").startswith("0/")
+        conds = (row.get("conditions") or "").lower()
+        self.hidden = any(re.search(rf"\b{w}\b", conds) for w in HIDDEN)
 
     def cells(self):
         x0, y0, z0 = self.pos
@@ -98,6 +93,7 @@ class Terrain:
         self.wall = bool(re.search(r"\bwall\b", low)) or (self.door and shut)
         # passable but harmful (damage dice, or the word hazard): pathfinding avoids it
         self.hazard = bool(re.search(r"\d+d\d+|\bhazard\b", low)) and not self.wall
+        self.secret = bool(re.search(r"\bsecret\b", low))
 
     def cells(self):
         lo = [min(p, q) for p, q in zip(self.a, self.b)]
@@ -114,33 +110,150 @@ def frange(lo, hi):
         v += CELL
 
 
+def _bounds(line):
+    m = re.search(r"x\s*(-?\d+)\s*(?:–|-|\.\.)\s*(-?\d+).*?y\s*(-?\d+)\s*(?:–|-|\.\.)\s*(-?\d+)", line)
+    return tuple(int(g) for g in m.groups()) if m else None
+
+
+def _rows(table):
+    return table.rows if table is not None else []
+
+
 class State:
+    """The Combat block of current.md, or (no Combat block) its Stage table plus the
+    party sub-area's Layout. `source` is 'combat' | 'stage' | None. `unplaced` lists
+    Stage names whose pos is still `?`."""
+
     def __init__(self, path):
         self.combatants, self.terrain, self.bounds, self.active = [], [], None, None
+        self.source, self.unplaced, self.bounds_line = None, [], ""
         if not path:
             return
-        with open(path, encoding="utf-8") as f:
-            lines = f.read().splitlines()
-        for i, line in enumerate(lines):
-            low = line.lower()
-            if low.startswith("## combat"):
-                m = re.search(r"up:\s*(.+)$", line)
-                self.active = m.group(1).strip() if m else None
-            elif "bounds:" in low:
-                m = re.search(r"x\s*(-?\d+)\s*(?:–|-|\.\.)\s*(-?\d+).*?y\s*(-?\d+)\s*(?:–|-|\.\.)\s*(-?\d+)", line)
-                if m:
-                    self.bounds = tuple(int(g) for g in m.groups())
-            elif low.startswith("### terrain"):
-                self.terrain = [Terrain(r) for r in table_rows(lines, i + 1)]
-            elif low.startswith("### combatants"):
-                self.combatants = [Combatant(r) for r in table_rows(lines, i + 1)]
+        doc = md.load(path)
+        self.doc = doc
+        combat = doc.table("Combatants")
+        if combat is not None:
+            self.source = "combat"
+            for _, _, text in doc.headings():
+                if text.lower().startswith("combat"):
+                    m = re.search(r"up:\s*(.+)$", text)
+                    self.active = m.group(1).strip() if m else None
+                    break
+            for line in doc.body:
+                if line.lower().lstrip().startswith("bounds:"):
+                    self.bounds = _bounds(line)
+                    self.bounds_line = line.strip()
+                    break
+            self.terrain = [Terrain(r) for r in _rows(doc.table("Terrain"))]
+            for r in combat.rows:
+                pos = (r.get("pos") or "").strip()
+                if not pos or pos == "?":
+                    self.unplaced.append(re.sub(r"\s*\(PC\)", "", r.get("name", "")).strip())
+                    continue
+                self.combatants.append(Combatant(r))
+            return
+        stage = doc.table("Stage")
+        if stage is None:
+            return
+        self.source = "stage"
+        for r in stage.rows:
+            pos = (r.get("pos") or "").strip()
+            if not pos or pos == "?":
+                self.unplaced.append(re.sub(r"\s*\(PC\)", "", r.get("name", "")).strip())
+                continue
+            self.combatants.append(Combatant(r))
+        lay = layout_for(path, doc.front.get("party-location"))
+        if lay is not None:
+            self.bounds = _bounds(lay[0] or "")
+            self.bounds_line = lay[0] or ""
+            self.terrain = [Terrain(r) for r in lay[1] if r.get("from")]
 
     def find(self, name):
         name = name.lower()
-        hits = [c for c in self.combatants if c.name.lower().startswith(name)]
+        exact = [c for c in self.combatants if c.name.lower() == name]
+        hits = exact or [c for c in self.combatants if c.name.lower().startswith(name)]
         if len(hits) != 1:
             sys.exit(f"'{name}': {'no' if not hits else 'ambiguous'} combatant match")
         return hits[0]
+
+    # -- placement by name (gm.py tempo --pos / pos / combat --add) --
+    def _free(self, cell, mover_name=None, walls=None):
+        walls = self.wall_cells() if walls is None else walls
+        if cell in walls or not self.in_bounds(cell):
+            return False
+        for c in self.combatants:
+            if mover_name and c.name.lower() == mover_name.lower():
+                continue
+            if cell in c.cells():
+                return False
+        return True
+
+    def place(self, spec, mover=None):
+        """A cell for `spec`: `x,y,z` (as given), `@feature` (nearest free cell of the
+        feature if passable, else the nearest free cell beside it), `@feature N|S|E|W`
+        (the nearest free cell on that side), or `near <creature>` (nearest free cell
+        within 5 ft). `mover` = the creature being placed (its own cells count as free).
+        Raises SpaceError."""
+        spec = spec.strip()
+        if re.match(r"^\(?\s*-?\d", spec):
+            return parse_point(spec)
+        walls = self.wall_cells()
+        hazards = set(self.hazard_cells())
+        m = re.match(r"^near\s+(.+)$", spec, re.I)
+        if m:
+            who = m.group(1).strip()
+            hits = [c for c in self.combatants if c.name.lower().startswith(who.lower())
+                    and not (mover and c.name.lower() == mover.lower())]
+            if len(hits) != 1:
+                raise SpaceError(f"near {who}: {'no' if not hits else 'ambiguous'} placed creature")
+            t = hits[0]
+            cand = [g for g in grid_around(t.pos, CELL + max(t.cells_per_side, 1) * CELL)
+                    if g[2] == t.pos[2] and 0 < dist_between([g], t.cells()) <= CELL]
+            return self._nearest(cand, t.pos, mover, walls, hazards, f"near {t.name}")
+        m = re.match(r"^@([\w-]+)(?:\s+([NSEW]))?$", spec, re.I)
+        if not m:
+            raise SpaceError(f"can't read position {spec!r} (want @feature [N|S|E|W], near <creature>, or x,y,z)")
+        hits = [t for t in self.terrain if t.id.lower() == m.group(1).lower()] or \
+               [t for t in self.terrain if t.id.lower().startswith(m.group(1).lower())]
+        if len(hits) != 1:
+            raise SpaceError(f"@{m.group(1)}: {'no' if not hits else 'ambiguous'} terrain feature match")
+        t = hits[0]
+        cells = t.cells()
+        lo = [min(c[k] for c in cells) for k in range(3)]
+        hi = [max(c[k] for c in cells) for k in range(3)]
+        center = tuple((a + b) / 2 for a, b in zip(lo, hi))
+        side = (m.group(2) or "").upper()
+        if side:
+            for ring in range(1, 4):
+                d = ring * CELL
+                if side == "N":
+                    cand = [(x, hi[1] + d, lo[2]) for x in frange(lo[0], hi[0])]
+                elif side == "S":
+                    cand = [(x, lo[1] - d, lo[2]) for x in frange(lo[0], hi[0])]
+                elif side == "E":
+                    cand = [(hi[0] + d, y, lo[2]) for y in frange(lo[1], hi[1])]
+                else:
+                    cand = [(lo[0] - d, y, lo[2]) for y in frange(lo[1], hi[1])]
+                try:
+                    return self._nearest(cand, center, mover, walls, hazards, f"@{t.id} {side}")
+                except SpaceError:
+                    continue
+            raise SpaceError(f"@{t.id} {side}: no free cell on that side")
+        if not (t.wall or t.hazard):
+            try:
+                return self._nearest(cells, center, mover, walls, hazards, f"@{t.id}")
+            except SpaceError:
+                pass
+        own = set(cells)
+        around = {(x + dx, y + dy, z) for (x, y, z) in cells
+                  for dx in (-CELL, 0, CELL) for dy in (-CELL, 0, CELL)} - own
+        return self._nearest(sorted(around), center, mover, walls, hazards, f"beside @{t.id}")
+
+    def _nearest(self, cand, center, mover, walls, hazards, what):
+        ok = [c for c in cand if c not in hazards and self._free(c, mover, walls)]
+        if not ok:
+            raise SpaceError(f"{what}: no free cell")
+        return min(ok, key=lambda c: (math.dist(c[:2], center[:2]), -c[1], c[0], c[2]))
 
     def feature(self, name):
         name = name.lstrip("@").lower()
@@ -325,6 +438,10 @@ def find_path(st, mover, goals, climbs):
     if not goals:
         sys.exit("no free cell to end on at that target")
     zlo, zhi = st.z_range()
+    # without a fly/climb speed a creature only stands on the floor or on terrain
+    # (stairs, a landing); it never walks through the air above the floor
+    support = {p for t in st.terrain for p in t.cells()}
+    grounded = not (mover.flies or climbs)
     start = mover.pos
     best, prev, heap = {start: 0}, {}, [(0, start)]
     while heap:
@@ -343,6 +460,8 @@ def find_path(st, mover, goals, climbs):
                     if nxt == cur or nxt in blocked or not st.in_bounds(nxt):
                         continue
                     if not (zlo - EPS <= nxt[2] <= zhi + EPS):
+                        continue
+                    if grounded and nxt[2] > zlo + EPS and nxt not in support:
                         continue
                     c = step_cost(st, mover, cur, nxt, climbs, difficult, walkway)
                     if c is None:
@@ -449,8 +568,11 @@ def cmd_area(st, kind, args):
         render(st, highlight=set(cells))
 
 
-def render(st, origin_name=None, highlight=None):
+def render(st, origin_name=None, highlight=None, player_view=False):
     highlight = highlight or set()
+    if player_view:  # what the party can perceive: no secret terrain, no hidden creatures
+        st.terrain = [t for t in st.terrain if not t.secret]
+        st.combatants = [c for c in st.combatants if not c.hidden]
     pts = [p for c in st.combatants for p in c.cells()]
     pts += [p for t in st.terrain for p in t.cells()] + list(highlight)
     if st.bounds:
@@ -519,6 +641,7 @@ def main():
     p.add_argument("--radius", type=float, required=True)
     p.add_argument("--show", action="store_true")
     p = sub.add_parser("map"); p.add_argument("--from", dest="origin")
+    p.add_argument("--player-view", action="store_true", help="leave out secret terrain and hidden creatures")
 
     # allow --state anywhere on the line
     argv = sys.argv[1:]
@@ -533,9 +656,26 @@ def main():
     elif args.cmd == "move":
         cmd_move(st, args.who, args.path, args.to, args.stop, args.speed, args.climbs)
     elif args.cmd == "map":
-        render(st, args.origin)
+        render(st, args.origin, player_view=args.player_view)
     else:
         cmd_area(st, args.cmd, args)
+
+
+def layout_for(state_path, party_location):
+    """(Bounds line, Layout rows) for `site/area` from `<campaign>/locations/<site>.md`
+    next to the state file, or None."""
+    loc = str(party_location or "").strip()
+    if "/" not in loc:
+        return None
+    site, area = loc.split("/", 1)
+    p = Path(state_path).resolve().parent.parent / "locations" / f"{site}.md"
+    if not p.exists():
+        return None
+    from lib import geo
+    lay = geo.Frame(site, md.load(p)).layouts.get(area)
+    if lay is None:
+        return None
+    return lay.bounds_line, lay.rows
 
 
 if __name__ == "__main__":
