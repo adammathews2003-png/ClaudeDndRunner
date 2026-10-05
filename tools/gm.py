@@ -29,7 +29,7 @@ USAGE_LINE = "gm.py [--campaign DIR] [--seed N] [--json] <command> [args…]"
 USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
                    "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
-                   "brief", "juice", "tempo", "xp")
+                   "brief", "juice", "tempo", "xp", "stub", "where", "trace", "odds", "spoil")
 
 
 class CommandError(Exception):
@@ -257,6 +257,22 @@ def cmd_do(ctx):
         wacky._suppress = False
     for line in applied:
         ctx.emit(line)
+    for line in touched_lint():
+        ctx.emit(line)
+
+
+def touched_lint():
+    """Lint layer 2 (06 → When lint runs): the files this `do` batch wrote, checked
+    file-locally; findings become `[LINT] …` lines in the same output."""
+    b = journal.current()
+    if b is None or not b.touched:
+        return []
+    from lib import lint
+    try:
+        found = lint.run(files=list(b.touched))
+    except Exception as e:  # noqa: BLE001 — lint must never break a turn
+        return [f"[LINT] skipped: {type(e).__name__}: {e}"]
+    return [f"[LINT] {f.line()}" for f in found]
 
 
 def _is_waive(step):
@@ -320,7 +336,7 @@ def run(argv, batch=True, roller=None):
             ToolError, FileNotFoundError) as e:
         if os.environ.get("GM_DEBUG"):
             traceback.print_exc()
-        raise CommandError(str(e)) from None
+        raise CommandError(str(e), output=getattr(e, "output", ())) from None
     return ctx
 
 

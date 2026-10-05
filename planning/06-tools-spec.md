@@ -484,7 +484,10 @@ sweep slows down as the campaign grows; and it would nag about deliberately-unfi
 canon. With layers 1–2, the only thing a per-reply sweep would catch sooner is a hand
 edit to a file the current turn didn't touch, which can wait for the next scene boundary.
 
-### `gm.py session archive`
+### `gm.py session start | archive`
+**Built (Phase 7):** `session start` sets `in-session: true` (what `/gm` runs);
+`archive` takes `--summary-file` or `--summary`, and `--no-commit`.
+
 `/end-session` mechanics: numbers the next `history/session-NN.md`, writes the
 model-provided summary (`--summary-file`) plus the auto-extracted delta list (all
 `  - ` lines from the log), resets `session-current.md` (`sessions/spoilers.md` is

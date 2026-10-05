@@ -396,6 +396,8 @@ def end(count=(), count_fled=False):
     state.save()
     lines += rules.end_scope("combat")
     journal.log_delta("combat end")
+    from lib import lint
+    lines += lint.summary(lint.run())
     data = {}
     if str(campaign.settings(state).get("xp-tracking", "on")).lower() != "off":
         xp_line, data = _xp(foes, count, count_fled)

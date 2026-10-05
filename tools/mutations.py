@@ -393,7 +393,16 @@ def cmd_move_party(ctx):
 
 
 def cmd_time(ctx):
-    emit(ctx, advance_time(" ".join(ctx.args.spec)))
+    """`time +20m` runs `clock advance` (Phase 7); `time -5m` stays a plain correction."""
+    spec = " ".join(ctx.args.spec).strip()
+    if spec.startswith("-"):
+        emit(ctx, advance_time(spec))
+        return
+    import clock
+    lines, data = clock.advance(spec)
+    for line in lines:
+        ctx.emit(line)
+    ctx.result = data
 
 
 def cmd_undo(ctx):

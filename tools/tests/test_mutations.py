@@ -214,8 +214,8 @@ class Places(Base):
         self.assertEqual(self.state().front["party-location"], "village-square/square")
 
     def test_time(self):
-        self.assertEqual(self.ok("time", "+20m"), ["[time Day 1 18:30→Day 1 18:50]"])
-        self.assertEqual(self.ok("time", "to", "dawn"), ["[time Day 1 18:50→Day 2 06:00]"])
+        self.assertEqual(self.ok("time", "+20m")[0], "[TIME] Day 1 18:30 → Day 1 18:50 (+20m)")
+        self.assertEqual(self.ok("time", "to", "dawn")[0], "[TIME] Day 1 18:50 → Day 2 06:00 (+11h10m)")
         text = self.path("state/current.md").read_text(encoding="utf-8")
         self.assertIn('in-game-datetime: "Day 2 06:00"   # dusk arrival', text)
         self.assertEqual(self.ok("time", "-5m"), ["[time Day 2 06:00→Day 2 05:55]"])

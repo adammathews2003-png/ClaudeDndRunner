@@ -40,7 +40,7 @@ class Slugify(unittest.TestCase):
     def test_slugify(self):
         self.assertEqual(campaign.slugify("Kael Ashford"), "kael-ashford")
         self.assertEqual(campaign.slugify("  The Missing Miller! "), "the-missing-miller")
-        self.assertEqual(campaign.slugify("Réeve O'Dell"), "reeve-o-dell")
+        self.assertEqual(campaign.slugify("Réeve O'Dell"), "reeve-odell")  # apostrophes drop: matches files like shackletons-folly
 
 
 class Resolve(CampaignCase):

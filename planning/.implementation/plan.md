@@ -881,3 +881,44 @@ Decisions the spec left open:
   `.gm/last-combat.json` awarded (not journaled, so `undo` of that award does not
   re-open it). Under `advancement: xp`, totals below the level's threshold are raised
   to it first (04 → switching modes).
+
+## Phase 7 — completion notes (2026-10-05)
+
+Built and verified (281 tests). New command modules: `clock`, `travel`, `rest`, `lint`
+(+ `lib/lint.py`), `session` (`start`, `archive`), `stub`, `where`, `world`, `trace`,
+`odds`, `spoil`. Every command < 125 ms on loop-play. Decisions the spec left open:
+- **Transit state:** an NPC on the road has `location: "@<route id>"` (the leg it is on)
+  and `transit: "to <dest> · depart Day N HH:MM · eta Day N HH:MM · from <loc> · via
+  <routes>"`; `where`/`trace` read it (percent of the way). Same-site moves are
+  instant; a Movements target that isn't a location file is skipped with a `[LINT]`
+  line (loop-open has such lines: "→ in transit", "→ (dead …)").
+- `time +X` now runs `clock advance`; `time -X` stays a plain correction.
+- `clock` counts down `Nm`/`Nh` conditions on PC/NPC files (`cond` itself still takes
+  only `r`/`m`). Fired CLOCK lines stay in `## Clocks`; the brief only shows future ones.
+- `travel` adds in-site legs at both ends when the parent route names an exit
+  (`inn.door`): cellar → trapdoor → common room → front door → … `locked` refuses
+  unless `--unlocked`; `DC N to notice` is a note. Encounter rolls are secret, one per
+  4 h (2 h with `--night`). `passes:` = placed features within 100 ft of the path.
+  Arrival light: `--light`, else `dim` with `--night`, else bright.
+- **Lint severities:** errors = unparseable frontmatter, broken references (missing
+  files, unknown route ends, a Layout that exists but lacks the exit row, On stage/Watch
+  files missing); everything else is a warning, including an exit on a site with no
+  Layout yet and in-site route ends written as prose ("back lane"). The Description
+  compass check works per clause. Unsatisfiable Known-not-placed constraints are not
+  checked yet (needs Phase 8 suggestions).
+- Lint layer 2 runs after every successful `do` (touched files only); layer 3 in
+  `scene enter --write`, `combat end`, `session archive` (refuses on errors without
+  `--force`).
+- History files: `## Summary`, `## Changes (public deltas)`, `## Behind the screen (GM)`,
+  `## Table rules ended`, `## Turn log` (raw; `trace` reads it). Commit uses the repo
+  root found by `git rev-parse` from the campaign folder.
+- `world place` needs `--at` until Phase 8 (suggestions); negative coordinates as
+  `--at=-10,0`. Places rows have no notes column, so `placed: …` goes in `effect`.
+  Times convert at 24 mi/day × 0.8 and 3 mi/h × 0.8 (route check: 8 h travel days).
+- `slugify` drops apostrophes (`Shackleton's Folly` → `shackletons-folly`, matching the
+  generated files).
+- `odds` takes `--adv/--dis` as well as a bare `adv` before any `--flag`.
+- **Found in content (not tool bugs):** loop-open has Movements lines outside the
+  schedule format (dolorous-pike, isidore-brahe, ptolemy, ursula-shackleton) and route
+  exits on sites without a Layout; loop-play's world has `widows-ridge` and
+  `castle-lark` footprints overlapping. Fix in Phase 11 / content review.

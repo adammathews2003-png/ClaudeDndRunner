@@ -313,7 +313,8 @@ def write_scene(loc, light, here, found, summary, scene_name):
     state.save()
     out += rules.end_scope("scene")
     journal.log_delta(f"scene enter {loc}", gm=False)
-    # TODO(phase7): run the full `lint` here once it exists (06 → scene enter).
+    from lib import lint
+    out += lint.summary(lint.run())
     out.append(f"[scene written: {loc} · {len(bullets)} on stage · {len(watch)} watch · {len(clocks)} clocks]")
     return out
 

@@ -79,6 +79,7 @@ def session_log_path():
 
 def slugify(name):
     s = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode()
+    s = re.sub(r"['’]", "", s)   # "the cooper's" → the-coopers
     s = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
     return s
 
