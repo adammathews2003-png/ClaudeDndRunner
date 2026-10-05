@@ -11,10 +11,17 @@ misses (RAW: hits). See `house-rules.md`.
 
 ## On your turn
 - **Move** up to your speed (splittable around your action).
-- **One action:** Attack, Cast a Spell, Dash, Disengage, Dodge, Help, Hide, Ready,
-  Search, Use an Object.
-- **One bonus action** if a feature grants one; **one reaction** per round (e.g.,
-  opportunity attack when an enemy leaves your reach without Disengaging).
+- **Action(s) and Bonus Action(s):** normally one action and, if something grants one,
+  one bonus action. Class features, level and other effects can change this (Action
+  Surge gives an extra action; Extra Attack adds attacks to the Attack action; Cunning
+  Action or a spell can grant bonus actions). Check the PC's features.
+  - *Actions:* Attack, Cast a Spell, Dash, Disengage, Dodge, Help, Hide, Ready, Search,
+    Use an Object, or an action a feature grants.
+  - *Bonus actions:* only what a feature, spell or item names as one (off-hand attack
+    with two light weapons, Cunning Action, *healing word*, Rage, …). There is no
+    bonus action without such a source.
+- **Reaction:** one per round (e.g., an opportunity attack when an enemy leaves your
+  reach without Disengaging, or a reaction spell such as *shield*).
 - Free: interact with one object (draw a sword, open a door), brief speech.
 
 ## Attacks
