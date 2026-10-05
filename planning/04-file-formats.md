@@ -328,6 +328,15 @@ POC) reads the same keys from `state/current.md` frontmatter, with the same defa
 tracked total, raised to at least the threshold of their current level; switching to
 `milestone` keeps the total and stops auto-levelling.
 
+**Wacky Juice** (frontmatter, defaults shown; 02 → Wacky Juice): `wacky-juice: on`
+(`on | off`), `wacky-juice-value: 5` (percent chance per eligible player prompt, 0–100),
+`wacky-juice-cooldown: 3` (player prompts). As with advancement, a campaign without
+`campaign.md` reads the keys from `state/current.md` frontmatter. Hook state lives in
+`<campaign>/.gm/juice` (not hand-edited): `prompts-since: N` and `pending: <npc slug>`
+or blank. A firing is logged by the next `do` as a GM-only line
+`  - (GM) [juice] Tobin` or `  - (GM) [juice] Tobin — waived`, and a rate change as a
+public line `  - [juice] value 5 → 10`.
+
 **Encounter lines** (scenarios and locations, 07 → Difficulty scaled to the table):
 `- ENCOUNTER <easy|medium|hard|deadly> "<name>": <monster> ×n, <monster>, …` or
 `- ENCOUNTER fixed L<level> <word> "<name>": <roster>`. Adventure places carry

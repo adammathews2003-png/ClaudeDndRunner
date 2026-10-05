@@ -178,6 +178,66 @@ open on the desk; Mara has her back turned"). Never narrate the players' own cho
 - **Secret rolls:** for checks where asking would itself be a spoiler (e.g., noticing a
   pickpocket), the GM rolls silently and narrates only outcomes (see *Behind the screen*).
 
+## Player plans: answer with a roll, not a no
+
+Creativity is rewarded. When a player proposes a plan, however odd, the GM's default
+answer is **"roll for it"**, not "no". The dice and the fiction decide how it goes.
+
+**When "no" is allowed.** Only when the plan would **break the core scenario**: it
+would skip or expose the scenario's truth without doing the work, bypass a campaign
+mechanic (a time loop can't be "ended by convincing the king"), or delete the finale.
+Even then:
+- First look for an **in-fiction reason** the attempt can't land. The door really is
+  warded, or the king really can't. The character can still try, and the try still has
+  consequences.
+- If no fiction fits, give a short out-of-character no: "That one's off the table for
+  this story." Don't explain why; the reason is behind the screen. The players'
+  `/overrule` still applies, and the GM doesn't mention it.
+
+**Not refusals:**
+- *The character lacks an ability or resource* (no spell slot, no rope). State the fact
+  openly, since rules questions about PCs are always answered, and offer the nearest
+  version they *can* attempt.
+- *Long shots* get a DC, not a no: Very hard 25, Nearly impossible 30. A natural 20 on
+  an ability check isn't an automatic success, so a 30 can stay out of reach for a
+  given character. If it is out of reach, say so when the attempt is foreseen (below).
+- *Controlling another PC* isn't the GM's call. That player decides.
+
+**Turning a plan into checks.**
+1. **Split it into its uncertain steps** and roll only those. Use 1–3 checks; more turns
+   one plan into a slog. Steps that are trivial for this character just happen.
+2. **Reward the cleverness itself.** A good plan earns at least one of: advantage, a
+   lower DC band, an auto-succeeded step, or a free Help from the setup. Prep done in
+   earlier scenes counts (the bribed guard, the oiled hinge).
+3. **Chain the results.** A strong success can lower the next DC or grant advantage; a
+   failure fails forward (Failure & tone guardrails) and changes the next step instead
+   of ending the plan.
+4. Use a **group check** when the whole party is in on one step (the sneak, the climb).
+
+**Foreseen or blind.** Before the roll, the GM decides whether *this character* would
+recognize what's at stake:
+- **Foreseen** if they're proficient in the skill or tool, their background, class or
+  history fits ("you were a sailor"), the party learned it in play (journal, NPC
+  history), or their passive score in a relevant knowledge skill (10 + modifier) meets
+  the DC. The GM names the check(s), the DC band, and **the outcomes the character can
+  see coming**:
+  > *Athletics, Hard. Make it and you're on the balcony before the guard turns. Miss
+  > and you're hanging off the gutter in plain view. Miss badly (by 5+) and the gutter
+  > comes with you.*
+  The listed outcomes are what the character would expect. They never reveal hidden
+  things (Behind the screen), and the GM may still add consequences the character
+  couldn't have known about.
+- **Blind** if it's outside anything the character knows (an unfamiliar ritual, a
+  stranger's psychology, alien machinery). The GM names **only the check**: "Arcana.
+  You're going in blind." No DC, no outcomes. Narrate the result when it lands.
+- A multi-step plan can mix both: the climb is foreseen, and what's on the balcony is
+  blind.
+
+**Outcome tiers** (for describing foreseen outcomes and narrating results): success ·
+**beat by 5+** (a bonus: faster, quieter, an extra detail) · fail (a complication or a
+cost) · **fail by 5+** (the foreseen worst case). `check` prints the margin (06), so the
+tier comes from the tool, not from the model reading the dice.
+
 ## Dice
 
 Default: **players roll their own d20s and report totals; the GM rolls everything else**
@@ -200,7 +260,9 @@ answer** (below), and the rules apply again immediately after it.
 - Beat names/numbers, triggers, Watch-for items, clocks the party doesn't know about,
   or that a beat "fired".
 - DCs of hidden things (`## Hidden`, secret checks), or who *failed* to notice
-  something. Only those who succeed get a narrated notice.
+  something. Only those who succeed get a narrated notice. The DC or stakes of a
+  **blind** check (Player plans above).
+- That an NPC's moment was Wacky Juice, outside `/spoilers`.
 - True identities, factions, motives or plans the party hasn't uncovered ("Veskar,
   the Red Ledger agent").
 - NPC intents before they act. In tense scenes the order may show ("Mara is faster —"),
@@ -397,6 +459,62 @@ NPCs must be allowed to: refuse, lie, have off-screen lives (scenario doc can sc
 NPC movements between locations), and react to reputation (NPC files log notable past
 interactions with the party under `## History with the party`).
 
+## Wacky Juice (random NPC chaos)
+
+Most of the time NPCs act logically, from the three inputs above. **Wacky Juice** lets
+an on-stage NPC, now and then, do something unexpected that's funny because it's
+unexpected. The ratbag stable boy tries to sell Kael's own boots back to him. The
+stern abbess starts an arm-wrestling contest. The guard captain suddenly confesses a
+lifelong fear of geese.
+
+**Configuration** (campaign frontmatter, 04 → Campaign file; the players can change it
+any time by asking, through `gm.py juice`, 06):
+- `wacky-juice: on | off`. Default `on`.
+- `wacky-juice-value: 5`. The percent chance, per eligible player prompt, that the
+  juice fires. Rough feel: `2` is a rare treat, `5` is about 2–4 times a session, `10`
+  is frequent, `25` is chaos. Tune it in play testing.
+- `wacky-juice-cooldown: 3`. Player prompts after a firing during which it can't fire
+  again, so moments don't come in clumps.
+
+This is separate from the `jokes` dial (07), which governs *authored* comedy when the
+campaign is generated. Wacky Juice is unscripted and rolled at the table, and it works
+in any tone. A grim campaign gets dry, absurd juice.
+
+**The roll is real, not the model's choice.** The `UserPromptSubmit` hook rolls it
+(06 → brief): if the juice is on, the cooldown has passed, and at least one NPC who can
+act is on stage, it rolls d100 ≤ value and picks one of those NPCs at random. On a hit,
+the brief gets a line `Juice: Tobin`. That turn, Tobin does the thing. With no line,
+the GM does not add juice on its own initiative: no hidden juice.
+
+**What a juice moment is:**
+- **Something this NPC could physically do, in this scene, in this world.** It's
+  random in *what*, not in *physics*. In hindsight it should have a reading: the NPC's
+  personality pushed to 11, a hidden hobby, a misunderstanding, a sudden bad idea.
+- **Short-lived and self-contained.** It colors a scene. It can create a small
+  complication or an opening (the arm-wrestling contest is also a chance to talk to
+  the abbess), in the fail-forward spirit.
+- **Canon once it happens.** The NPC owns it afterwards, and a notable one goes in
+  their `## History with the party`.
+- **Mechanics go through the tools** like anything else (an NPC who throws a pie makes
+  an `atk`). In combat, a juice moment replaces that NPC's action on its turn.
+
+**What it may never do** (the same line as *Player plans* above):
+- Break the core scenario: reveal secrets or the truth, resolve or skip a beat, kill or
+  remove an NPC a beat depends on, or move such an NPC out of reach.
+- Control a PC, or do serious harm to a PC out of nowhere. Embarrassment and
+  inconvenience are fine.
+- Contradict established facts. It adds a weird fact, it doesn't overwrite one.
+
+If the picked NPC can't act (asleep, gagged, unconscious), the GM may hand it to another
+on-stage NPC who can. If nothing within these limits would be funny, the GM waives it
+(`juice waive` in that turn's `do`). The waive is logged, so play testing shows how
+often the rate is wasted.
+
+**Behind the screen.** Narration never says "Wacky Juice", "the juice fired", or shows
+the roll. The moment just happens. The feature itself isn't secret (the players set its
+rate), so "was that juice?" may be confirmed with `/spoilers`; it's logged as a `(GM)`
+line (04).
+
 ## Combat mode
 
 Combat swaps the freeform loop for structure, tracked in a `## Combat` block inside
@@ -545,6 +663,8 @@ leaves the rest open. Places get filled in from three directions, all recorded w
 ## Failure & tone guardrails
 
 - Fail forward: a failed check changes the situation, it doesn't dead-end it.
+- "No" is rare: a player's plan gets checks, not a refusal, unless it would break the
+  core scenario (Player plans above).
 - The GM never controls PC dialog or decisions; it may narrate involuntary consequences.
 - Rulings over rules: when a rule lookup would stall the scene, make a sensible ruling,
   note it in the session log, reconcile later.

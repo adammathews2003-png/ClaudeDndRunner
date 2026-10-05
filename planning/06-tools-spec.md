@@ -125,6 +125,9 @@ gm.py contest Kira stealth passive                     # vs. everyone's passive 
   **ties-go-to-PC** rule set from `rules/house-rules.md` (NPC roll = PC AC → miss; contest tie → PC; NPC check = PC
   passive → PC wins). The output names a tie explicitly (`— MISS (tie→PC)`) so the GM
   can narrate it.
+- **Margin:** `check`, `save` and `contest` end with the margin, e.g. `— SUCCESS by 6`
+  / `— FAIL by 3` (a tie shows `by 0` with its tie note). The GM reads the outcome tier
+  from it (02 → Player plans: beat by 5+, fail by 5+).
 - Players roll their own d20s (02 → Dice): PC-side commands take `--d20` (the tool
   adds the bonus) or `--total`. Without either, the tool rolls only if
   `dice-mode: gm-rolls-all` is set in `current.md` frontmatter.
@@ -221,6 +224,17 @@ file it touches to `<campaign>/.gm/journal/` (last ~50 batches). `undo` restores
 latest batch and logs `undo turn 14 step 2`. This covers "check the record" corrections
 (05 #13) between git commits.
 
+### `gm.py juice [on | off | <value> | cooldown <n> | waive | status]` — Wacky Juice (02)
+- `on` / `off` / `<value>` (0–100) / `cooldown <n>` write the frontmatter keys (04 →
+  Campaign file) and log a public `[juice]` line (`value 5 → 10`). The players change
+  the rate by asking the GM; it's table configuration, not an overrule.
+- `waive` (normally inside the turn's `do`) clears `pending` and logs
+  `(GM) [juice] Tobin — waived`.
+- `status` prints `Juice: on · 5% · cooldown 3 · 1 prompt since last · pending: —`,
+  plus this session's fired/waived/unused counts from the log (for play-test tuning).
+- Every `do` batch that runs while `pending` is set and doesn't contain `juice waive`
+  logs `(GM) [juice] Tobin` and clears `pending`, so a used juice costs the GM nothing.
+
 ### `gm.py brief` + hooks — state in context without a Read
 `brief` prints a ≤ 20-line digest built from `current.md` + the files it points to:
 ```
@@ -258,6 +272,18 @@ Hooks in the project `.claude/settings.json`:
   regardless, so the full version never drifts too far back in context; and when the
   player message starts with `!brief`. (Covers a cancelled prompt whose brief the model
   never saw.)
+- **Wacky Juice roll** (02 → Wacky Juice; config keys in 04 → Campaign file). On
+  `UserPromptSubmit` only, after the brief is built: skip if `wacky-juice: off`, if
+  the prompt starts with `/` or `!` (commands aren't play), or if `.gm/juice` says
+  `prompts-since` < cooldown. Otherwise collect the on-stage NPCs (the `On stage:`
+  names, minus any with a condition that stops action: unconscious, paralyzed,
+  petrified, stunned, incapacitated, or `hp: 0`). With at least one, roll d100 with
+  `SystemRandom`. On ≤ `wacky-juice-value`, pick one uniformly, write `pending: <slug>`
+  and reset `prompts-since: 0`; otherwise increment `prompts-since`. A hit appends
+  `Juice: Tobin — an unexpected, funny move this turn (02 → Wacky Juice)` to whatever
+  the hook prints (full brief **or** heartbeat). The juice line is never part of the
+  hash. A pending juice that no `do` consumes is cleared by the next prompt's roll
+  and logged as `(GM) [juice] Tobin — unused`.
 - Why: injecting the full brief every message costs ~350 tokens/prompt (~50k per
   150-turn session, all repeats on talk-heavy turns), which brings compaction sooner.
   Injecting only on change risks the model leaning on a brief 10–20 messages back. The

@@ -350,6 +350,15 @@ Permissions above.
    Working directory for hooks is the project dir Claude Code was started in; the plan
    assumes sessions start in `dnd-adventure/`. If the repo root is used instead, prefix
    `command` with `cd dnd-adventure &&` (check `cwd` from the stdin JSON at build time).
+4. **Wacky Juice** (02 → Wacky Juice; 04 → Campaign file → Wacky Juice; 06 → `gm.py
+   juice` and the brief's "Wacky Juice roll" bullet). Config readers in `lib/campaign.py`
+   (`campaign.md`, falling back to `current.md`, with defaults `on` / 5 / 3); the roll in
+   `brief --hook` on `UserPromptSubmit` only; `.gm/juice` state; `gm.py juice`
+   subcommands; `do` consumes `pending` (logs `(GM) [juice] <npc>` unless the batch has
+   `juice waive`). RNG goes through `lib/dice.py` so `--seed` makes tests deterministic.
+5. **Check margins** (06 → atk/save/check/contest → Margin): `check`, `save` and
+   `contest` lines end `— SUCCESS by N` / `— FAIL by N`. This is a small follow-up to
+   Phase 2's `lib/resolve.py`; update its tests.
 
 **Verify:** `python tools/gm.py brief` on the POC prints ≤ 20 lines matching the
 06:227-234 shapes; piping `{"hook_event_name":"UserPromptSubmit","prompt":"hi"}` to
@@ -359,6 +368,13 @@ Permissions above.
 real Claude Code session in `dnd-adventure/`, set `in-session: true`, and confirm the
 brief appears as a system reminder (hooks debug log) and that `python tools/gm.py roll
 1d20` runs without a permission prompt.
+Juice: with `wacky-juice-value: 100` and an NPC on stage, the next `UserPromptSubmit`
+hook prints a `Juice:` line (after both a full brief and a heartbeat); the next
+`do` logs `(GM) [juice] <npc>`; the following 3 prompts never fire (cooldown); with
+`value: 0`, `off`, no NPC on stage, only an unconscious NPC, or a prompt starting with
+`/` or `!`, it never fires; `gm.py juice 10` rewrites the frontmatter and logs the public
+line; the juice line doesn't change the brief hash. Margins: `check` on a fixed
+`--d20` prints the right `by N` on both sides of the DC and on a tie.
 
 **Guards:** the hook must never read the whole campaign (only `current.md` and the
 files it names); never exit 2; never print the `Log:` line's content into the hash.

@@ -11,6 +11,9 @@ tone: comedic
 references: light
 reveal-policy: paired
 mechanics: [time-loop]
+wacky-juice: on             # 02 → Wacky Juice
+wacky-juice-value: 5        # % per eligible player prompt; tune in play testing
+wacky-juice-cooldown: 3
 seed-file: campaign-seed.md
 status: generated
 ---

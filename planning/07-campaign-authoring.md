@@ -38,6 +38,9 @@ sidekick: either            # none | orphan | animal | either: an optional helpe
 advancement: milestone      # milestone | xp: what triggers level-ups (04 → Advancement)
 xp-tracking: on             # on | off: XP is awarded and kept even under milestone
 xp-absent: full             # full | half | none of an award for absent PCs
+wacky-juice: on             # on | off: random NPC chaos at the table (02 → Wacky Juice)
+wacky-juice-value: 5        # % chance per eligible player prompt
+wacky-juice-cooldown: 3     # player prompts before it can fire again
 reveal-policy: paired       # shape-only | fill-in | outline | full | paired (see below)
 mechanics: [time-loop]      # optional modules (below); empty for a standard campaign
 seed-file: campaign-seed.md # the driver's own words, kept verbatim

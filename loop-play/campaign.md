@@ -14,6 +14,9 @@ references: light           # ≈1 in 4 named NPCs carry an actor's or historica
 sidekick: either            # two candidates near the opening: an orphan and an animal
 reveal-policy: paired       # this is version B: secret and played
 mechanics: [time-loop]
+wacky-juice: on             # 02 → Wacky Juice
+wacky-juice-value: 5        # % per eligible player prompt; tune in play testing
+wacky-juice-cooldown: 3
 seed-file: campaign-seed.md
 status: generated
 ---
