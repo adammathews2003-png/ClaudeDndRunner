@@ -22,23 +22,32 @@ treat them as Established facts.
 
 ## Location files — `locations/<slug>.md`
 
-Places nest in three **tiers**, each with its own coordinate **frame**:
+Places nest, and each place with a file has its own coordinate **frame**. A frame's
+**tier** says what unit it uses and what it holds:
 
 | tier | example | unit | holds | appears in its parent as |
 |---|---|---|---|---|
-| `world` | the kingdom | mi | areas, roads between them | — |
-| `area` | Thornbury and its surroundings | ft | sites, routes between them | a footprint row, in mi |
+| `world` | the realm; a region or duchy inside it | mi | world-tier children, areas, roads | a footprint row, in mi |
+| `area` | Thornbury; a city, or one district of it | ft | areas (districts), sites, routes | a footprint row, in mi or ft |
 | `site` | the Crossroads Inn | ft (5-ft cells) | sub-areas: rooms, floors, yards | a footprint row, in ft |
+
+**Tiers are units, not depths.** A world-tier file may hold world-tier children (realm
+→ region), and an area may hold areas (city → district), to any depth. Only two unit
+changes exist: mi → ft when an area sits in a world-tier frame, and ft → 5-ft cells when
+a site is laid out. Three levels is the POC's shape, not a rule, and the tools never
+assume a depth. This keeps `world.md` from becoming one giant table once the campaign
+has forty villages: the duchy gets its own file and its own routes.
 
 **Frame rules** (these keep cross-tier math down to addition):
 - Every frame is **north-up, +x east, +y north, +z up**. Never rotated.
 - A child frame is placed in its parent by **offset only**. The child's row in the
   parent's `## Places` table has an `at` column: where the child's local `(0,0,0)`
-  sits in the parent's frame. So `parent pos = at + local` (with ft→mi conversion when
-  the parent is world-tier). `from`/`to` are the footprint, which is separate because an
-  origin needn't be a corner (Thornbury's is the well in the middle). For a site, put
-  the origin at its SW corner at ground level, so `at` = `from`. Cellars go negative and
-  upper floors positive. Footprints constrain x/y only.
+  sits in the parent's frame. So `parent pos = at + local` (with ft↔mi conversion when
+  the units differ). `from`/`to` are the footprint, which is separate because an origin
+  needn't be a corner (Thornbury's is the well in the middle). For a site, put the
+  origin at its SW corner at ground level, so `at` = `from`, and **a blank `at` means
+  `= from`**. Cellars go negative and upper floors positive. Footprints constrain x/y
+  only, so Places rows may use 2-D points `(x,y)`; the tools read z as 0.
 - **A site has one frame.** All its sub-areas (rooms, floors, cellar, yard) share it.
   Floors and cellars are z values, not new frames.
 - **The parent owns placement.** A child file names its `parent:`. Where it sits lives
@@ -79,6 +88,16 @@ Sensory prose the GM can draw exposition from. 1–3 paragraphs.
 - **cellar** — trapdoor behind the bar, locked (Mara has the key), not obvious (DC 12 Perception)
 - **stable-yard** — side door past the kitchen; gate onto the back lane
 
+## Routes
+<!-- Optional. Same table as an area's Routes, with from/to = sub-area slugs or Layout
+     exit ids. Write it when in-site movement matters (locked doors, a hidden way out,
+     a path an NPC must take unseen). Without it, the ## Areas prose is the record and
+     `move-party site/area` is unchecked. -->
+| id       | from        | to          | via | kind     | access                       | time | notes               |
+|----------|-------------|-------------|-----|----------|------------------------------|------|---------------------|
+| trapdoor | common-room | cellar      |     | trapdoor | locked (Mara); DC 12 to notice | 1m | behind the bar      |
+| kitchen  | common-room | stable-yard |     | door     | obvious                      | 1m   | through the kitchen |
+
 ## Items & features
 - Bar (north wall): locked strongbox beneath (DC 15 Thieves' Tools), ~40 gp
 - Notice board (by the door): three postings — see scenario
@@ -114,6 +133,8 @@ Running changes: damage, moved items, ambience shifts. GM appends here.
 
 Same skeleton without `## Areas` and `## Layout`, plus `## Frame`, `## Places` and
 `## Routes`. The world file uses the same pattern with two more sections (below).
+A place or route the party doesn't know about yet carries the word `secret` in its
+`effect`/`access`, exactly like terrain; `gm.py world reveal <id>` strips it.
 
 ```markdown
 ---
@@ -152,9 +173,13 @@ origin (0,0,0) = the well at the center of the square · +x east · +y north · 
      This replaces the old per-file Connections. from/to = a place id, or `place.exit`
      (an exit row id in that site's Layout). Without an exit, the tool uses the
      footprint edge nearest the other end. `via` = waypoints in this frame, in order.
-     `time` is blank (derived: path length ÷ pace) or an override with a reason.
+     `time` is blank (derived: path length ÷ pace × the kind's factor) or an override
+     with a reason. `kind` sets a default pace factor: road/street/door 1 · path/lane
+     1 · trail 1.5 · trackless/marsh/scree 2 (the DMG's difficult-terrain halving).
      `access`: obvious | DC N to notice | locked (who has the key) | secret. `secret`
-     routes are left off player-facing output until discovered, like terrain. -->
+     routes are left off player-facing output until discovered, like terrain.
+     A route with its own dangers gets `tables/encounters-<route id>.md`; `travel`
+     looks for that before the area's table. -->
 | id       | from   | to          | via                                 | kind | access  | time | notes            |
 |----------|--------|-------------|-------------------------------------|------|---------|------|------------------|
 | inn-door | square | inn.door    |                                     | door | obvious |      |                  |
@@ -193,11 +218,18 @@ empty.**
   is honored unless it contradicts placed canon. In that case the GM asks the player
   once and adjusts the claim, not the canon. Generated content never overrides
   anything.
-- **Constraints use a small vocabulary** so tools can check them: `within <dist|time> of
-  <id>`, `beyond <dist|time> from <id>`, `<compass> of <id>`, `on <feature>` (a named
-  river, road or coast; an unnamed one like `on a navigable river` is kept but
-  unchecked until such a feature is placed), `near (x,y) ±<dist>` (from imports), and free text after `;`
-  (kept, but not checked).
+- **Constraints are spatial only**, in a small vocabulary so tools can check them:
+  `within <dist|time> of <id>`, `beyond <dist|time> from <id>`, `<compass> of <id>`,
+  `on <feature>` (a named river, road or coast; an unnamed one like `on a navigable
+  river` is kept but unchecked until such a feature is placed), and `near (x,y)
+  ±<dist>` (from imports). Anything else about the place ("has a temple of Chauntea",
+  "a river port") is an attribute and goes in `notes`, so the parser never has to skip
+  prose.
+- **Time constraints are checked twice.** "Three days" means by road, and roads wind.
+  At placement, `within 3d` admits a straight-line radius of 3 × 24 mi × 0.8; when a
+  route to the place is later added, the derived route time is re-checked against the
+  original constraint (kept in the Places row's `notes` as `placed: within 3d of
+  thornbury`) and lint warns if the road broke the promise.
 
 ```markdown
 ---
@@ -225,7 +257,7 @@ origin (0,0,0) = Thornbury's well (the starting area's origin) · +x east · +y 
 ## Known, not placed
 | id          | feature         | constraints                                   | source      | notes                    |
 |-------------|-----------------|-----------------------------------------------|-------------|--------------------------|
-| market-town | the market town | within 3 days of thornbury; has a temple of Chauntea | player:kael | Kael was sent from here |
+| market-town | the market town | within 3d of thornbury                        | player:kael | temple of Chauntea; Kael was sent from here |
 
 ## Frontier
 | id       | from      | heading | known as | said to lead to | source   |
@@ -247,10 +279,12 @@ one shared place plus a scale, or by two shared places.
 **Deriving travel time.** Path length (from → via → to) is measured in a straight line
 (Euclidean, z included). This is overland travel, not the combat grid rule. Pace follows
 the PHB: normal is 300 ft/min in ft frames and 3 mi/h in mi frames. Fast is ×4/3 speed
-(time ×0.75); slow is ×2/3 (time ×1.5). Round up to a whole minute (minimum 1); over an
-hour, round to 5 min. Set `time` by hand only when terrain makes the straight line lie
-(`45m — switchbacks`). Lint flags an override more than 2× off the derived value as a
-probable typo.
+(time ×0.75); slow is ×2/3 (time ×1.5). The route's `kind` factor multiplies the time
+(trail ×1.5, trackless ×2). Conveyance (`travel --by`): foot ×1, cart/wagon ×1 on
+road/street and ×2 elsewhere, horse ×0.5 on road and ×1 elsewhere, boat downstream
+×0.5 on a river route. Round up to a whole minute (minimum 1); over an hour, round to
+5 min. Set `time` by hand only when the line still lies (`45m — switchbacks`). Lint
+flags an override more than 2× off the derived value as a probable typo.
 
 **Where people are.** `location:` in PC/NPC frontmatter and `party-location:` in
 `current.md` take `site` or `site/area` (`crossroads-inn/common-room`). The area part
@@ -262,8 +296,13 @@ Layout, Places and terrain tables use the same format everywhere (site Layout, a
 Places, Combat block), so `tools/space.py` can read them and the GM can copy rows across.
 `from`/`to` are opposite corner cells (inclusive); a single cell has `to` = `from`.
 `effect` is free text, but the helper keys on the words *difficult*, *stairs*, *ramp*,
-and *secret* (left off `--player-view` maps until the party discovers it; then the word
-is removed), and on a leading *exit →*.
+*wall* (impassable, total cover, blocks line of sight; glyph `#` by convention), *door*
+(a gap in a wall; add *closed*, *locked* or *barred* to block it until opened), *hazard*
+or any damage dice (`1d10 fire`: passable, but pathfinding avoids it and a move through
+it is flagged), and *secret* (left off `--player-view` maps until the party discovers it;
+then the word is removed), and on a leading *exit →*. Walls matter as soon as two sub-areas of a site are laid out,
+or a fight is reframed to the area tier: without them, movement and cones pass through
+buildings. A single-room Layout can still rely on its Bounds.
 
 Who-is-here is NOT stored in the location file. It's derived by grepping NPC/PC
 frontmatter for `location: <slug>` (single source of truth for positions).

@@ -406,9 +406,10 @@ distance table is forbidden: it's O(n²) and the GM *will* write contradictory e
 
 **When positions get logged:**
 1. **Tense scene** (01, Scene tempo): when tempo goes tense, `gm.py tempo tense` writes
-   a Stage table (04) and the GM gives each on-stage creature a `pos`, using the
-   location's `## Layout`. That's one argument per creature, and combat starts with
-   everyone already placed.
+   a Stage table (04) and the GM gives each on-stage creature a `pos` **by name**
+   (`--pos Mara @bar --pos Tobin @tables-e`), using the location's `## Layout`. The
+   tool turns names into cells. That's one argument per creature, and combat starts
+   with everyone already placed.
 2. **Combat start:** `gm.py combat start` opens the `## Combat` block. It copies the
    layout's bounds/origin and terrain rows, promotes the Stage table's positions, and
    rolls initiative. The GM trims terrain to what's relevant (exits, cover, elevation,
@@ -423,6 +424,15 @@ distance table is forbidden: it's O(n²) and the GM *will* write contradictory e
   table, collapsing beam), and that's a logged move like any other.
 - **Positions change only through the moves log.** Each move: start → waypoints → end,
   cost vs. speed (difficult terrain/climbing ×2), opportunity attacks provoked. One line.
+- **The GM names destinations, not coordinates.** "I rush the archer on the landing" is
+  `space move Kael --to Veskar`; the tool finds the path around tables and up the
+  stairs, respects walls, and reports the cost and opportunity attacks. The GM only
+  supplies waypoints to force an unusual route (vaulting the bar). This keeps the
+  geometry out of the model's head, which is where the mistakes and the slow turns come
+  from.
+- **Walls are terrain.** Once a site has more than one sub-area laid out, or a fight is
+  reframed to the area tier, interior and exterior walls are `wall` rows (04). Without
+  them the tools would move creatures and cones through buildings.
 - **First fight in a place writes its `## Layout`** (one block per sub-area). Every later
   fight there starts from it, so the tavern is the same shape in session 1 and session 9.
 
@@ -459,9 +469,11 @@ players hear depends on whether their *character* could reasonably judge it:
 (Full tool set: 06-tools-spec.md. The spatial pieces are below.)
 
 - **`tools/space.py`** (also `gm.py space ...`) reads the Combat block and does the math the GM shouldn't do by
-  hand: `dist`, `move` (cost, over-speed, opportunity attacks, unplanned drops), `cone`,
-  `line`, `sphere`, `emanation` (who's in the area), and `map`. Use it for anything
-  beyond a simple distance; mental math is fine for "is the goblin within 5 ft?".
+  hand: `dist`, `move` (`--to <creature|@feature|point>` pathfinding, or `--path`;
+  cost, over-speed, opportunity attacks, unplanned drops), `cone`, `line`, `sphere`,
+  `emanation` (who's in the area, stopping at walls), and `map`. Any point argument
+  accepts `@<feature id>`. Use it for anything beyond a simple distance; mental math is
+  fine for "is the goblin within 5 ft?".
 - **ASCII map** (`/map` → `space.py map --player-view --from <active>`): top-down grid
   drawn from the terrain and combatant tables, north up, legend with each combatant's
   position, height and distance from the active combatant. `--player-view` leaves out
@@ -482,7 +494,8 @@ leaves the rest open. Places get filled in from three directions, all recorded w
 - **Generation (`generated`).** The GM invents a place *when play needs it*. Triggers:
   the party heads down a frontier lead, an NPC needs a hometown, or a job needs a
   destination. Generate the one place and at most one hop beyond it, not a continent.
-  Use `gm.py world add <name> --near <id> --within <dist> [--dir E] [--on <feature>]`,
+  Use `gm.py world add <name> --near <id> --within <dist> [--dir E] [--on <feature>]
+  --note "..."` (spatial facts become constraints, everything else goes in the note),
   then `world place` once it needs coordinates. The tool picks or checks a spot that
   satisfies every constraint and doesn't overlap a placed footprint. The GM supplies
   the fiction (what the place is, and why the road bends there). A file is created only
@@ -504,7 +517,11 @@ leaves the rest open. Places get filled in from three directions, all recorded w
   ford) or `/overrule` moves it.
 - **Constraints are promises.** Everything said about an unplaced place ("three days
   east") is recorded as a constraint when it's said, so the eventual placement can't
-  contradict it.
+  contradict it. The promise survives placement: when the road to it is finally drawn,
+  lint checks the road keeps it (04 → checked twice).
+- **Travel is visible.** NPCs on a schedule are on the road between places, not
+  teleported (06 → `clock`). The party can meet them, follow them, or miss them by an
+  hour, and `trace` can say where someone was at 00:10.
 - **Unknown ≠ empty.** The GM never says "there's nothing out there", only what the
   characters know or have heard. Rumors are `## Known, not placed` rows, and a rumor
   can be wrong: note `rumor; may be false` in `notes`.

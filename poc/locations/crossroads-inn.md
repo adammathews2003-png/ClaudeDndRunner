@@ -21,6 +21,17 @@ yard in back. Evenings it fills with farmhands; by day it's near empty.
 - **cellar** — beneath the common room (z −10); trapdoor behind the bar, locked (Mara keeps the key on her belt), not obvious (DC 12 Perception)
 - **stable-yard** — side door from the kitchen; gate on the south side onto the back lane; Tobin sleeps in the stable loft
 
+## Routes
+<!-- In-site ways between areas. Veskar's path with Harl (cellar → kitchen → yard) is the
+     scenario's spine, so it's a table, not prose. -->
+| id        | from        | to          | via | kind     | access                              | time | notes                                   |
+|-----------|-------------|-------------|-----|----------|-------------------------------------|------|-----------------------------------------|
+| stairs    | common-room | upstairs    |     | stairs   | obvious                             | 1m   | west wall; creaks on the fourth step    |
+| kitchen   | common-room | kitchen     |     | door     | obvious                             | 1m   | east wall, by the hearth                |
+| side-door | kitchen     | stable-yard |     | door     | obvious; barred from inside at night | 1m  |                                         |
+| trapdoor  | common-room | cellar      |     | trapdoor | locked (Mara); DC 12 to notice      | 1m   | behind the bar; ladder down 10 ft       |
+| yard-gate | stable-yard | back lane   |     | gate     | obvious                             | 1m   | → Thornbury route `back-lane`           |
+
 ## Items & features
 - Bar (north wall): strongbox beneath, locked (DC 15 Thieves' Tools), ~40 gp and a brass key
 - Notice board (by the door): posting offering 25 gp for word of Harl the miller, signed by Reeve Odell
@@ -44,6 +55,8 @@ Bounds: x 0–45 · y 0–35 · z 0–10 · origin (0,0,0) = inside the front do
 | tables-e | t     | tables & benches  | (30,5,0)  | (35,10,0)  | difficult                                  |
 | hearth   | h     | hearth            | (45,15,0) | (45,20,0)  | entering = 1d10 fire                       |
 | kitchen  | k     | kitchen door      | (45,30,0) | (45,30,0)  | exit → kitchen (→ side door → stable-yard) |
+| wall-se  | #     | east wall, south  | (45,0,0)  | (45,10,10) | wall                                       |
+| wall-ne  | #     | east wall, north  | (45,25,0) | (45,35,10) | wall; kitchen door is the gap              |
 | stairs   | s     | stairs up         | (0,15,0)  | (0,25,10)  | stairs up to landing (z 10)                |
 | landing  | l     | upstairs landing  | (0,30,10) | (10,35,10) | 3 ft rail: half cover from below; rooms off it |
 

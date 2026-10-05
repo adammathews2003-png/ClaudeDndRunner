@@ -35,6 +35,10 @@ Half cover +2 AC/DEX saves · three-quarters +5 · total cover: untargetable.
 - Reach: melee ≤ 5 ft (≤ 10 with reach). Ranged: ≤ normal range fine; ≤ long range at
   disadvantage; any hostile within 5 ft of the attacker → disadvantage.
 - **Opportunity attack:** mover starts a step within an enemy's reach and ends it outside.
+- **Walls** (terrain `effect` says *wall*) can't be entered or seen through: total cover,
+  and areas of effect stop at them. A *door* row is the gap; *closed* or *locked* on it
+  blocks movement until opened. A room with one laid-out area may rely on its Bounds
+  instead.
 
 ## Movement costs
 - 1 ft of speed per ft moved; **difficult terrain, climbing, swimming, crawling ×2**

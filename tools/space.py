@@ -5,8 +5,10 @@ Reads the `## Combat` block of a campaign's state/current.md when --state is giv
 
   python tools/space.py dist  Kael Veskar            --state poc/state/current.md
   python tools/space.py dist  10,5,0 20,30,10
-  python tools/space.py move  Kael --path 15,10,0 5,25,0 5,30,10 --state ...
-  python tools/space.py cone  Kael --toward 30,5,0 --length 15 --state ...
+  python tools/space.py move  Kael --to Veskar --state ...        (pathfinds; stops adjacent)
+  python tools/space.py move  Kael --to @landing --state ...      (@id = a terrain feature)
+  python tools/space.py move  Kael --path 15,10,0 5,25,0 5,30,10 --state ...   (explicit route)
+  python tools/space.py cone  Kael --toward @door --length 15 --state ...
   python tools/space.py sphere 22.5,12.5,0 --radius 20 --state ...
   python tools/space.py emanation Kael --radius 15 --state ...
   python tools/space.py line  Kael --toward 40,5,0 --length 60 --state ...
@@ -86,8 +88,16 @@ class Terrain:
         self.a = parse_point(row["from"])
         self.b = parse_point(row.get("to") or row["from"])
         self.effect = row.get("effect", "")
-        self.difficult = "difficult" in self.effect.lower()
-        self.walkway = bool(re.search(r"stairs|ramp", self.effect, re.I))
+        low = self.effect.lower()
+        self.difficult = "difficult" in low
+        self.walkway = bool(re.search(r"stairs|ramp", low))
+        # a wall blocks movement and sight; a door/gate/exit row is a gap in it
+        # unless closed or locked (the gap is a wall until it's opened)
+        self.door = bool(re.search(r"\bdoor\b|\bgate\b|exit →|exit ->", low))
+        shut = bool(re.search(r"\bclosed\b|\blocked\b|\bbarred\b", low))
+        self.wall = bool(re.search(r"\bwall\b", low)) or (self.door and shut)
+        # passable but harmful (damage dice, or the word hazard): pathfinding avoids it
+        self.hazard = bool(re.search(r"\d+d\d+|\bhazard\b", low)) and not self.wall
 
     def cells(self):
         lo = [min(p, q) for p, q in zip(self.a, self.b)]
@@ -132,9 +142,19 @@ class State:
             sys.exit(f"'{name}': {'no' if not hits else 'ambiguous'} combatant match")
         return hits[0]
 
+    def feature(self, name):
+        name = name.lstrip("@").lower()
+        hits = [t for t in self.terrain if t.id.lower().startswith(name)]
+        if len(hits) != 1:
+            sys.exit(f"'@{name}': {'no' if not hits else 'ambiguous'} terrain feature match")
+        return hits[0]
+
     def point_or_name(self, text):
+        """A point, a combatant name, or @feature (its first cell). Returns (point, combatant)."""
         if re.match(r"^\s*-?\d", text):
             return parse_point(text), None
+        if text.startswith("@"):
+            return self.feature(text).a, None
         c = self.find(text)
         return c.pos, c
 
@@ -143,6 +163,32 @@ class State:
 
     def walkway_cells(self):
         return {c for t in self.terrain if t.walkway for c in t.cells()}
+
+    def hazard_cells(self):
+        return {c: t for t in self.terrain if t.hazard for c in t.cells()}
+
+    def wall_cells(self):
+        walls = {c for t in self.terrain if t.wall for c in t.cells()}
+        gaps = {c for t in self.terrain if t.door and not t.wall for c in t.cells()}
+        return walls - gaps
+
+    def in_bounds(self, p):
+        if not self.bounds:
+            return True
+        x0, x1, y0, y1 = self.bounds
+        return x0 - EPS <= p[0] <= x1 + EPS and y0 - EPS <= p[1] <= y1 + EPS
+
+    def z_range(self):
+        zs = [p[2] for c in self.combatants for p in c.cells()]
+        zs += [p[2] for t in self.terrain for p in t.cells()]
+        return (min(zs), max(zs)) if zs else (0, 0)
+
+    def visible(self, src, dst, walls=None):
+        """Line of sight: no wall cell strictly between src and dst (cell-stepped)."""
+        walls = self.wall_cells() if walls is None else walls
+        if not walls:
+            return True
+        return not any(c in walls for c in steps(src, dst)[:-1])
 
 
 # ---------- geometry ----------
@@ -253,29 +299,113 @@ def cmd_dist(st, a, b):
     print(f"{d:g} ft" + (f"  (height diff {dz:+g} ft)" if dz else ""))
 
 
-def cmd_move(st, who, path, speed, climbs):
+def step_cost(st, mover, cur, nxt, climbs, difficult, walkway, warnings=None):
+    """Movement cost of one cell step, or None if the step is impossible."""
+    dz = nxt[2] - cur[2]
+    on_walkway = cur in walkway or nxt in walkway
+    climbing = dz > EPS and not (on_walkway or climbs or mover.flies)
+    if dz < -EPS and not (on_walkway or mover.flies):
+        if warnings is None:   # pathfinding never jumps or falls on its own
+            return None
+        warnings.append(f"drops {-dz:g} ft at {fmt(nxt)} without stairs: jump/fall?")
+    return CELL * (2 if (nxt in difficult or climbing) else 1)
+
+
+def find_path(st, mover, goals, climbs):
+    """Dijkstra over cells from the mover to the cheapest reachable goal cell."""
+    import heapq
+    difficult, walkway, walls = st.difficult_cells(), st.walkway_cells(), st.wall_cells()
+    hazards = st.hazard_cells()     # steep penalty, not a block: the only way may be through
+    blocked = set(walls)
+    for c in st.combatants:         # can't pass through enemies; allies are passable
+        if c is not mover and not c.down and c.side and c.side != mover.side:
+            blocked |= set(c.cells())
+    occupied = {p for c in st.combatants if c is not mover for p in c.cells()}
+    goals = {g for g in goals if g not in blocked and g not in occupied}
+    if not goals:
+        sys.exit("no free cell to end on at that target")
+    zlo, zhi = st.z_range()
+    start = mover.pos
+    best, prev, heap = {start: 0}, {}, [(0, start)]
+    while heap:
+        cost, cur = heapq.heappop(heap)
+        if cur in goals:
+            path = [cur]
+            while path[-1] != start:
+                path.append(prev[path[-1]])
+            return path[::-1][1:], cost
+        if cost > best.get(cur, float("inf")):
+            continue
+        for dx in (-CELL, 0, CELL):
+            for dy in (-CELL, 0, CELL):
+                for dz in (-CELL, 0, CELL):
+                    nxt = (cur[0] + dx, cur[1] + dy, cur[2] + dz)
+                    if nxt == cur or nxt in blocked or not st.in_bounds(nxt):
+                        continue
+                    if not (zlo - EPS <= nxt[2] <= zhi + EPS):
+                        continue
+                    c = step_cost(st, mover, cur, nxt, climbs, difficult, walkway)
+                    if c is None:
+                        continue
+                    if nxt in hazards:
+                        c += 1000
+                    if cost + c < best.get(nxt, float("inf")):
+                        best[nxt], prev[nxt] = cost + c, cur
+                        heapq.heappush(heap, (cost + c, nxt))
+    sys.exit("no path (walls, enemies or height in the way)")
+
+
+def goal_cells(st, mover, target, stop):
+    """Cells that count as 'arrived' for a --to target."""
+    if re.match(r"^\s*-?\d", target):
+        return [parse_point(target)]
+    if target.startswith("@"):
+        t = st.feature(target)
+        if not (t.wall or t.difficult):   # passable feature: end on it
+            return t.cells()
+        around = {(x + dx, y + dy, z)
+                  for (x, y, z) in t.cells() for dx in (-CELL, 0, CELL) for dy in (-CELL, 0, CELL)}
+        return [c for c in around if c not in set(t.cells())]
+    c = st.find(target)
+    reach = stop or 5
+    return [g for g in grid_around(c.pos, reach + max(c.cells_per_side, 1) * CELL)
+            if 0 < dist_between([g], c.cells()) <= reach]
+
+
+def cmd_move(st, who, path, to, stop, speed, climbs):
     mover = st.find(who)
     speed = speed or 30
     climbs = climbs or mover.climbs
-    difficult, walkway = st.difficult_cells(), st.walkway_cells()
+    difficult, walkway, walls = st.difficult_cells(), st.walkway_cells(), st.wall_cells()
     enemies = [c for c in st.combatants
                if c is not mover and not c.down and c.side and c.side != mover.side]
+    if to:
+        cells, _ = find_path(st, mover, goal_cells(st, mover, to, stop), climbs)
+        waypoints = [c for i, c in enumerate(cells)   # keep only direction changes
+                     if i == len(cells) - 1 or i == 0 or
+                     tuple(a - b for a, b in zip(cells[i + 1], c)) !=
+                     tuple(a - b for a, b in zip(c, cells[i - 1]))]
+        print("path: " + " -> ".join(fmt(p) for p in waypoints))
+    else:
+        cells = []
+        cur = mover.pos
+        for wp in [parse_point(p) for p in path]:
+            cells += steps(cur, wp)
+            cur = wp
     cur, spent, provoked, warnings = mover.pos, 0, [], []
-    for wp in [parse_point(p) for p in path]:
-        for nxt in steps(cur, wp):
-            dz = nxt[2] - cur[2]
-            on_walkway = cur in walkway or nxt in walkway
-            climbing = dz > EPS and not (on_walkway or climbs or mover.flies)
-            if dz < -EPS and not (on_walkway or mover.flies):
-                warnings.append(f"drops {-dz:g} ft at {fmt(nxt)} without stairs: jump/fall?")
-            double = nxt in difficult or climbing
-            spent += CELL * (2 if double else 1)
-            for e in enemies:
-                was = dist_between([cur], e.cells()) <= e.reach
-                now = dist_between([nxt], e.cells()) <= e.reach
-                if was and not now and e.name not in provoked:
-                    provoked.append(e.name)
-            cur = nxt
+    hazards = st.hazard_cells()
+    for nxt in cells:
+        if nxt in walls:
+            sys.exit(f"blocked: {fmt(nxt)} is a wall")
+        if nxt in hazards:
+            warnings.append(f"enters {hazards[nxt].id} at {fmt(nxt)}: {hazards[nxt].effect}")
+        spent += step_cost(st, mover, cur, nxt, climbs, difficult, walkway, warnings)
+        for e in enemies:
+            was = dist_between([cur], e.cells()) <= e.reach
+            now = dist_between([nxt], e.cells()) <= e.reach
+            if was and not now and e.name not in provoked:
+                provoked.append(e.name)
+        cur = nxt
     ok = "OK" if spent <= speed else f"OVER by {spent - speed:g} (dash doubles speed)"
     print(f"{mover.name}: {fmt(mover.pos)} -> {fmt(cur)}  cost {spent:g} / {speed:g} ft  {ok}")
     print("opportunity attacks from: " + (", ".join(provoked) or "none"))
@@ -283,22 +413,38 @@ def cmd_move(st, who, path, speed, climbs):
         print("warning: " + w)
 
 
+def behind_walls(st, origin, cells):
+    """Drop cells the origin can't see (walls block areas of effect) and the walls themselves."""
+    walls = st.wall_cells()
+    if not walls:
+        return cells, 0
+    base = tuple(round(c / CELL) * CELL for c in origin)
+    kept = [c for c in cells if c not in walls and st.visible(base, c, walls)]
+    return kept, len(cells) - len(kept)
+
+
 def cmd_area(st, kind, args):
     if kind == "sphere":
-        origin = parse_point(args.origin)
+        origin, _ = st.point_or_name(args.origin)
         cells = sphere_cells(origin, args.radius, args.height)
+        cells, cut = behind_walls(st, origin, cells)
         report_hits(st, cells, plane_z=origin[2])
     elif kind == "emanation":
         src = st.find(args.source)
         cells = sorted({c for base in src.cells()
                         for c in grid_around(base, args.radius)
                         if dist_between([c], src.cells()) <= args.radius})
+        cells, cut = behind_walls(st, src.pos, cells)
         report_hits(st, cells, exclude=src, plane_z=src.pos[2])
     else:
         center, caster = st.point_or_name(args.source)
+        toward, _ = st.point_or_name(args.toward)
         fn = cone_cells if kind == "cone" else line_cells
-        cells = fn(center, parse_point(args.toward), args.length)
+        cells = fn(center, toward, args.length)
+        cells, cut = behind_walls(st, center, cells)
         report_hits(st, cells, exclude=caster, plane_z=center[2])
+    if cut:
+        print(f"({cut} cells behind walls left out)")
     if args.show:
         render(st, highlight=set(cells))
 
@@ -315,7 +461,8 @@ def render(st, origin_name=None, highlight=None):
     else:
         sys.exit("nothing to draw")
     grid = {}
-    for t in st.terrain:  # higher terrain draws over lower
+    # walls draw first so doors and gaps show through; higher terrain draws over lower
+    for t in sorted(st.terrain, key=lambda t: 0 if t.wall else 1):
         for c in sorted(t.cells(), key=lambda p: p[2]):
             grid[(c[0], c[1])] = t.glyph
     for (x, y, _z) in highlight:
@@ -354,7 +501,10 @@ def main():
 
     p = sub.add_parser("dist"); p.add_argument("a"); p.add_argument("b")
     p = sub.add_parser("move"); p.add_argument("who")
-    p.add_argument("--path", nargs="+", required=True)
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--to", help="creature (stops adjacent), @feature, or point; pathfinds")
+    g.add_argument("--path", nargs="+", help="explicit waypoints x,y,z ...")
+    p.add_argument("--stop", type=float, help="with --to <creature>: stop at this reach (ft)")
     p.add_argument("--speed", type=float); p.add_argument("--climbs", action="store_true")
     for kind in ("cone", "line"):
         p = sub.add_parser(kind); p.add_argument("source")
@@ -381,7 +531,7 @@ def main():
     if args.cmd == "dist":
         cmd_dist(st, args.a, args.b)
     elif args.cmd == "move":
-        cmd_move(st, args.who, args.path, args.speed, args.climbs)
+        cmd_move(st, args.who, args.path, args.to, args.stop, args.speed, args.climbs)
     elif args.cmd == "map":
         render(st, args.origin)
     else:

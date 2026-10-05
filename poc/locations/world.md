@@ -24,8 +24,8 @@ origin (0,0,0) = Thornbury's well (the starting area's origin) · +x east · +y 
 ## Known, not placed
 | id          | feature         | constraints                                                | source      | notes |
 |-------------|-----------------|------------------------------------------------------------|-------------|-------|
-| market-town | the market town | within 3d of thornbury; has a temple of Chauntea           | player:kael | Kael was sent from its temple to tend Thornbury's shrine |
-| river-city  | a river city    | on a navigable river; has a dock district                  | player:kira | Kira grew up running errands for smugglers there |
+| market-town | the market town | within 3d of thornbury                                     | player:kael | temple of Chauntea; Kael was sent from it to tend Thornbury's shrine |
+| river-city  | a river city    | on a navigable river                                       | player:kira | dock district; Kira grew up running errands for smugglers there |
 | the-city    | "the city"      | —                                                          | scenario    | Veskar says he buys grain for it; may be the river city (decide when placed) |
 
 ## Frontier

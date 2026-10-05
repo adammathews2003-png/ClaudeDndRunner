@@ -108,13 +108,15 @@ Notes:
 **Decided (2026-10-04).** This replaces the old prose relational map (per-file
 `## Connections`), which had no coordinates and stored every edge twice.
 
-Places nest in three tiers, each with its own coordinate frame: **world** (miles) →
-**area** (feet: a village and its surroundings) → **site** (feet on 5-ft cells: a
-building and its yard, a dungeon). In its parent a child is a footprint row, and inside
-it has its own frame. All frames are north-up with +z up, and a child sits in its parent
-by **offset only**. Converting a position between tiers is therefore just addition, plus
-ft↔mi at the world tier. A site's rooms, floors and cellar share the site's single
-frame; floors are z values. Formats: 04 → Location files.
+Places nest, each with its own coordinate frame, in three tiers that are really three
+units: **world** (miles) → **area** (feet: a village and its surroundings) → **site**
+(feet on 5-ft cells: a building and its yard, a dungeon). Same-unit nesting goes to any
+depth (realm → duchy; city → district), so no single file has to hold the whole
+campaign. In its parent a child is a footprint row, and inside it has its own frame.
+All frames are north-up with +z up, and a child sits in its parent by **offset only**.
+Converting a position between tiers is therefore just addition, plus ft↔mi where the
+unit changes. A site's rooms, floors and cellar share the site's single frame; floors
+are z values; walls are terrain rows. Formats: 04 → Location files.
 
 - **Coordinates say where things are; routes say how you get there.** Area and world
   files carry a `## Routes` table: each way between two places is written once, in the
@@ -124,6 +126,10 @@ frame; floors are z values. Formats: 04 → Location files.
   0.8 mi N, 15 min by the mill road". `scene enter` prints it as a Nearby block, and
   `where` answers it on demand (06). Because nobody types directions or travel times,
   they can't contradict the geometry.
+- **Names in, coordinates out.** Coordinates are how positions are stored, not how the
+  GM talks to the tools: creatures are placed `@bar` and moved `--to Veskar`, and the
+  tools do the pathfinding (02 → Spatial model). The GM types a coordinate only to
+  override.
 - **Lazy, like combat terrain.** A place needs coordinates only once play asks a
   spatial question. Unplaced places are fine. Lint checks only placed things.
 - **There is always a world map.** `locations/world.md` exists from campaign creation,

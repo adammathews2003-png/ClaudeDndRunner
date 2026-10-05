@@ -41,8 +41,10 @@ packets, combat, clock, lint) is specified in `planning/06-tools-spec.md`.
    HP per level **decided: max or roll**, chosen once per character (`hp-method`),
    revisited only if the player asks (house rule).
 8. ~~Map model~~ **Decided (2026-10-04):** nested coordinate frames: world (mi) → area (ft)
-   → site (5-ft cells), north-up, offset-only. Each route is stored once in the parent
-   frame. Directions, distances and travel times are derived by tools, never hand-written
+   → site (5-ft cells), north-up, offset-only, same-unit nesting to any depth. Each
+   route is stored once in the parent frame; sites may carry their own routes. The GM
+   addresses places and creatures by name (`@bar`, `--to Veskar`) and the tools do the
+   geometry. Directions, distances and travel times are derived by tools, never hand-written
    (planning/01 → World geometry, 04 → Location files). Every campaign has a world file
    from creation: known places are placed or constrained, and the rest is open frontier
    filled in by generation, player choice or imports (planning/02 → The open world).
