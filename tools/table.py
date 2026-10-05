@@ -212,14 +212,17 @@ def _strip_root(cmd, root=ROOT):
     """Drop a leading `cd <root> &&` / `cd <root>;` (exactly the game folder) and turn an
     absolute `<root>/tools/x.py` into `tools/x.py`."""
     r = str(root.resolve()).replace("\\", "/").rstrip("/")
-    c = cmd.replace("\\", "/")
+    c = cmd   # backslashes stay as they are: `\"` escapes must survive for the quote scan
     m = re.match(r'^\s*(?:cd|Set-Location)\s+(?:"([^"]+)"|\'([^\']+)\'|(\S+))\s*(?:&&|;)\s*(.*)$', c, re.I | re.S)
     if m:
-        target = (m.group(1) or m.group(2) or m.group(3) or "").rstrip("/")
+        target = (m.group(1) or m.group(2) or m.group(3) or "").replace("\\", "/").rstrip("/")
         if target.lower() != r.lower():
             return None
         c = m.group(4)
-    c = re.sub(r'(^|\s)["\']?' + re.escape(r) + r'/(tools/(?:gm|space)\.py)["\']?', r"\1\2", c, flags=re.I)
+    # an absolute path to the script (either slash style) → tools/x.py
+    m = re.match(r'^(\s*\S+\s+)["\']?([^\s"\']+?)[\\/]tools[\\/]((?:gm|space)\.py)["\']?(?=\s|$)', c, re.I)
+    if m and m.group(2).replace("\\", "/").rstrip("/").lower() == r.lower():
+        c = m.group(1) + "tools/" + m.group(3) + c[m.end():]
     return c
 
 
@@ -238,9 +241,16 @@ def command_ok(cmd):
     if "$(" in cmd or "`" in cmd or "${" in cmd:
         return False
     quote = None
-    for ch in cmd:
+    skip = False
+    for i, ch in enumerate(cmd):
+        if skip:
+            skip = False
+            continue
         if quote:
-            if ch == quote:
+            # `\"` and `\\` inside double quotes are escapes (do "log \"a; b\"")
+            if quote == '"' and ch == "\\" and i + 1 < len(cmd) and cmd[i + 1] in '"\\':
+                skip = True
+            elif ch == quote:
                 quote = None
             continue
         if ch in "\"'":

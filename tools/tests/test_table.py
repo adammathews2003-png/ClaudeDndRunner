@@ -80,12 +80,14 @@ class Gate(unittest.TestCase):
     def test_commands(self):
         ok = ["python tools/gm.py roll 1d20", 'python tools/gm.py do "log \'a; b\'; hp Kael -3"',
               "py tools/space.py map --player-view", f'cd "{R}" && python tools/gm.py brief',
-              f'python "{R / "tools" / "gm.py"}" roll 1d20']
+              f'python "{R / "tools" / "gm.py"}" roll 1d20',
+              r'python tools/gm.py do "attitude mara wary \"asked; deflecting\"; log \"Kira asked\""']
         bad = ["whoami", "python tools/gm.py roll 1d20; whoami", 'python tools/gm.py log "$(whoami)"',
                "python tools/gm.py roll 1d20 | tee x", "python tools/gm.py roll 1d20 > x.txt",
                "python tools/gm.pyx", 'python tools/gm.py log "unclosed', "python tools/gm.py a\nwhoami",
                "cd C:/Windows && python tools/gm.py roll 1d20", "python tools/gm.py log `whoami`",
-               f'cd "{R}" && python tools/gm.py brief && whoami', "rm -rf poc"]
+               f'cd "{R}" && python tools/gm.py brief && whoami', "rm -rf poc",
+               r'python tools/gm.py do "log \"a\"" ; whoami', r'python tools/gm.py log "a\\"; whoami']
         for c in ok:
             self.assertTrue(table.command_ok(c), c)
         for c in bad:

@@ -186,14 +186,27 @@ def end_scope(scope):
 
 # ---------- retcon / overrule-undo ----------
 
-def retcon(text, turn=None):
+def retcon(text, turn=None, session=None):
+    """Log a retcon. With `session` (a past session's number) an `Erratum:` line is also
+    appended to that session's history file; its original text is never edited (04)."""
     text = text.strip()
     if not text:
         raise RuleError("retcon: say what changed")
     _mark_overrule()
     t = turn if turn is not None else journal.current_turn()[0]
-    journal.log_delta(f"[overrule] retcon turn {t}: {text}")
-    return f"[retcon of turn {t} logged]", {"turn": t, "text": text}
+    where = f"session {session:02d} turn {t}" if session else f"turn {t}"
+    journal.log_delta(f"[overrule] retcon {where}: {text}")
+    if session:
+        p = campaign.root() / "sessions" / "history" / f"session-{session:02d}.md"
+        if not p.exists():
+            raise RuleError(f"retcon --session {session}: no {p.name}")
+        doc = md.load(p)
+        if doc.body and doc.body[-1].strip():
+            doc.body.append("")
+        doc.body.append(f"Erratum ({since()}): turn {t} — {text}")
+        doc.trailing_newline = True
+        doc.save()
+    return f"[retcon of {where} logged]", {"turn": t, "text": text, "session": session}
 
 
 def _session_log_rel():
@@ -259,7 +272,7 @@ def cmd_rule(ctx):
 
 
 def cmd_retcon(ctx):
-    _emit(ctx, retcon(ctx.args.text, ctx.args.turn))
+    _emit(ctx, retcon(ctx.args.text, ctx.args.turn, ctx.args.session))
 
 
 def cmd_overrule_undo(ctx):
@@ -278,6 +291,7 @@ def register(sub, g):
     p = sub.add_parser("retcon", parents=[g], help='retcon "what changed" --turn N')
     p.add_argument("text")
     p.add_argument("--turn", type=int)
+    p.add_argument("--session", type=int, help="a past session: also appends an Erratum line to its history")
     p.set_defaults(func=cmd_retcon)
 
     p = sub.add_parser("overrule-undo", parents=[g], help="reverse the most recent overrule batch")

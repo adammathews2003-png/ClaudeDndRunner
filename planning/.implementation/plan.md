@@ -922,3 +922,36 @@ Built and verified (281 tests). New command modules: `clock`, `travel`, `rest`, 
   schedule format (dolorous-pike, isidore-brahe, ptolemy, ursula-shackleton) and route
   exits on sites without a Layout; loop-play's world has `widows-ridge` and
   `castle-lark` footprints overlapping. Fix in Phase 11 / content review.
+
+## Phase 9 — completion notes (2026-10-05)
+
+Built and verified (283 tests + live runs through `table.py` with
+`claude-sonnet-5-5` on scratch POC copies). Eleven skills in `.claude/skills/`
+(`gm`, `character`, `level-up`, `scene`, `travel`, `combat`, `map`, `overrule`,
+`spoilers`, `end-session`, `new-campaign`); `character`, `overrule`, `spoilers`,
+`end-session`, `new-campaign` are `disable-model-invocation: true`. New tool support:
+`gm.py scaffold <slug> --area "<name>" [--activate]` (what `/new-campaign` runs; Phase
+11's `campaign new` builds on it) and `retcon … --session NN` (appends the Erratum line
+to a past session's history, 04). `/end-session` passes the summary inline
+(`session archive --summary "…"`): the table client forbids Write.
+
+Live checks: all eleven appear as slash commands in an SDK session; `/gm` ran session
+start → roster → opening scene with no permission prompt and no `[SCENE]`/`[GM BRIEF]`
+on screen; a reported d20 went through `check … --d20 14`; a purchase moved coin;
+`/spoilers` answered between the markers with Established labels and was recorded in
+`sessions/spoilers.md`; `/end-session` archived (history file, log reset, in-session off);
+`/map` pasted the `--player-view` render without the secret trapdoor.
+
+Fixed from the live runs:
+- **Gate:** escaped quotes inside a `do` string (`do "attitude mara wary \"why\"; log \"…\""`,
+  the cheat sheet's own form) were denied; `command_ok` now honours `\"`/`\` inside double
+  quotes and `_strip_root` no longer rewrites backslashes.
+- `/gm` now says: use Glob to find files (it tried `ls`); paste tool lines **verbatim**,
+  never a check against a DC the players can't know (it pasted a retyped
+  `Insight 17 vs DC 12` for Mara's lie); no process talk ("while I settle the coins");
+  files are canon for physical facts (it invented a bolted door where the files put a
+  floor trapdoor); don't name NPCs the characters haven't learned.
+- Promoting a rule to `rules/house-rules.md` is a between-sessions edit, not a table step.
+
+For Phase 10 (dry run): watch for invented physical details and retyped roll lines;
+the skills now forbid both, but only a longer run shows whether that holds.

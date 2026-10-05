@@ -27,7 +27,7 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 6 | 2a.5b | `gm.py pc` + SRD class/race/equipment data + `gm.py xp` (XP advancement, per campaign) | [x] 2026-10-05 |
 | 7 | 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `world`, `trace`, `odds`, `spoil` | [x] 2026-10-05 |
 | 8 | 2a.7 | `combat reframe`, `world place` suggestions, `world import`, `space.py map --place` | [ ] |
-| 9 | 2b | GM skills in `.claude/skills/` | [ ] |
+| 9 | 2b | GM skills in `.claude/skills/` | [x] 2026-10-05 |
 | 11 | 2c | `campaign`, `encounter`, `danger`, `loop` tools; `/campaign` authoring skills; time-loop rules sheet (`planning/07`) | [ ] |
 | 10 | Phase 3 | Verification sweep + dry-run readiness | [ ] |
 
