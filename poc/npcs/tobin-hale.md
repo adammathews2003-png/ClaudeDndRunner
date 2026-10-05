@@ -1,6 +1,6 @@
 ---
 name: Tobin Hale
-location: crossroads-inn
+location: crossroads-inn/common-room
 role: stablehand
 faction: none
 attitude-to-party: friendly
@@ -29,6 +29,6 @@ who treats him as competent.
 (none yet)
 
 ## Movements
-- 06:00–18:00 → crossroads-inn (stable yard)
-- 18:00–00:00 → crossroads-inn (common room, corner table)
-- 00:00–06:00 → crossroads-inn (asleep in the stable loft)
+- 06:00–18:00 → crossroads-inn/stable-yard
+- 18:00–00:00 → crossroads-inn/common-room (corner table)
+- 00:00–06:00 → crossroads-inn/stable-yard (asleep in the stable loft)

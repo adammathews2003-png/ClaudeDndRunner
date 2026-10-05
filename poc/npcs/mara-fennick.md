@@ -1,6 +1,6 @@
 ---
 name: Mara Fennick
-location: crossroads-inn
+location: crossroads-inn/common-room
 role: innkeeper
 faction: none
 attitude-to-party: neutral
@@ -30,6 +30,6 @@ outsiders without blinking if she thinks it keeps the peace.
 (none yet)
 
 ## Movements
-- 06:00–12:00 → crossroads-inn (kitchen; cellar errands)
-- 12:00–00:00 → crossroads-inn (behind the bar)
-- 00:00–06:00 → crossroads-inn (asleep upstairs, room 1)
+- 06:00–12:00 → crossroads-inn/kitchen (cellar errands)
+- 12:00–00:00 → crossroads-inn/common-room (behind the bar)
+- 00:00–06:00 → crossroads-inn/upstairs (asleep, room 1)

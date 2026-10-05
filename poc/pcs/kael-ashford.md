@@ -1,7 +1,7 @@
 ---
 name: Kael Ashford
 player: (pregen)
-location: crossroads-inn
+location: crossroads-inn/common-room
 race: human
 class: cleric
 subclass: life

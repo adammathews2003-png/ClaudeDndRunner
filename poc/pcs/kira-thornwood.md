@@ -1,7 +1,7 @@
 ---
 name: Kira Thornwood
 player: (pregen)
-location: crossroads-inn
+location: crossroads-inn/common-room
 race: high elf
 class: rogue
 subclass: thief

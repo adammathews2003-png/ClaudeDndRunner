@@ -20,13 +20,48 @@ advances, so add the absolute day: "two nights before the party arrived (night o
 -1)". Pre-campaign days are numbered ≤ 0. This also lets `gm.py trace` and `/spoilers`
 treat them as Established facts.
 
-## Location file — `locations/<slug>.md`
+## Location files — `locations/<slug>.md`
+
+Places nest in three **tiers**, each with its own coordinate **frame**:
+
+| tier | example | unit | holds | appears in its parent as |
+|---|---|---|---|---|
+| `world` | the kingdom | mi | areas, roads between them | — |
+| `area` | Thornbury and its surroundings | ft | sites, routes between them | a footprint row, in mi |
+| `site` | the Crossroads Inn | ft (5-ft cells) | sub-areas: rooms, floors, yards | a footprint row, in ft |
+
+**Frame rules** (these keep cross-tier math down to addition):
+- Every frame is **north-up, +x east, +y north, +z up**. Never rotated.
+- A child frame is placed in its parent by **offset only**. The child's row in the
+  parent's `## Places` table has an `at` column: where the child's local `(0,0,0)`
+  sits in the parent's frame. So `parent pos = at + local` (with ft→mi conversion when
+  the parent is world-tier). `from`/`to` are the footprint, which is separate because an
+  origin needn't be a corner (Thornbury's is the well in the middle). For a site, put
+  the origin at its SW corner at ground level, so `at` = `from`. Cellars go negative and
+  upper floors positive. Footprints constrain x/y only.
+- **A site has one frame.** All its sub-areas (rooms, floors, cellar, yard) share it.
+  Floors and cellars are z values, not new frames.
+- **The parent owns placement.** A child file names its `parent:`. Where it sits lives
+  only in the parent's `## Places` row. Places without a file yet (the smithy) are just
+  rows, which is enough canon to stay consistent about.
+- **Coordinates are lazy.** Nothing needs a position until play asks a spatial
+  question. An area can start with three rows. Lint complains only when placed things
+  contradict each other.
+- **Directions and distances are never authored, only derived.** "East side of the
+  square", "15 min walk": tools compute these from the frames and routes (06 →
+  `scene enter`, `where`), so they can't go stale or disagree.
+
+Tier vs. `type`: `tier` decides geometry. `type` is flavor
+(`realm | region | settlement | building | outdoor | wilderness | dungeon`).
+
+### Site file
 
 ```markdown
 ---
 name: The Crossroads Inn
-type: building          # region | settlement | building | room | wilderness | dungeon
-region: thornbury       # parent location slug, if any
+tier: site
+type: building
+parent: thornbury       # area slug; its ## Places row places this site
 tags: [social, safe]
 ---
 
@@ -35,10 +70,14 @@ tags: [social, safe]
 ## Description
 Sensory prose the GM can draw exposition from. 1–3 paragraphs.
 
-## Connections
-- **Thornbury village square** — out the front door, 2 min walk, obvious
-- **Stable yard** — side door past the kitchen, 1 min, obvious
-- **Cellar** — trapdoor behind the bar, locked (Mara has the key), not obvious (DC 12 Perception)
+## Areas
+<!-- Sub-areas of this site and how they're reached from inside it. They live in one
+     file, so there's no symmetry problem. Ways in and out of the site are the parent's
+     ## Routes, not this list. These slugs are what `location: crossroads-inn/<area>`
+     may name. -->
+- **common-room** — front door from the square; the hub
+- **cellar** — trapdoor behind the bar, locked (Mara has the key), not obvious (DC 12 Perception)
+- **stable-yard** — side door past the kitchen; gate onto the back lane
 
 ## Items & features
 - Bar (north wall): locked strongbox beneath (DC 15 Thieves' Tools), ~40 gp
@@ -53,13 +92,17 @@ Sensory prose the GM can draw exposition from. 1–3 paragraphs.
 - DC 15 (cellar): a second, newer lock on the inner door
 
 ## Layout
-<!-- Written the first time a tense scene or fight happens here; fixed afterwards.
-     Only features with spatial/mechanical weight. One block per area for multi-room places. -->
+<!-- Written the first time a tense scene or fight happens in a sub-area, then fixed.
+     Only features with spatial or mechanical weight. One ### block per sub-area. All
+     blocks share the site's frame, so every Bounds line repeats the same origin.
+     Exit rows (effect starts "exit →") are the endpoints that routes and cross-area
+     moves attach to. -->
 ### common-room
 Bounds: x 0–45 · y 0–35 · z 0–10 · origin (0,0,0) = inside the front door, SW corner · +x east · +y north · +z up · ft
 
 | id     | glyph | feature     | from      | to        | effect                           |
 |--------|-------|-------------|-----------|-----------|----------------------------------|
+| door   | d     | front door  | (0,0,0)   | (0,0,0)   | exit → square                    |
 | bar    | b     | bar counter | (15,25,0) | (35,25,0) | half cover; crossing = difficult |
 | stairs | s     | stairs up   | (0,15,0)  | (0,25,10) | stairs up to landing (z 10)      |
 
@@ -67,13 +110,162 @@ Bounds: x 0–45 · y 0–35 · z 0–10 · origin (0,0,0) = inside the front do
 Running changes: damage, moved items, ambience shifts. GM appends here.
 ```
 
-Layout/terrain tables are the same format everywhere (location Layout, Combat block) so
-`tools/space.py` can read them and the GM can copy rows across. `from`/`to` are opposite
-corner cells (inclusive); a single cell has `to` = `from`. `effect` is free text, but the
-helper keys on the words *difficult*, *stairs*, *ramp*, and *secret* (left off
-`--player-view` maps until the party discovers it; then the word is removed).
+### Area file (and world file)
 
-Who-is-here is NOT stored in the location file — it's derived by grepping NPC/PC
+Same skeleton without `## Areas` and `## Layout`, plus `## Frame`, `## Places` and
+`## Routes`. The world file uses the same pattern with two more sections (below).
+
+```markdown
+---
+name: Thornbury
+tier: area
+type: settlement
+parent:                 # world slug; empty until a world file exists
+tags: [village]
+---
+
+# Thornbury
+
+## Description
+The area as a whole: what you see coming in, the lay of the land.
+
+## Hidden
+(same rules as a site; checked when the party is in the open parts of the area)
+
+## Frame
+origin (0,0,0) = the well at the center of the square · +x east · +y north · +z up · ft
+
+## Places
+<!-- One row per place. `at` = where that place's own (0,0,0) sits in THIS frame (blank
+     for a row with no file). from/to = opposite corners of its footprint. `ref` = the
+     place's slug, or `—` for a row with no file yet. `source`: see The world file.
+     Same columns as Layout, plus at/ref/source. -->
+| id     | glyph | feature        | at           | from         | to           | effect             | ref            | source   |
+|--------|-------|----------------|--------------|--------------|--------------|--------------------|----------------|----------|
+| square | .     | village square | (-60,-60,0)  | (-60,-60,0)  | (60,60,0)    | open ground        | village-square | scenario |
+| inn    | I     | Crossroads Inn | (65,-20,0)   | (65,-20,0)   | (175,15,20)  | building + yard    | crossroads-inn | scenario |
+| smithy | f     | smithy         |              | (-55,70,0)   | (-25,95,15)  | not yet detailed   | —              | scenario |
+| mill   | M     | old mill       | (-20,4400,0) | (-20,4400,0) | (20,4440,25) | astride the stream | old-mill       | scenario |
+
+## Routes
+<!-- Ways between places, each written ONCE, in the lowest frame that contains both ends.
+     This replaces the old per-file Connections. from/to = a place id, or `place.exit`
+     (an exit row id in that site's Layout). Without an exit, the tool uses the
+     footprint edge nearest the other end. `via` = waypoints in this frame, in order.
+     `time` is blank (derived: path length ÷ pace) or an override with a reason.
+     `access`: obvious | DC N to notice | locked (who has the key) | secret. `secret`
+     routes are left off player-facing output until discovered, like terrain. -->
+| id       | from   | to          | via                                 | kind | access  | time | notes            |
+|----------|--------|-------------|-------------------------------------|------|---------|------|------------------|
+| inn-door | square | inn.door    |                                     | door | obvious |      |                  |
+| mill-rd  | square | mill        | (0,60,0) (150,1500,0) (-100,3000,0) | road | obvious |      | along the stream |
+
+## Notes / current state
+```
+
+### The world file — `locations/world.md` (always exists)
+
+Every campaign has exactly one world file from day one, created by `/new-campaign`, even
+when all anyone knows is one village. It holds the known places in relation to each
+other. The rest of the world is open, to be filled in later by generation, player
+choice or outside material. **A blank part of the world map means unknown, never
+empty.**
+
+- **Origin = the starting area.** The frame's `(0,0,0)` is the campaign's first area
+  (its own origin, e.g. Thornbury's well). Coordinates grow outward in any direction as
+  places are added, so there are no world bounds to outgrow.
+- **Three states of knowledge, three sections:**
+  1. **`## Places`**: placed, coordinates are canon. Moved only by fiction or `/overrule`.
+  2. **`## Known, not placed`**: the place exists (someone named it) but has no
+     coordinates yet. Instead it carries **constraints**, which is the relational
+     metadata ("within 3 days of thornbury", "E of thornbury", "on a navigable river").
+     Placing it later means choosing coordinates that satisfy every constraint.
+  3. **`## Frontier`**: open leads off the edge of what's known (a road out of town, a
+     river downstream). These are hooks for future places. A lead becomes a route
+     once its far end is placed.
+- **Rows are player-safe.** `world show --player-view` prints places, constraints and
+  notes, so secrets about a place go in its own file's `## Hidden`, never in this table.
+- **Every row records its `source`:** `scenario` (campaign material), `player:<pc>`
+  (said at the table or in a backstory), `generated` (the GM made it up when it was
+  needed), or `import:<resource>` (a published map or module).
+- **Precedence when sources conflict:** placed canon > `import` / `scenario` >
+  `player` > `generated`. A player's backstory claim ("my hometown is a river port")
+  is honored unless it contradicts placed canon. In that case the GM asks the player
+  once and adjusts the claim, not the canon. Generated content never overrides
+  anything.
+- **Constraints use a small vocabulary** so tools can check them: `within <dist|time> of
+  <id>`, `beyond <dist|time> from <id>`, `<compass> of <id>`, `on <feature>` (a named
+  river, road or coast; an unnamed one like `on a navigable river` is kept but
+  unchecked until such a feature is placed), `near (x,y) ±<dist>` (from imports), and free text after `;`
+  (kept, but not checked).
+
+```markdown
+---
+name: The World
+tier: world
+type: realm
+parent:
+tags: []
+---
+
+# The World
+
+## Description
+What's generally known: the realm's name if anyone's said it, climate, the big
+picture. Fine to leave nearly empty.
+
+## Frame
+origin (0,0,0) = Thornbury's well (the starting area's origin) · +x east · +y north · +z up · mi
+
+## Places
+| id        | glyph | feature   | at      | from            | to            | effect          | ref       | source   |
+|-----------|-------|-----------|---------|-----------------|---------------|-----------------|-----------|----------|
+| thornbury | T     | Thornbury | (0,0,0) | (-0.1,-0.1,0)   | (0.1,0.9,0)   | farming village | thornbury | scenario |
+
+## Known, not placed
+| id          | feature         | constraints                                   | source      | notes                    |
+|-------------|-----------------|-----------------------------------------------|-------------|--------------------------|
+| market-town | the market town | within 3 days of thornbury; has a temple of Chauntea | player:kael | Kael was sent from here |
+
+## Frontier
+| id       | from      | heading | known as | said to lead to | source   |
+|----------|-----------|---------|----------|-----------------|----------|
+| east-rd  | thornbury | E       | the east road | (unknown)  | scenario |
+
+## Routes
+(world-tier routes between placed places; same format as an area's Routes, in mi)
+
+## Notes / current state
+```
+
+**Filling it in (02 → The open world; 06 → `gm.py world`).** Placing a known row or
+generating a new place goes through `gm.py world place|add`. It checks the constraints
+and refuses overlaps with placed footprints. Placing a frontier lead's far end turns the
+lead into a route. Importing a map (`world import`) aligns its coordinates to ours by
+one shared place plus a scale, or by two shared places.
+
+**Deriving travel time.** Path length (from → via → to) is measured in a straight line
+(Euclidean, z included). This is overland travel, not the combat grid rule. Pace follows
+the PHB: normal is 300 ft/min in ft frames and 3 mi/h in mi frames. Fast is ×4/3 speed
+(time ×0.75); slow is ×2/3 (time ×1.5). Round up to a whole minute (minimum 1); over an
+hour, round to 5 min. Set `time` by hand only when terrain makes the straight line lie
+(`45m — switchbacks`). Lint flags an override more than 2× off the derived value as a
+probable typo.
+
+**Where people are.** `location:` in PC/NPC frontmatter and `party-location:` in
+`current.md` take `site` or `site/area` (`crossroads-inn/common-room`). The area part
+is optional and doesn't need a Layout yet; it should be listed in the site's `## Areas`.
+Exact `(x,y,z)` positions exist only in the Stage table and Combat block, in the frame
+named on the block's `Map:` line.
+
+Layout, Places and terrain tables use the same format everywhere (site Layout, area/world
+Places, Combat block), so `tools/space.py` can read them and the GM can copy rows across.
+`from`/`to` are opposite corner cells (inclusive); a single cell has `to` = `from`.
+`effect` is free text, but the helper keys on the words *difficult*, *stairs*, *ramp*,
+and *secret* (left off `--player-view` maps until the party discovers it; then the word
+is removed), and on a leading *exit →*.
+
+Who-is-here is NOT stored in the location file. It's derived by grepping NPC/PC
 frontmatter for `location: <slug>` (single source of truth for positions).
 
 ## NPC file — `npcs/<slug>.md`
@@ -81,7 +273,7 @@ frontmatter for `location: <slug>` (single source of truth for positions).
 ```markdown
 ---
 name: Mara Fennick
-location: crossroads-inn      # slug; updated whenever she moves
+location: crossroads-inn/common-room   # site or site/area; updated whenever she moves
 role: innkeeper
 faction: none
 attitude-to-party: neutral    # hostile | wary | neutral | friendly | ally
@@ -108,9 +300,10 @@ What she knows that players might extract, with how hard it is to get:
 Append-only log of notable interactions. Drives attitude changes.
 
 ## Movements
-<!-- Machine-readable schedule lines first (gm.py clock applies them); prose after. -->
-- 05:00–18:00 → crossroads-inn (kitchen)
-- 18:00–00:00 → crossroads-inn (bar)
+<!-- Machine-readable schedule lines first (gm.py clock applies them); prose after.
+     Target = site or site/area, as in `location:`; the (parenthetical) is a free note. -->
+- 05:00–18:00 → crossroads-inn/kitchen
+- 18:00–00:00 → crossroads-inn/common-room (behind the bar)
 Scenario-driven or conditional moves in prose ("if suspicion rises, leaves by night").
 ```
 
@@ -127,7 +320,7 @@ spell slots) are recomputed by the tools unless listed in `overrides`.
 ---
 name: Kira Thornwood
 player: Alex
-location: crossroads-inn
+location: crossroads-inn/common-room
 race: high elf                    # race + subrace
 class: rogue
 subclass: thief                   # empty until the class's subclass level
@@ -230,7 +423,7 @@ The "watch for" list that gets mirrored into state/current.md:
 ---
 campaign: poc
 in-game-datetime: "Day 1 19:30"   # absolute day + 24 h clock; tools add to it
-party-location: crossroads-inn
+party-location: crossroads-inn/common-room   # site or site/area
 scene: "Common room, dinner rush"
 light: bright                     # bright | dim | dark — passive Perception uses it
 in-session: false                 # true while playing; gates the brief hook (06)
@@ -276,7 +469,7 @@ heading. It has the Combatants columns (below) so `combat start` can promote it 
 
 ```markdown
 ## Combat — round 2 · up: Kael
-Map: crossroads-inn / common-room (layout: locations/crossroads-inn.md)
+Map: crossroads-inn / common-room (frame: site crossroads-inn; layout: locations/crossroads-inn.md)
 Bounds: x 0–45 · y 0–35 · z 0–10 · origin (0,0,0) = inside the front door, SW corner · +x east · +y north · +z up · ft
 
 ### Terrain

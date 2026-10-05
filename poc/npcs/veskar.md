@@ -1,6 +1,6 @@
 ---
 name: Veskar
-location: crossroads-inn
+location: crossroads-inn/upstairs
 role: traveling grain buyer     # his public cover; frontmatter stays player-safe
 faction: none                   # publicly; the truth is under Knowledge & secrets
 attitude-to-party: wary
@@ -29,7 +29,7 @@ he draws steel. If cornered, he negotiates first, fights without mercy second.
 (none yet)
 
 ## Movements
-- 04:00–00:00 → crossroads-inn (room 3)
+- 04:00–00:00 → crossroads-inn/upstairs (room 3)
 - 00:00–04:00 → old-mill (via the stable yard)
 
 Night of Day 2→3 is different: the scenario CLOCK at Day 3 02:00 has him back at the

@@ -69,7 +69,8 @@ tools/
 │   ├── dice.py        # expression parser, adv/dis, crits, SystemRandom
 │   ├── resolve.py     # hit/save/check/contest outcomes, incl. ties-go-to-PC (one place)
 │   ├── journal.py     # undo before-images + session-log delta writer
-│   └── gametime.py    # "Day N HH:MM" parse/format/add
+│   ├── gametime.py    # "Day N HH:MM" parse/format/add
+│   └── geo.py         # frames: site/area/world placement, offsets, routes, bearings, bands
 ├── scene.py  combat.py  clock.py  travel.py  rest.py  lint.py  session.py  srd.py  pc.py
 ├── table.py           # table client: the players' console (Agent SDK; not imported by the above)
 └── tests/             # fixture campaign + seeded tests per command
@@ -138,8 +139,8 @@ gm.py contest Kira stealth passive                     # vs. everyone's passive 
 | `hp Kael -6` / `hp Kael +4` / `hp Kael =11` | HP change; clamps 0..max; temp HP absorbs first; `+temp 5` | combat row, else PC/NPC frontmatter |
 | `dmg Veskar 8 [fire]` | alias for `hp -8`; reports resistance/immunity from the stat block | same |
 | `cond Kael +prone` / `-prone` / `+poisoned 1m` | add/remove a condition; optional duration (rounds `3r`, minutes `10m`) | combat row / frontmatter `conditions` |
-| `move-npc veskar old-mill` | sets `location:`; drops them from On stage if they left the scene | NPC frontmatter, `current.md` |
-| `move-party village-square` | sets every PC's `location:` and `party-location` | PC files, `current.md` |
+| `move-npc veskar old-mill` / `… crossroads-inn/cellar` | sets `location:` (site or site/area; both must resolve, area must be in the site's `## Areas`); drops them from On stage if they left the scene | NPC frontmatter, `current.md` |
+| `move-party village-square` | sets every PC's `location:` and `party-location` (site or site/area) | PC files, `current.md` |
 | `attitude mara friendly "paid for Tobin's drinks"` | sets attitude, appends to `## History with the party` | NPC file |
 | `item Kira -dagger "taken by guard"` / `+ "brass key"` | inventory change | PC `## Inventory` |
 | `coin Kira -5gp` | coin change | PC `## Inventory` Coin line |
@@ -272,9 +273,10 @@ PATH). A permission prompt mid-turn is the single slowest thing that can happen.
 ### `gm.py scene enter <location> [--light dim|dark] [--area common-room]`
 One call replaces the `/scene` read fan-out. Output packet:
 ```
-[SCENE] crossroads-inn (building, thornbury) · light: bright
+[SCENE] crossroads-inn/common-room (site · building, in thornbury) · light: bright
 Description: <body of ## Description>
-Exits: village-square (front door, 1 min, obvious) · stable-yard (side door, 1 min) · cellar (trapdoor, locked, hidden DC 12)
+Exits: front door → square (adjacent, W) · kitchen → stable-yard (E) · trapdoor → cellar (locked, hidden DC 12)
+Nearby: village square adjacent W, 1 min · reeve's house 135 ft W, 1 min · old mill 0.8 mi N, 15 min (via square, mill road)
 Present: Mara (npc, wary) · Tobin (npc, neutral) · Kael, Kira (party)
 Not on stage but here: Veskar (room 3 — Movements: keeps to room by day)
 Passive notices: Kira (PP 15) → DC 13 dried mud footprints to the trapdoor · Kael (PP 12) → nothing
@@ -289,6 +291,14 @@ Layout: common-room (9 features) — `gm.py space map` to draw
   than editing the file.
 - Trigger matching here is only a **text filter** (beats that mention the slug or a
   present NPC). Whether a beat fires is the GM's call.
+- **Exits and Nearby are derived** (`lib/geo.py`, 04 → Location files). Exits come from
+  the site's `## Areas` plus every route in the parent frame that touches this site.
+  Nearby lists the places in the same area (and, at an area's edge, routes out into the
+  world): bearing as an 8-point compass word, exact distance edge to edge (ft under a
+  mile, then mi to 0.1), and route time at normal pace. The GM turns these into
+  player-facing bands per 02 → Telling players distances. Places with no coordinates yet show as
+  `(unplaced)` with their route time if one exists. `secret` routes and places are
+  omitted until discovered, like terrain.
 
 ### `gm.py tempo tense|calm [--adj "Mara +5 watching the room"] [--pos Mara 25,30,0 ...]`
 - `tense`: passive initiative (10 + DEX mod ± adj, ties → PCs) for everyone on stage,
@@ -299,9 +309,10 @@ Layout: common-room (9 features) — `gm.py space map` to draw
 - `gm.py intent Mara "get the letter off the bar"` sets this beat's NPC intent.
 
 ### `gm.py combat start | next | end`
-- `start [--surprised Tobin] [--add "srd:thug x3 @25,15,0"]`: promotes the Stage table
-  (or On stage list) to the `## Combat` block; copies Bounds + terrain rows from the
-  location `## Layout`; rolls initiative (d20 + DEX; PC values via `--init Kael=15`
+- `start [--surprised Tobin] [--add "srd:thug x3 @25,15,0"] [--frame <area>]`: promotes
+  the Stage table (or On stage list) to the `## Combat` block; copies Bounds + terrain
+  rows from the site's `## Layout` (or, with `--frame`, from the area's Places plus the
+  offset Layouts of the sites involved); rolls initiative (d20 + DEX; PC values via `--init Kael=15`
   since players roll); seeds HP/AC from PC files / stat blocks; prints the order and the
   map (`space.py map --player-view`, below). New monsters from the SRD get a `ref` of
   `srd:<name>`.
@@ -312,6 +323,11 @@ Layout: common-room (9 features) — `gm.py space map` to draw
 - `next`: advances `up:`; on wrap, increments the round, moves the moves log into the
   session log, ticks condition durations (`poisoned 3r` → `2r`, expiry reported). Prints
   who's up, their position, and the creatures within reach/range.
+- `reframe <area|site>`: mid-fight switch between a site frame and its parent area
+  frame when the fight spills out of (or back into) a building. Adds or subtracts the
+  site's `at` offset for every position, terrain row and moves-log entry and
+  rewrites the `Map:`/`Bounds:` lines. Reframing into a site is refused while any
+  combatant is still outside that site's footprint.
 - `end`: writes HP/conditions back to PC/NPC files, marks dead NPCs
   (`status: dead` in frontmatter), leaves `## Combat (not in combat)`, sets tempo.
 
@@ -343,10 +359,15 @@ Advances `in-game-datetime`, then reports everything it crossed:
   evening 19:00, night 22:00, midnight 00:00, pre-dawn 04:00.
 
 ### `gm.py travel <to> [--pace fast|normal|slow] [--night]`
-Looks up the connection from the party location (error if none: no teleporting), adds
-its travel time (pace ×0.75/1/1.5), rolls the destination's or region's encounter
-table if one exists (`tables/encounters-<region>.md`, chance by time of day), runs
-`clock advance`, `move-party`, then `scene enter <to>`. Output = all three packets.
+Finds a route from the party's site to `<to>`: a `## Routes` row in the lowest shared
+frame, chained through parent frames when the trip crosses areas (inn → square → mill
+road → mill; Thornbury → the king's road → the city). No route = error (no
+teleporting); `--overland` allows a straight-line cross-country trip at slow pace and
+logs it. Time = path length ÷ pace (04 → Deriving travel time) unless the row
+overrides it. Rolls the destination area's encounter table if one exists
+(`tables/encounters-<area>.md`, chance by time of day), then runs `clock advance`,
+`move-party` and `scene enter <to>`. Output = all three packets. Moving between
+sub-areas of one site isn't travel: it's `move-party crossroads-inn/cellar`.
 
 ### `gm.py rest short|long [Kael ...]`
 - **Long rest:** full HP, half hit dice back, `Resources` reset per their `recovers`
@@ -356,14 +377,22 @@ table if one exists (`tables/encounters-<region>.md`, chance by time of day), ru
 
 ### `gm.py lint [--fix-safe]`
 Consistency sweep (05 #5 and more), exit code 1 on errors:
-- one-way connections; connections to missing files; travel times that disagree between
-  the two ends
-- `location:` values naming missing locations; PCs not all in one place (warning)
+- geography (01 → World geometry): `parent:` naming a missing file or a file of the
+  wrong tier; a site with a parent but no Places row there (warning: unplaced); Places
+  `ref` naming a missing file; overlapping footprints of sibling sites; a site's Layout
+  x/y bounds not fitting inside its footprint; route endpoints (`place`, `place.exit`) that
+  don't resolve; a `time` override more than 2× off the derived time (warning)
+- world: no `locations/world.md` (error); a `## Known, not placed` row whose
+  constraints no longer have any satisfiable spot after a new placement (warning: the
+  GM should reword a constraint or move the newcomer); a constraint naming an unknown
+  id; frontier leads whose `from` isn't placed
+- `location:` values naming missing sites, or sub-areas not in the site's `## Areas`
+  (warning); PCs not all in one place (warning)
 - frontmatter outside the parsing contract; missing required fields per 04
 - combat: positions out of bounds, two creatures in one cell (non-group), HP > max,
   `up:` naming someone absent
 - On stage pointing to missing files; Watch-for beats no longer in any active scenario
-- `--fix-safe` only does mechanical fixes (e.g., add the reverse connection stub,
+- `--fix-safe` only does mechanical fixes (e.g., add a missing sub-area to `## Areas`,
   marked `<!-- added by lint, check me -->`).
 
 **When lint runs. Decided (2026-10-02): three layers, no `Stop` hook.**
@@ -377,7 +406,7 @@ Consistency sweep (05 #5 and more), exit code 1 on errors:
    same tool result and can fix them in the same turn. No extra round trip.
 3. **Full sweep at boundaries:** `scene enter`, `combat end` and `session archive`
    run a full `lint` and print a short report. Those are natural pauses, and they're
-   where cross-file problems (connections, missing files, stale Watch-for) matter.
+   where cross-file problems (geography, missing files, stale Watch-for) matter.
 
 Errors vs. warnings: unfinished-on-purpose things (an improvised NPC not stubbed yet,
 terrain not placed) are **warnings** at layers 2–3 and never block. Only broken
@@ -398,14 +427,62 @@ never reset), clears `in-session`, runs
 `lint`, then `git add -A && git commit -m "session NN"` if the folder is a repo (05 #4).
 The model writes only the half-page summary and the world tick.
 
-### `gm.py stub npc|location <name> [--location slug] [--note "..."]`
+### `gm.py stub npc|location|place <name> [--location slug] [--in <area>] [--at x,y,z] [--note "..."]`
 Creates a valid stub file from the 04 template (slug from the name, frontmatter filled,
-body sections empty but present) and logs it. Makes "improvised canon → stub" (05 #6) a
+body sections empty but present) and logs it. `stub location --in thornbury` also adds
+its Places row (`--at` = the footprint's `from`; without it the row's coordinates stay
+`?` and lint warns). `stub place` writes only the Places row with `ref —`: a smithy
+that exists but needs no file yet. Makes "improvised canon → stub" (05 #6) a
 single call. Refuses if the slug already exists (prints the existing file's path).
 
-### `gm.py where [<name>]`
+### `gm.py where [<name>] [--from <place>]`
 Who's at a location / where someone is, from frontmatter only. Cheap answer to "check
-the record".
+the record". Given a place, it also prints the generated relational view, the same as
+`scene enter`'s Nearby line but from any place:
+```
+[WHERE] old-mill (site, in thornbury) · from crossroads-inn
+  bearing N (slightly W) · straight line 0.8 mi · by route 15 min (mill road, via square)
+  here: (nobody)   scheduled: Veskar 00:00–04:00
+```
+This is the "no calculation needed" answer for planning ("can they get there before
+the cart?") without anyone storing or hand-maintaining a distance table.
+
+### `gm.py world show | add | place | lead | import`
+Maintains `locations/world.md` (04 → The world file; 02 → The open world). Every write
+records a `source` and is logged.
+```
+gm.py world show [--player-view]                    # placed / known-not-placed / frontier summary
+gm.py world add "the market town" --near thornbury --within 3d --source player:kael       --note "temple of Chauntea; Kael was sent from here"     # → Known, not placed
+gm.py world place market-town [--at 38,-12] [--size 1]  # → Places; without --at, suggests 3 spots
+gm.py world lead thornbury --heading E --as "the east road" --source scenario   # → Frontier
+gm.py world import maps/sword-coast.md --anchor Waterdeep=market-town --scale 1 [--anchor2 ...]
+```
+- **Constraint check:** `place` refuses coordinates that break a row's constraints
+  (`within`/`beyond` measured straight-line between footprints; times converted at
+  normal pace, 24 mi/day; compass = within ±45° of the bearing). It also refuses
+  overlaps with placed footprints. `--force` exists for `/overrule` only.
+- **Suggestions:** `place` with no `--at` prints three candidate spots that satisfy the
+  constraints, spread apart, each with what it would be next to. The GM picks one for
+  fictional reasons, not the tool.
+- **Promotion:** placing the far end of a frontier lead turns the lead into a world
+  `## Routes` row and removes it from `## Frontier`.
+- **Import:** reads a `| name | x | y |` table (plus optional `type`/`notes`) and
+  transforms it by the anchor(s): one anchor plus `--scale`, or two anchors (scale is
+  then derived, still north-up, no rotation). Rows land in `## Known, not placed` with
+  their transformed position as a `near (x,y) ±5mi` constraint, and a conflict report.
+  Nothing is placed automatically.
+- `/new-campaign` runs `world init <area-slug>`, which writes the world file with the
+  starting area at `(0,0,0)`. A campaign never lacks a world map.
+
+### `space.py map` at area and world tiers
+`space.py map --place thornbury [--cell 50]` draws an area (or world, `--cell 1` mi)
+from its Places and Routes: footprints as their glyph, routes as `·` paths, party/NPC
+markers at their site's footprint. The default cell size fits the frame into ~60
+columns. `--player-view` drops `secret` rows and places the party hasn't heard of. At world
+tier, frontier leads draw as arrows off known places (`→ the east road ?`). Known-but-
+unplaced rows are listed under the map, not drawn, and blank space is labeled
+*unexplored*, not left looking empty.
+Combat maps are unchanged (5-ft cells, Combat block).
 
 ### Spoiler support — `trace`, `odds`, `spoil` (02 → Spoilers)
 These give `/spoilers` answers facts and numbers instead of model recall. `trace` and
@@ -636,10 +713,10 @@ plausibly. Tools give facts and outcomes; the model gives meaning.
 | 2a.1 | `lib/md.py`, `lib/campaign.py`, `lib/journal.py`, `gm.py` skeleton + `do` | everything else builds on these |
 | 2a.2 | `roll`, `atk/save/check/contest`, mutations, `log`, `undo`, `rule`/`retcon` (+ resolve.py keys) | biggest per-turn saving; table rules change resolve.py, so they're built with it |
 | 2a.3 | `brief` + hooks + permissions allowlist | removes the per-turn Read |
-| 2a.4 | `scene enter`, `tempo`, `combat start/next/end`, `srd`; `space.py` also reads the Stage table (tense scenes) and moves its parsing onto `lib/md.py` | needed before the Phase 3 dry run |
+| 2a.4 | `lib/geo.py`, `scene enter` (with Exits/Nearby), `tempo`, `combat start/next/end/reframe`, `srd`; `space.py` also reads the Stage table (tense scenes) and moves its parsing onto `lib/md.py` | needed before the Phase 3 dry run |
 | 2a.5 | `table.py` client + `space.py map --player-view` | the Phase 3 dry run is played through it, so console leaks surface early |
 | 2a.5b | `gm.py pc` (draft/check/card/write/edit/levelup/roster) + SRD class/race/equipment data | the dry run creates one new PC and levels a pregen, to exercise both loops |
-| 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `trace`, `odds`, `spoil` | build when the dry run shows the need (`odds` reuses the 2a.2 resolve/dice code) |
+| 2a.6 | `clock`, `travel`, `rest`, `lint`, `session archive`, `stub`, `where`, `world`, `trace`, `odds`, `spoil` | build when the dry run shows the need (`odds` reuses the 2a.2 resolve/dice code) |
 | 2b | GM skills (02), written to call these commands | |
 
 Each step ships with seeded tests in `tools/tests/` against a fixture copy of `poc/`.

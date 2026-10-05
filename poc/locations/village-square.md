@@ -1,7 +1,8 @@
 ---
 name: Thornbury Village Square
-type: settlement
-region: thornbury
+tier: site
+type: outdoor
+parent: thornbury
 tags: [social, hub]
 ---
 
@@ -13,10 +14,8 @@ smithy, a small shrine to Chauntea, and the reeve's house with its slate roof. A
 stone well sits at the center. Population ~200; everyone knows everyone, and strangers
 are watched with polite suspicion.
 
-## Connections
-- **Crossroads Inn** (locations/crossroads-inn.md) — east side of the square, 1 min, obvious
-- **Old mill** (locations/old-mill.md) — north road along the stream, 15 min walk, obvious
-- **Reeve's house** — west side of the square, 1 min, obvious (not yet detailed)
+## Areas
+- **square** — the open square itself; the well at the center. Ways out (the inn, the mill road, the reeve's house) are Thornbury's Routes
 
 ## Items & features
 - Well (center): rope and bucket; nothing unusual

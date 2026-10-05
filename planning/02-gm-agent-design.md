@@ -11,13 +11,13 @@ core protocol every session. Skills to build in phase 2:
 | `/character` | new player, new PC, or "I changed something" | **Character intake loop:** free text (sketchy or a full sheet) → draft → derived numbers → ask only for what's missing → write the PC file (see *Session start & characters* below) |
 | `/level-up` | the GM announces a level, or at session start | Tool works out what the new level grants, then asks only for the player's choices (HP, ASI/feat, spells, subclass…), then updates the PC file |
 | `/scene` | party enters new location or major shift | `gm.py scene enter <loc> --write` → refine On stage goals → narrate establishing exposition (short/medium/long) |
-| `/travel` | party moves between locations | `gm.py travel <to>` (connection, time, encounter roll, scene packet) → narrate |
+| `/travel` | party moves between locations | `gm.py travel <to>` (route, derived time, encounter roll, scene packet) → narrate |
 | `/combat` | initiative starts | `gm.py combat start` → map → turn-by-turn with `atk`/`dmg`/`cond`/`combat next` |
 | `/map` | combat start, or a player asks | `gm.py space map --player-view --from <active>` and shows the grid + legend |
 | `/overrule` | the table wants to change something (honor-based) | Retcon what happened, or add a temporary/permanent table rule. Applied immediately, shown as a card, `/overrule undo` reverses (see *Overrule* below) |
 | `/spoilers` | the table wants to peek behind the screen (honor-based) | Answers questions about secrets, or "what if" alternatives, from state + history. Answered immediately in a banner; never creates canon (see *Spoilers* below) |
 | `/end-session` | wrapping up | Writes summary + world tick, `gm.py session archive` (history, lint, git commit) |
-| `/new-campaign` | scaffolding | Creates a campaign folder from the templates in 04-file-formats.md, sets `.campaign` |
+| `/new-campaign` | scaffolding | Creates a campaign folder from the templates in 04-file-formats.md (always including `locations/world.md` with the starting area at its origin), sets `.campaign` |
 
 Play runs through the table client (`python tools/table.py`, 06), which shows players
 only the GM's narration. Tool calls, tool output, thinking and the injected brief stay
@@ -102,6 +102,10 @@ messages.
 - **Behind the screen:** intake is player-facing. Backstory goals are woven into the
   world *privately*: the GM may note scenario hooks in GM-only sections, and never says
   so at the table.
+- **Backstory places go on the world map.** A hometown, a temple, "the city where it
+  happened": each becomes a `## Known, not placed` row with `source: player:<pc>` and
+  whatever constraints the player gave (`gm.py world add`). The player's words are the
+  constraints. The GM doesn't pin coordinates the player didn't imply.
 
 ### Level-up flow (`/level-up`)
 **Trigger:** the GM announces a level at a story milestone (default: milestone
@@ -419,8 +423,23 @@ distance table is forbidden: it's O(n²) and the GM *will* write contradictory e
   table, collapsing beam), and that's a logged move like any other.
 - **Positions change only through the moves log.** Each move: start → waypoints → end,
   cost vs. speed (difficult terrain/climbing ×2), opportunity attacks provoked. One line.
-- **First fight in a place writes its `## Layout`.** Every later fight there starts from
-  it, so the tavern is the same shape in session 1 and session 9.
+- **First fight in a place writes its `## Layout`** (one block per sub-area). Every later
+  fight there starts from it, so the tavern is the same shape in session 1 and session 9.
+
+**Which frame (01 → World geometry).** A Combat block works in one frame, named on its
+`Map:` line. Normally that's the site the fight is in (all its rooms and floors share
+it). When a fight spans places (the archer on the inn roof, the thugs in the square), it
+switches to the shared parent area's frame. `combat start --frame thornbury` (or
+`combat reframe` mid-fight) adds each site's `at` offset to positions and terrain,
+then pulls in the area's Places rows as terrain. Sites and areas are both in feet, so
+nothing rescales and the 5-ft grid still lines up. The reverse works the same way when
+the fight collapses back inside one building.
+
+**Outside combat** the GM doesn't track positions at all, only `location: site/area`.
+For "how far / which way" it reads the generated Nearby block or asks `gm.py where`
+(06). Those answers come from coordinates and routes, so they never need mental math.
+Routes say how to get somewhere and how long it takes. Straight-line distance is for
+sight, sound and range.
 
 **Telling players distances.** The GM always works with exact numbers internally. What
 players hear depends on whether their *character* could reasonably judge it:
@@ -453,6 +472,44 @@ players hear depends on whether their *character* could reasonably judge it:
 - **Groups/swarms:** identical minions that move together can share one row with
   `size: group r5` (they fill every cell within r of `pos`). Split a member into its own
   row the moment it does something different.
+
+## The open world (filling in the map)
+
+`locations/world.md` always exists (04 → The world file). It places what's known and
+leaves the rest open. Places get filled in from three directions, all recorded with a
+`source`:
+
+- **Generation (`generated`).** The GM invents a place *when play needs it*. Triggers:
+  the party heads down a frontier lead, an NPC needs a hometown, or a job needs a
+  destination. Generate the one place and at most one hop beyond it, not a continent.
+  Use `gm.py world add <name> --near <id> --within <dist> [--dir E] [--on <feature>]`,
+  then `world place` once it needs coordinates. The tool picks or checks a spot that
+  satisfies every constraint and doesn't overlap a placed footprint. The GM supplies
+  the fiction (what the place is, and why the road bends there). A file is created only
+  when the party will actually go there (`stub location`). Otherwise the row is enough.
+- **Player choice (`player:<pc>`).** Backstory places come in at intake (Character
+  intake loop). At the table, players may also propose things ("there'd be a ferry
+  where the road meets the river, right?"). The GM accepts a proposal unless it
+  contradicts placed canon or a live secret. In those cases the GM says "not that I
+  know of" in fiction, without explaining. An accepted proposal is written the moment
+  it's agreed.
+- **Outside resources (`import:<resource>`).** A published module's town, or a map the
+  group likes: `gm.py world import <file> --anchor <their-place>=<our-place> --scale
+  <mi per unit>` (or two anchors). Imported rows land in `## Known, not placed` and
+  are placed only after a conflict check against existing canon. The GM resolves
+  clashes by adjusting the import, never the canon.
+
+**Rules that keep it consistent:**
+- **Placed is permanent.** Once a place has coordinates, only fiction (a flood moves the
+  ford) or `/overrule` moves it.
+- **Constraints are promises.** Everything said about an unplaced place ("three days
+  east") is recorded as a constraint when it's said, so the eventual placement can't
+  contradict it.
+- **Unknown ≠ empty.** The GM never says "there's nothing out there", only what the
+  characters know or have heard. Rumors are `## Known, not placed` rows, and a rumor
+  can be wrong: note `rumor; may be false` in `notes`.
+- **The end-of-session world tick** may add frontier leads that play implied, but it
+  never places them. Placement waits until play needs it.
 
 ## Failure & tone guardrails
 

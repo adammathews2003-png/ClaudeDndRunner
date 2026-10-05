@@ -1,7 +1,8 @@
 ---
 name: The Old Mill
+tier: site
 type: building
-region: thornbury
+parent: thornbury
 tags: [isolated, danger]
 ---
 
@@ -13,9 +14,10 @@ still turning though no one has milled grain in a week. The main floor is dusted
 with flour; the loft above holds sacks; a stone under-croft opens at stream level.
 The door stands unlatched.
 
-## Connections
-- **Village square** (locations/village-square.md) — south road along the stream, 15 min walk, obvious
-- **Under-croft** — exterior stone stair at the waterline, partly hidden by willows (DC 10 Perception from outside)
+## Areas
+- **main-floor** — the door from the mill road; millstones, Harl's desk
+- **loft** — ladder up from the main floor; grain sacks
+- **under-croft** — stone vault at stream level (z −10). No inside stair: reached by an exterior stone stair at the waterline, partly hidden by willows (DC 10 Perception from outside)
 
 ## Items & features
 - Main floor: overturned stool, Harl's pipe on the floor (he'd never leave it), ledger showing a large recent grain sale marked only "V."

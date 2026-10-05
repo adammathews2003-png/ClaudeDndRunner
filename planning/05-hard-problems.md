@@ -42,19 +42,22 @@ before-images) covers single bad writes between commits.
 
 ## 5. Relational maps go contradictory
 Prose-only geography eventually produces "A is north of B, B is north of C, C is north
-of A," or one-way doors (A links to B, B doesn't know A). **Fix:** connections must be
-written symmetrically — adding a connection means editing BOTH files (the `/scene` /
-world-edit skill enforces this), and each connection carries direction + travel time so
-contradictions are checkable. A consistency sweep reports asymmetries and travel times
-that disagree between the two ends. It's now a script (`gm.py lint`, 06) rather than a
-background agent: deterministic, instant, and run by `/end-session`.
+of A," or one-way doors (A links to B, B doesn't know A). **Fix (revised 2026-10-04):**
+remove the duplication rather than policing it. Places have coordinates in nested
+frames (01 → World geometry), so directions and distances are derived, never written.
+Each route between two places is stored once, in the parent frame's `## Routes` table,
+so one-way doors and travel times that disagree between the two ends can't occur.
+`gm.py lint` (06) checks what's left: route endpoints that don't resolve, footprints
+that overlap or don't contain their site's Layout bounds, and time overrides wildly off
+the route's length. It runs at scene/session boundaries.
 
 ## 6. Improvised canon evaporates
 Mid-scene the GM invents a barmaid, a street name, a rumor. If it's not filed, next
 session it never existed — or worse, gets reinvented differently. **Fix:** the background
 write step includes "new inventions → stub files" (a 3-line NPC/location stub is enough;
-`gm.py stub npc "Jess" --location crossroads-inn` makes one in a single call).
-Stubs get fleshed out only if they recur.
+`gm.py stub npc "Jess" --location crossroads-inn` makes one in a single call). An
+improvised *place* can be even lighter: one row in its area's `## Places` table, with no
+file (`gm.py stub place smithy --in thornbury`). Stubs get fleshed out only if they recur.
 
 ## 7. Time is fuzzy and everything depends on it
 Rests, spell durations, NPC schedules, scenario clocks, torch burn — all need a clock,

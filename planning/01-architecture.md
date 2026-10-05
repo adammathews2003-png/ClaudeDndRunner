@@ -103,15 +103,43 @@ Notes:
 - **Don't expose the machinery in calm scenes.** In tense scenes, the order may be
   visible in the narration ("Mara is faster —"), but no numbers unless players ask.
 
-## Movement & the relational map
+## World geometry: nested frames
 
-No coordinate grid. Every location file has a `## Connections` section listing adjacent/
-known locations with direction, travel time, and how obvious the route is. Moving = follow
-a connection, load the destination file, rebuild the scene digest. NPC files carry a
-`location:` field; when an NPC moves (on-screen or off-screen per scenario logic), that
-field changes and both location files' "who is here" awareness comes from querying NPC
-frontmatter (grep `location: <name>`), not from lists duplicated inside location files —
-one source of truth.
+**Decided (2026-10-04).** This replaces the old prose relational map (per-file
+`## Connections`), which had no coordinates and stored every edge twice.
+
+Places nest in three tiers, each with its own coordinate frame: **world** (miles) →
+**area** (feet: a village and its surroundings) → **site** (feet on 5-ft cells: a
+building and its yard, a dungeon). In its parent a child is a footprint row, and inside
+it has its own frame. All frames are north-up with +z up, and a child sits in its parent
+by **offset only**. Converting a position between tiers is therefore just addition, plus
+ft↔mi at the world tier. A site's rooms, floors and cellar share the site's single
+frame; floors are z values. Formats: 04 → Location files.
+
+- **Coordinates say where things are; routes say how you get there.** Area and world
+  files carry a `## Routes` table: each way between two places is written once, in the
+  lowest frame that contains both ends. Travel time comes from route length × pace, not
+  straight-line distance, so a winding road stays slow.
+- **Relational info is generated, not authored.** The GM still gets "the mill is
+  0.8 mi N, 15 min by the mill road". `scene enter` prints it as a Nearby block, and
+  `where` answers it on demand (06). Because nobody types directions or travel times,
+  they can't contradict the geometry.
+- **Lazy, like combat terrain.** A place needs coordinates only once play asks a
+  spatial question. Unplaced places are fine. Lint checks only placed things.
+- **There is always a world map.** `locations/world.md` exists from campaign creation,
+  with the starting area at its origin. Known places are placed (or recorded as
+  "known, not placed" with relational constraints like "within 3 days of Thornbury").
+  Everything else is open frontier, filled in later by generation, player choice or
+  imported material, each tagged with its source (02 → The open world).
+- **Fights that spill over** (from the inn into the square) move to the shared parent's
+  frame. Sites and areas are both in feet, so that's an offset with no rescaling (02 →
+  Spatial model).
+
+Moving = follow a route, load the destination file, rebuild the scene digest. NPC/PC
+files carry `location: site` or `location: site/area`. When someone moves (on-screen,
+or off-screen per scenario logic), that field changes. "Who is here" is answered by
+querying frontmatter (grep `location: <slug>`), not from lists duplicated inside
+location files: one source of truth.
 
 ## Session lifecycle
 

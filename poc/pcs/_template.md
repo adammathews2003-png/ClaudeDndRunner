@@ -1,7 +1,7 @@
 ---
 name:
 player:
-location: crossroads-inn
+location: crossroads-inn/common-room
 race:                             # race + subrace
 class:
 subclass:                         # empty until the class's subclass level

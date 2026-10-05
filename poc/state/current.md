@@ -1,7 +1,7 @@
 ---
 campaign: poc
 in-game-datetime: "Day 1 18:30"   # dusk arrival; absolute day + 24 h clock
-party-location: crossroads-inn
+party-location: crossroads-inn/common-room
 scene: "Common room, dinner rush"
 light: bright                     # bright | dim | dark
 in-session: false                 # /gm sets true (turns on the brief hook)

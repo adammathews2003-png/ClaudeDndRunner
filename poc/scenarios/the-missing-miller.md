@@ -1,7 +1,7 @@
 ---
 name: The Missing Miller
 status: active
-locations: [crossroads-inn, village-square, old-mill]
+locations: [thornbury, crossroads-inn, village-square, old-mill]
 ---
 
 # The Missing Miller
