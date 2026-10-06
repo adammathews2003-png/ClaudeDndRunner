@@ -1,7 +1,6 @@
 ---
 name: character
-description: Character intake — a new PC from free text or a pasted sheet, or changes to an existing PC (purchases, gear swaps, HP method, anything between sessions). Only the player (or the /gm session-start routine) invokes it.
-disable-model-invocation: true
+description: Character intake — a new PC from free text or a pasted sheet, or changes to an existing PC (purchases, gear swaps, HP method, anything between sessions). Use when a player types /character, or asks in plain words for a new character or a change to theirs ("set me up a half-orc barbarian 3…").
 allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), Read
 ---
 
@@ -14,7 +13,8 @@ javelins", a pasted sheet, or a mix across several messages. **Player-stated val
 win**; you never invent a value they didn't give; the tools compute everything else.
 
 ## New PC
-1. **Extract** what was said into a draft (slug = their name or a working name):
+1. **Extract** what was said into a draft (slug = their name or a working name; add
+   `player="<who asked>"` when you know which person at the table it's for):
    `python engine/gm.py pc draft <slug> --set name="…" race="…" class=… level=N subclass=… background=… "base-scores=str 15 dex 14 …" skills="athletics, perception" hp-method=max --equip "greataxe; 4 javelins; explorer's pack"`
    - `scores=` if they gave final scores, `base-scores=` if before racial bonuses.
    - A pasted sheet: save nothing yourself; pass the obvious fields with `--set`, or if it

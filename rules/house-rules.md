@@ -39,3 +39,26 @@ wants everywhere get promoted into this file at `/end-session`.
 
 ## Rulings log
 <!-- GM appends: date, situation, ruling made. Promote recurring ones to real house rules above. -->
+
+## Opening strike (surprise)
+Whoever starts a fight against someone who isn't braced for it gets their blow in
+**before initiative**. *Overrides RAW (2014), where initiative comes first and surprise only
+costs the unaware their first turn.* It works both ways: an NPC ambush gets the same.
+1. **Braced or not?** A target is braced when combat is already running, it's a standoff
+   (weapons out, threats made, a duel agreed), or the target can't be surprised (the Alert
+   feat, a trait that says so). Braced → no opening strike; roll initiative as normal.
+   Otherwise (a calm scene, or tension that hasn't turned to violence) the target isn't
+   braced.
+2. **Did they see it coming?** If the attacker telegraphs it (a wind-up in plain view
+   of a target watching them), contest the attacker's Deception against the target's
+   passive Insight (Stealth against passive Perception if the attacker is hidden). The
+   target wins → no opening strike. Ties go to the PC.
+3. **The opening strike:** the attacker takes the action they declared, now: an attack
+   (Extra Attack included), a spell, a shove. They roll to hit at once, with advantage if
+   the target can't see them.
+4. **Then initiative.** Everyone who didn't see it coming is **surprised**: no move and
+   no action on their first turn, no reactions until that turn ends. Allies who were in
+   on it, and anyone already braced, are not. The attacker's round-1 action is spent
+   (they still move and take a bonus action).
+5. If nobody fights back (one thrown mug, a single shove that ends it), there's no
+   initiative at all.

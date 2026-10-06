@@ -211,6 +211,9 @@ def cmd_atk(ctx):
     a = ctx.args
     lines, data = attack(a.attacker, a.target, with_=a.with_, mode=_mode(a), cover=a.cover,
                          d20=a.d20, total=a.total, apply=not a.no_apply, roller=ctx.roller)
+    if not data.get("out_of_reach"):
+        import turn
+        lines += turn.after_attack(data.get("attacker", a.attacker), bonus=a.bonus) or []
     for line in lines:
         ctx.emit(line)
     ctx.result = data
@@ -391,6 +394,7 @@ def register(sub, g):
     p.add_argument("--with", dest="with_")
     p.add_argument("--cover", choices=["half", "three-quarters", "total"])
     p.add_argument("--no-apply", action="store_true", help="don't apply the damage")
+    p.add_argument("--bonus", action="store_true", help="a bonus-action attack (off-hand, etc.)")
     _pc_side(p)
     p.set_defaults(func=cmd_atk)
 

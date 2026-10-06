@@ -248,3 +248,13 @@ class Skills(unittest.TestCase):
             self.assertIn("disable-model-invocation: true", text, name)
         self.assertTrue((TOOLS.parent / "rules" / "mechanics" / "time-loop.md").exists())
         self.assertIn("rules/mechanics/", (d / "gm" / "SKILL.md").read_text(encoding="utf-8"))
+
+    def test_gm_runs_intake_and_stages_player_skills(self):
+        d = TOOLS.parent / ".claude" / "skills"
+        for name in ("character", "level-up"):          # the GM runs these when asked
+            self.assertNotIn("disable-model-invocation", (d / name / "SKILL.md").read_text(encoding="utf-8"), name)
+        for name in ("overrule", "spoilers", "end-session", "new-campaign"):   # players' own
+            self.assertIn("disable-model-invocation: true", (d / name / "SKILL.md").read_text(encoding="utf-8"), name)
+        gm = (d / "gm" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("<<STAGE /end-session>>", gm)
+        self.assertIn("Never tell them to type a command", gm)

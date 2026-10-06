@@ -50,6 +50,9 @@ BODY = """
 ## Premise (player-safe)
 (written by the generator: what the players hear before the first session)
 
+## Why you're here (player-safe)
+(one `- ` bullet = the party's fixed reason; 2-4 bullets = options the players pick from)
+
 ## Author notes (GM-only)
 (the generator's notes: the truth's shape, arcs, what's left open)
 

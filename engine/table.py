@@ -19,8 +19,14 @@ inside dnd-adventure/, and Skill pass; anything else is denied silently and logg
 `<campaign>/.gm/client.log`.
 
 Input: `Kira: I check the trapdoor` speaks as Kira; `:as Kira` sets a default speaker;
-lines starting `/` or `!` pass straight through (skills, `!brief`); `:quit`,
-`:as <PC>`, `:gm-view on|off` are local and never sent. The GM's `<<SPOILERS level/depth>>`
+`/<skill>` (a skill under .claude/skills) and `!` lines pass straight through (`!brief`);
+any other `/…` is sent to the GM to interpret (it does the thing in play or stages the
+real command); `:quit`, `:as <PC>`, `:gm-view on|off` are local and never sent.
+
+Staged commands: a GM reply line `<<STAGE /end-session>>` is never printed; after the
+reply the client asks `Run /end-session? [y/N]` and on yes sends it exactly as if typed.
+This is how player-owned skills (`/overrule`, `/spoilers`, `/end-session`, …) stay the
+players' decision while the GM never answers "I can't do that". The GM's `<<SPOILERS level/depth>>`
 … `<<END SPOILERS>>` answer renders as a coloured banner (closed at the end of the
 message if the end marker is missing). Bracket lines (dice, distances) print dim.
 
@@ -56,6 +62,18 @@ BANNER = "\033[30;43m"                       # black on yellow
 _SPOIL_OPEN = re.compile(r"<<\s*SPOILERS\s*([^>]*)>>", re.I)
 _SPOIL_CLOSE = re.compile(r"<<\s*END\s+SPOILERS\s*>>", re.I)
 _SPEAKER = re.compile(r"^\s*([A-Z][\w'’-]*)\s*:\s*(.+)$")
+_FENCE = re.compile(r"^\s*(```|~~~)[\w-]*\s*$")
+_STAGE = re.compile(r"<<\s*STAGE\s+(/[^<>\n]+?)\s*>>", re.I)
+BUILTIN_COMMANDS = {"compact", "context"}   # Claude Code commands that work at the table
+INTERPRET = ("[table: a player typed `{text}`, which isn't a table command. Work out what they "
+             "want. If it is something you run in play, do it. If it maps to a skill the "
+             "players own, or you're guessing, stage it: put `<<STAGE /<skill> <args>>>` on "
+             "its own line (the table asks them to confirm). Never answer that you can't.]")
+
+
+def skill_names(root=ROOT):
+    d = root / ".claude" / "skills"
+    return {p.name for p in d.iterdir() if (p / "SKILL.md").exists()} if d.is_dir() else set()
 
 
 # ---------- pure helpers (unit-tested without the SDK) ----------
@@ -71,10 +89,12 @@ def campaign_dir(name):
 
 
 class InputState:
-    """Turns a typed line into ('send', text) | ('local', cmd, arg) | ('skip',)."""
+    """Turns a typed line into ('send', text) | ('local', cmd, arg) | ('skip',).
+    An unknown `/command` is sent wrapped in INTERPRET for the GM to make sense of."""
 
-    def __init__(self):
+    def __init__(self, known=None):
         self.speaker = None
+        self.known = set(known) if known is not None else skill_names() | BUILTIN_COMMANDS
 
     def handle(self, line):
         text = line.strip()
@@ -86,8 +106,13 @@ class InputState:
             if cmd == "as":
                 self.speaker = arg.strip() or None
             return ("local", cmd, arg.strip())
-        if text.startswith(("/", "!")):
+        if text.startswith("!"):
             return ("send", text)
+        if text.startswith("/"):
+            name = text[1:].split(None, 1)[0].lower() if len(text) > 1 else ""
+            if name in self.known:
+                return ("send", text)
+            return ("send", INTERPRET.format(text=text))
         if _SPEAKER.match(text):
             return ("send", text)
         if self.speaker:
@@ -117,6 +142,7 @@ class Renderer:
         self.buf = ""
         self.in_spoiler = False
         self.activity_shown = False
+        self.staged = []        # `/command …` lines the GM staged this turn
 
     def _w(self, s):
         self.out.write(s + "\n")
@@ -138,6 +164,14 @@ class Renderer:
             self._line(line)
 
     def _line(self, line):
+        for m in _STAGE.finditer(line):
+            cmd = " ".join(m.group(1).split())
+            if cmd not in self.staged:
+                self.staged.append(cmd)
+        if _STAGE.search(line):
+            line = _STAGE.sub("", line)
+            if not line.strip():
+                return
         while True:
             m = _SPOIL_OPEN.search(line) if not self.in_spoiler else _SPOIL_CLOSE.search(line)
             if not m:
@@ -158,6 +192,8 @@ class Renderer:
         self._plain(line)
 
     def _plain(self, line):
+        if _FENCE.match(line):   # markdown code fences (around a map or the title card)
+            return
         if self.color and line.lstrip().startswith("["):
             self._w(f"{DIM}{line}{RESET}")
         else:
@@ -177,6 +213,47 @@ class Renderer:
     def notice(self, text):
         self.flush()
         self._w(f"{DIM}{text}{RESET}" if self.color else text)
+
+
+class TextGate:
+    """Drops process talk: a short text block ("Let me check who sees it coming.")
+    immediately followed by a tool call is the model thinking aloud, not narration.
+    A block is held until it is longer than LIMIT characters or has a blank line in it
+    (then it streams), or until what follows it is known (a tool call drops it; anything
+    else prints it). `passthrough` (gm-view) shows everything."""
+    LIMIT = 200
+
+    def __init__(self, render, passthrough=False):
+        self.r = render
+        self.passthrough = passthrough
+        self.held = ""
+        self.passing = False
+        self.dropped = []
+
+    def start(self):
+        self.flush()
+        self.passing = self.passthrough
+
+    def delta(self, text):
+        if self.passing:
+            self.r.text(text)
+            return
+        self.held += text
+        if len(self.held) > self.LIMIT or "\n\n" in self.held.strip():
+            self.passing = True
+            self.r.text(self.held)
+            self.held = ""
+
+    def tool(self):
+        if self.held.strip():
+            self.dropped.append(self.held.strip())
+        self.held = ""
+        self.passing = self.passthrough
+
+    def flush(self):
+        if self.held:
+            self.r.text(self.held)
+        self.held = ""
 
 
 def find_cli():
@@ -221,7 +298,7 @@ def _strip_root(cmd, root=ROOT):
             return None
         c = m.group(4)
     # an absolute path to the script (either slash style) → engine/x.py
-    m = re.match(r'^(\s*\S+\s+)["\']?([^\s"\']+?)[\\/]tools[\\/]((?:gm|space)\.py)["\']?(?=\s|$)', c, re.I)
+    m = re.match(r'^(\s*\S+\s+)["\']?([^\s"\']+?)[\\/]engine[\\/]((?:gm|space)\.py)["\']?(?=\s|$)', c, re.I)
     if m and m.group(2).replace("\\", "/").rstrip("/").lower() == r.lower():
         c = m.group(1) + "engine/" + m.group(3) + c[m.end():]
     return c
@@ -398,6 +475,7 @@ class Table:
         r = self.render
         r.start_turn()
         streamed = False
+        gate = TextGate(r, passthrough=self.gm_view)
         await self.client.query(text)
         async for msg in self.client.receive_response():
             if isinstance(msg, StreamEvent):
@@ -405,21 +483,30 @@ class Table:
                     continue  # subagent activity
                 ev = msg.event or {}
                 kind = ev.get("type")
-                if kind == "content_block_start" and (ev.get("content_block") or {}).get("type") in (
-                        "tool_use", "server_tool_use"):
+                block_type = (ev.get("content_block") or {}).get("type")
+                if kind == "content_block_start" and block_type in ("tool_use", "server_tool_use"):
+                    gate.tool()
                     if not self.gm_view:
                         r.activity()
+                elif kind == "content_block_start" and block_type == "text":
+                    gate.start()
                 elif kind == "content_block_delta" and (ev.get("delta") or {}).get("type") == "text_delta":
                     streamed = True
-                    r.text(ev["delta"].get("text", ""))
+                    gate.delta(ev["delta"].get("text", ""))
                 elif kind == "message_stop":
+                    gate.flush()
                     r.end_message()
             elif isinstance(msg, AssistantMessage):
                 if msg.parent_tool_use_id:
                     continue
-                for block in msg.content:
+                blocks = list(msg.content)
+                for n, block in enumerate(blocks):
                     if isinstance(block, TextBlock) and not streamed:
-                        r.text(block.text + "\n")
+                        nxt = blocks[n + 1] if n + 1 < len(blocks) else None
+                        chatter = (isinstance(nxt, ToolUseBlock) and len(block.text.strip()) <= TextGate.LIMIT
+                                   and "\n\n" not in block.text.strip())
+                        if self.gm_view or not chatter:
+                            r.text(block.text + "\n")
                     elif self.gm_view and isinstance(block, ToolUseBlock):
                         r.notice(f"[gm-view] tool {block.name}: {block.input}")
                     elif self.gm_view and isinstance(block, ThinkingBlock):
@@ -445,6 +532,20 @@ class Table:
                     r.notice(f"[gm-view] turns {msg.num_turns}{cost}")
         r.end_message()
 
+    async def confirm_staged(self):
+        """Ask about each command the GM staged; a yes sends it as if typed."""
+        while self.render.staged:
+            cmd = self.render.staged.pop(0)
+            try:
+                ans = await asyncio.to_thread(input, f"{BOLD}Run {cmd}?{RESET} [y/N] ")
+            except (EOFError, KeyboardInterrupt):
+                self.render.staged.clear()
+                return
+            if ans.strip().lower() in ("y", "yes"):
+                await self.send(cmd)
+            else:
+                self.render.notice("[not run]")
+
     async def run(self):
         print(f"{BOLD}The table is open ({self.camp.name}).{RESET} "
               "Speak as `Name: …`; `:as Name`, `:gm-view on|off`, `:quit`.")
@@ -456,6 +557,7 @@ class Table:
             return 1
         if (ROOT / ".claude" / "skills" / "gm").exists():
             await self.send("/gm")
+            await self.confirm_staged()
         else:
             self.render.notice("[the /gm skill isn't built yet — type to talk to the GM]")
         inp = InputState()
@@ -480,6 +582,7 @@ class Table:
                     self.render.notice(f"[unknown :{cmd} — :quit, :as <PC>, :gm-view on|off]")
                 continue
             await self.send(act[1])
+            await self.confirm_staged()
         try:
             await self.client.disconnect()
         except Exception:  # noqa: BLE001

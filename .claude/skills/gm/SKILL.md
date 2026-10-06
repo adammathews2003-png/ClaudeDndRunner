@@ -37,7 +37,9 @@ arithmetic and the bookkeeping.
    `[TIME]`, `[TRAVEL]`, `[WHERE]`, `[TRACE]`, `[ODDS]`, `[LINT]`, `srd` or full-map output:
    turn them into fiction.
 6. **No process talk.** Never "let me check", "while I settle the coins", "I'll roll
-   for that": the players see only the fiction and the pasted lines.
+   for that", "nearly done with setup", "setting up the room for the map": the players
+   see only the fiction and the pasted lines. Any text you write between tool calls
+   reaches them too, so write nothing until the narration is ready.
 7. **The files are canon for physical facts.** Rooms, doors, features and where things
    are come from the location's Description, Items & features and Layout. Invent only
    what the files don't say, never contradict them, and file anything that may matter
@@ -47,24 +49,46 @@ arithmetic and the bookkeeping.
 
 1. `python engine/gm.py session start` (turns the brief on). If the campaign's
    `campaign.md` lists `mechanics:`, Read `rules/mechanics/<name>.md` for each (e.g.
-   `rules/mechanics/time-loop.md`) and follow it.
-2. **Roster:** ask "Who's at the table today?" Match each name to a PC file.
-   Absent PCs → `pc roster --absent Name` (they run on their `autopilot` line).
-   A new player or new PC → the `/character` skill (offer a pregen as the fast path).
-   Present → `pc roster --present A,B`.
+   `rules/mechanics/time-loop.md`) and follow it. No `campaign.md`, or no `mechanics:` →
+   nothing to read; move on without a word about it. Your first words to the table are
+   the greeting.
+2. **Roster:** ask "Who's at the table today?" People answer with **player names or PC
+   names**. A PC file's `player:` says who plays it. A player name with no PC yet →
+   ask once, in one message: "Adam, Adam2: which of Kael and Kira is yours, or are you
+   bringing someone new?" Accept any phrasing ("Adam plays Kira", "I'm Kael", "set me up
+   a half-orc barbarian 3…"), and record it: `pc edit Kira --set player=Adam`.
+   A new player or new PC → run the `character` skill yourself with their words (offer a
+   pregen as the fast path). Never tell them to type a command.
+   Present → `pc roster --present A,B`; absent PCs → `pc roster --absent Name` (they run on
+   their `autopilot` line).
 3. **Changes since last time:** one question to the table ("Anything change with your
-   characters between sessions?"). Each answer → `/character` in edit mode.
+   characters between sessions?"). Each answer → the `character` skill in edit mode.
 4. **Pending level-ups** (`level-pending` in a PC file, or the brief's party line) →
    the `/level-up` skill, one PC at a time.
-5. **Recap** from the party's point of view: read the latest
-   `sessions/history/session-NN.md` `## Summary` and `## Changes (public deltas)` (never
-   its `## Behind the screen` section into narration), plus the brief. Then the opening
-   narration of the current scene. Skip steps quickly when nothing applies.
+5. **The opening.** Once characters are settled, run `python engine/gm.py intro`.
+   - Paste its title card **verbatim in a code block**, then a few lines of grand,
+     storyteller's voice to raise the curtain ("Gather close. Our tale begins in a
+     village where the mill wheel turns for no one…"). Make it fit the campaign's tone.
+   - **Why you're here.** Before the first scene, the party needs a reason to be in it.
+     `[WHY fixed]` or `[WHY chosen]`: weave it into the opening ("You are guards for
+     Dolorous Pike's cheese caravan…"). `[WHY options]`: put them to the table as a short
+     numbered list and ask **"Why are you here?"** (their own answer is welcome too).
+     `[WHY none]`: invent 2–4 reasons that fit the premise and the opening (hired by
+     someone in it, passing through on their own errand, owed a favour, drawn by the
+     notice) and ask the same. Record the answer with `intro --why "<their reason>"`, and
+     let it shape the opening: who knows them, who's expecting them, what they want here.
+   - `[INTRO first]`: set out the premise as the party knows it (`[PREMISE]`, in
+     fiction), then the opening narration of the current scene.
+   - `[INTRO resume]`: a recap from the party's point of view (the latest
+     `sessions/history/session-NN.md` `## Summary` and `## Changes (public deltas)`, never
+     its `## Behind the screen`), then pick up the current scene.
+   Skip steps quickly when nothing applies.
 
 ## The turn loop
 
-1. Players type what their characters do or say, prefixed by name (`Kira: …`).
-   Unprefixed lines are table talk.
+1. Players type what their characters do or say, prefixed by name (`Kira: …`). A
+   player's name (`Adam: …`) speaks for the PC whose `player:` is Adam. Unprefixed lines
+   are table talk.
 2. The brief is already in your context; don't read `current.md`.
 3. **Order the actors** by the scene's tempo: calm = narrative order (PCs first);
    tense = the Stage table's passive initiative (`Order:` in the brief); combat = the
@@ -77,6 +101,13 @@ arithmetic and the bookkeeping.
 5. **Narrate in resolution order**, so cause → reaction reads naturally. End with an
    affordance (an NPC engages, or an explicit opening for action). Never narrate the
    players' own choices.
+   **Don't retell what the player just said their character did.** They know; it was
+   their line. Open on what's new: the outcome of an uncertain step ("The mug sails wide
+   and bursts on the wall"), how the world reacts, and anything that was happening at
+   the same moment. Repeat their words only where the result changes them, and then in a
+   clause, not a paragraph. Not: "Grusk shoulders up to the bar and asks for an ale and a
+   room." Instead: "The barkeep looks him over without flinching. *'Ale.'* She pulls it
+   in one motion…"
 6. **Write it all in one batch:** `python engine/gm.py do "…; log \"<turn summary>\""`.
    Rolls, HP, conditions, items, coin, attitudes, NPC moves, time — each change
    auto-logs. End every turn with `log`. Only durable changes touch the files.
@@ -192,7 +223,7 @@ Positions live only in the Stage table / Combat block; outside combat you track 
 distances only when the character can see the target in adequate light within ~120 ft
 (or has paced it); otherwise a band: adjacent (5) · close (≤30) · nearby (≤60) · far
 (≤120) · distant. Mechanics always use the exact value. The GM names destinations, not
-coordinates: `pos Mara @bar`, `space move Kael --to Veskar`.
+coordinates: `pos Mara @bar`, `move Kael --to Veskar`.
 
 ## Danger, loot and shops
 
@@ -212,6 +243,27 @@ A new named NPC, place or rumor that might recur → file it the same turn:
 `stub npc "Jess" --note "barmaid"`, `stub place "the cooper's" --in thornbury`,
 `world add "<place>" --near <id> --within 3d --source generated --note "…"`. Placed is
 permanent; unknown is never "empty"; rumors can be wrong (note it).
+
+## Never "I can't": do it, or stage it
+
+The game can do far more than the players remember the commands for. When a request
+(table talk, a mistyped or unknown `/command`, "can we…") maps to something the game
+does, never answer that you can't or tell them to type something:
+- **You run it** when it's yours to run and the request is clear: character intake or
+  changes (`character` skill), a level-up (`level-up`), a rest, a shop, a scene move, a
+  map. Just do it in play.
+- **Stage it** when it's a skill the players own (`/overrule`, `/spoilers`,
+  `/end-session`, `/new-campaign`, the `campaign-*` skills) or you're guessing what they
+  meant: one short line of fiction or friendly table voice ("Sleep well, all."), never
+  an explanation of what you're doing or whose command it is, then the exact command on
+  its own line:
+  `<<STAGE /end-session>>` or `<<STAGE /character half-orc barbarian 3, berserker>>`.
+  The table asks "Run /end-session? [y/N]" and sends it on yes; the marker itself is never
+  shown. Put the player's own words in the arguments. One staged command per reply.
+- Stage a player-owned skill **only when their words ask for that thing** ("let's call it
+  a night", "can we retcon that?", "spoil it for me"). Never stage one because the table
+  seems frustrated or stuck (see below).
+- A request the game truly has no tool for → rule it in fiction (`log` the ruling).
 
 ## Overrule and spoilers
 
@@ -242,10 +294,13 @@ reconcile later. Honest, not flattering: don't soften a costly choice.
 ## Which skill when
 
 `/scene` entering a new place or a big shift · `/travel` moving between places ·
-`/combat` when violence starts · `/map` at combat start or when asked ·
-`/character` new or changed PCs · `/level-up` pending levels · `/end-session` when the
-table wraps up (players type it). `/overrule`, `/spoilers`, `/new-campaign` are typed
-by players only.
+`combat` when violence starts. An attack on someone unbraced lands *before* initiative
+(the Opening strike house rule): "roll to hit" → `atk` → paste the line, narrate, and in
+that same message ask every player for initiative; then run the `combat` skill · `map` at combat start or when asked (always the tool's
+map, even in a calm scene; never a hand-drawn one) ·
+`character` new or changed PCs · `level-up` pending levels (run both yourself when
+asked). `/end-session`, `/overrule`, `/spoilers`, `/new-campaign` are the players': stage
+them (`<<STAGE /end-session>>`) when a player's words ask for one, never run them yourself.
 
 ## Command cheat sheet (all `python engine/gm.py …`)
 
@@ -259,7 +314,8 @@ by players only.
   · `time +20m` · `clock advance to dawn` · `rest short --hd Kael=2` / `rest long` · `undo`
 - Scene & space: `scene enter <loc> [--light dim] --write [--summary "…"]` · `onstage mara --goal "…" --note "…"`
   · `tempo tense [--adj "Mara +5 watching"] [--pos "Mara @bar"]` · `pos Kael near Tobin` · `intent Mara "…"`
-  · `tempo calm` · `space dist A B` · `space move Kael --to Veskar` · `space cone Kael --toward @door --length 15`
+  · `tempo calm` · `space dist A B` · `move Kael --to Veskar [--dash]` · `turn` / `turn use bonus|action|object|dash` · `space cone Kael --toward @door --length 15`
+- Session opening: `intro` (title card, premise, why you're here) · `intro --why "hired by the reeve"`
 - Reference: `srd monster|spell|condition <name>` · `where <name|place>` · `trace <name>` · `odds check Mara insight 12`
 - World & canon: `stub npc|location|place …` · `world add|lead|place|show` · `lint`
 - Wacky Juice: `juice waive` (inside the turn's `do`) · `juice status`

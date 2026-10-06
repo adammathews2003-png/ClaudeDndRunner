@@ -2,6 +2,8 @@
 
 ## Sequence
 1. Determine surprise (unaware → surprised, no action/reaction on first turn).
+   **House rule — Opening strike:** whoever starts the fight against someone not braced for
+   it resolves that first action *before* initiative; see `house-rules.md`.
 2. Roll initiative: d20 + DEX mod, once for the whole fight. GM may group identical monsters.
    PC/NPC ties → PC first.
 

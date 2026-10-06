@@ -315,9 +315,14 @@ frontmatter for `location: <slug>` (single source of truth for positions).
 
 Frontmatter and body per 07 → Parameters (name, slug, length, start-level, players,
 difficulty, shape, secondary, tone, references, reveal-policy, mechanics, seed-file,
-status); sections `## Premise (player-safe)`, `## Author notes (GM-only)`, `## Reveal
-exceptions`, `## Fill-in queue` (`| id | question | default | status |`), `## Author
+status); sections `## Premise (player-safe)`, `## Why you're here (player-safe)`,
+`## Author notes (GM-only)`, `## Reveal exceptions`, `## Fill-in queue` (`| id | question | default | status |`), `## Author
 ledger` (`| when | what the driver was told | via |`).
+
+**`## Why you're here (player-safe)`** (campaign.md, else the active scenario): why the
+party is in the opening. One `- ` bullet = the fixed reason; several = options the
+players choose from at the first session; none = the GM invents 2–4 and asks. The
+answer is recorded as a `Chosen: …` line by `gm.py intro --why "…"` (06).
 
 **Advancement** (frontmatter, defaults shown): `advancement: milestone` (`milestone |
 xp`: what triggers level-ups), `xp-tracking: on` (`on | off`: whether XP is awarded and
@@ -529,6 +534,10 @@ locations: [crossroads-inn, village-square, old-mill]
 
 ## Premise (player-safe)
 The hook as players encounter it.
+
+## Why you're here (player-safe)
+- Hired by Reeve Odell to find out what happened to Harl.
+- Passing through on your own road; the inn is the only bed for ten miles.
 
 ## The truth (SPOILERS)
 What's actually going on. GM-only by honor system.

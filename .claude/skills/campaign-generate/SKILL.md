@@ -16,7 +16,12 @@ follow them exactly), and as a worked example `campaigns/poc/` (scenario, NPCs, 
 ## Write
 1. **The truth and the arcs** in `campaign.md ## Author notes (GM-only)`: what's really
    going on, the arcs, the finale, what stays open. The shape's "must exist" list (07) is
-   a checklist. Write `## Premise (player-safe)`.
+   a checklist. Write `## Premise (player-safe)`, then `## Why you're here (player-safe)`:
+   why the party is in the opening at all. One `- ` bullet when the premise fixes it
+   ("caravan guards for Dolorous Pike"); 2–4 bullets when the players should choose (hired
+   by someone in the opening, their own errand, a debt, the notice on the wall). Each
+   option must lead into the first scenario. Players pick at the first session
+   (`gm.py intro`).
 2. **The first scenario** `scenarios/<slug>.md` (04 → Scenario file): `## Premise
    (player-safe)`, `## The truth (SPOILERS — GM only)`, factions, `## Beats & triggers`
    with machine lines (`- WHEN … → …`, `- CLOCK Day N HH:MM: …`), resolution paths.

@@ -494,6 +494,33 @@ sweep slows down as the campaign grows; and it would nag about deliberately-unfi
 canon. With layers 1–2, the only thing a per-reply sweep would catch sooner is a hand
 edit to a file the current turn didn't touch, which can wait for the next scene boundary.
 
+### `gm.py intro [--why "<reason>"]` — the session opening
+Prints a block-letter title card for the GM to paste in a code block ("Our tale begins"
+for the first session, "Our tale continues" after), then GM-only lines: `[INTRO first|resume
+· session N]`, `[PREMISE] …`, and `[WHY fixed|options|chosen|none] …` from
+`## Why you're here (player-safe)` (04). `--why` records the table's answer as a
+`Chosen:` line and logs it.
+
+### `gm.py turn` / `gm.py move` — the turn budget and real movement
+The creature who's up has a budget, one line under `## Combat`:
+`Turn: Kael · action yes · attacks 0/2 · bonus yes · object yes · move 30/30` (attacks per
+Attack action from a PC's Extra Attack; `?` for NPCs). `combat start`/`next` reset it and
+print `[Kael's turn: …]`. `atk` spends the action (counting Extra Attack) or, with
+`--bonus`, the bonus action, and prints `[Kael still has: …]`. `turn use
+action|bonus|object|dash` spends the rest; `turn` prints it. **Nothing ends a turn but
+`combat next`**: the GM asks the player whether they're done.
+`move <who> --to … | --path … [--stop N] [--dash]` finds the path, saves the position,
+writes the Moves log in combat (the session log otherwise), charges the feet to the turn
+of whoever is up (refusing more than is left), and lists opportunity attacks. `space move`
+remains a preview that moves no one.
+
+### Tactical map size and calm-scene sketches
+`space map` draws the whole Layout of the party's area (the site's first Layout when
+`party-location` names no area), framed, at the largest cell that fits 76 columns (4×2
+characters per 5-ft cell, else 3×1, else 2×1). Creatures show as `[G]`; two creatures
+never share a letter. In a calm scene (no Stage table) `--at "Name=<spec>"` places
+creatures for that drawing only; nothing is saved.
+
 ### `gm.py session start | archive`
 **Built (Phase 7):** `session start` sets `in-session: true` (what `/gm` runs);
 `archive` takes `--summary-file` or `--summary`, and `--no-commit`.
@@ -722,6 +749,17 @@ python engine/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
   are sent as table talk.
 - `/end-session`, `/overrule`, other GM skills and `!brief` pass straight through. The
   overrule applied card is ordinary GM text, so the client shows it.
+- Any other `/…` (not a skill under `.claude/skills/`, not `/compact` or `/context`) is
+  sent to the GM wrapped as "a player typed `/x`, which isn't a table command: work out
+  what they want". The GM never answers "I can't": it does the thing in play, or stages
+  the real command.
+- **Staged commands.** A GM reply line `<<STAGE /end-session>>` (any `/skill args`) is
+  never printed. After the reply the client asks `Run /end-session? [y/N]`; yes sends it
+  exactly as if typed, anything else prints `[not run]`. Player-owned skills (`/overrule`,
+  `/spoilers`, `/end-session`, `/new-campaign`, `campaign-*`) stay
+  `disable-model-invocation`, so the player's yes is the decision. The GM stages one only
+  when the player's words ask for it (02 → Overrule: the GM never suggests them).
+  Character intake and level-ups are the GM's to run directly when asked.
 - `/spoilers` passes through the same way. The GM wraps the answer in
   `<<SPOILERS level/depth>>` … `<<END SPOILERS>>` markers. The client renders them as a
   full-width banner in a distinct color, with the spoiler-free header on the banner

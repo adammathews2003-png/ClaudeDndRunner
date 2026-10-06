@@ -7,7 +7,10 @@ Map/Bounds and Terrain copied from the party sub-area's `## Layout`, initiative 
 for NPCs (d20 + DEX; PCs report theirs with `--init`, or the tool rolls under
 `dice-mode: gm-rolls-all`), HP/AC seeded from PC/NPC files or SRD stat blocks, ties →
 PCs. `--add` places SRD monsters (`@x,y,z`, `@feature [N|S|E|W]`, `@near <creature>`);
-`--surprised` adds `surprised 1r`. Prints the order and the player-view map.
+`--surprised` adds `surprised 1r`; `--opener Kael` (house rule: Opening strike) adds
+`struck-first 1r` to whoever already made the opening attack before initiative. When a
+surprised or struck-first creature comes up, a note says what that turn allows. Prints
+the order and the player-view map.
 
 `next` advances `up:` (dead NPC rows are skipped). On wrap it starts the next round,
 moves the Moves log into the session log and ticks `Nr` condition durations (expiry
@@ -27,7 +30,7 @@ import re
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from lib import campaign, creatures, dice, geo, journal, resolve, srd
+from lib import campaign, creatures, dice, geo, journal, resolve, srd, turnstate
 from lib.creatures import GROUP, fmt_hp_cell, norm_name, parse_hp_cell
 from lib.errors import ToolError
 import rules
@@ -119,7 +122,7 @@ def _conds(cell):
 
 # ---------- start ----------
 
-def start(inits=(), adds=(), surprised=(), frame=None, roller=None):
+def start(inits=(), adds=(), surprised=(), frame=None, roller=None, openers=()):
     if frame:
         raise CombatError("combat start --frame: not built yet (Phase 8)")
     state = campaign.load_state()
@@ -168,6 +171,8 @@ def start(inits=(), adds=(), surprised=(), frame=None, roller=None):
         hp, ac, conds, notes = _numbers(c, mon, name)
         if any(name.lower().startswith(s.lower()) for s in surprised):
             conds = conds + ["surprised 1r"]
+        if any(name.lower().startswith(o.lower()) for o in openers):
+            conds = conds + ["struck-first 1r"]
         glyph = (r.get("glyph") or "").strip() or tempo.unique_glyph(name, used)
         used.add(glyph)
         rows.append({"init": init, "name": f"{name} (PC)" if is_pc else name, "glyph": glyph,
@@ -213,10 +218,13 @@ def start(inits=(), adds=(), surprised=(), frame=None, roller=None):
     first = norm_name(ordered[0]["name"])
     _write_block(state, 1, first, block)
     tempo.set_tempo(state, "combat", [])
+    budget = turnstate.reset(state, first)
     state.save()
     order = " · ".join(f"{norm_name(r['name'])} {r['init']}" for r in ordered)
     journal.log_delta(f"combat start · {order}")
     lines = [f"[combat start · round 1 · order: {order}]"]
+    note = _turn_note(ordered[0])
+    lines.append(note or turnstate.turn_start_line(budget))
     for disp, where in pending_pos:
         spec = where if re.match(r"^(near\s|\(?\s*-?\d)", where, re.I) else "@" + where
         try:
@@ -303,9 +311,12 @@ def next_turn():
     new_up = norm_name(table.rows[j]["name"])
     i, _ = _heading_index(state)
     state.body[i] = f"## Combat — round {round_no} · up: {new_up}"
+    budget = turnstate.reset(state, new_up)
     state.save()
     journal.log_delta(f"combat round {round_no} · up: {new_up}", gm=True)
     lines.insert(0, f"[round {round_no} · up: {new_up}]")
+    note = _turn_note(table.rows[j])
+    lines.insert(1, note or turnstate.turn_start_line(budget))
     lines.append(_reach_line(new_up))
     return lines, {"round": round_no, "up": new_up}
 
@@ -339,6 +350,17 @@ def _end_of_round(state, finished):
             out.append(f"[{norm_name(r['name'])}: {e} ended]")
             journal.log_delta(f"cond {norm_name(r['name'])} -{e} (expired)")
     return out
+
+
+def _turn_note(row):
+    """What a surprised / struck-first creature may do on this turn, or None."""
+    conds = [c.split()[0].lower() for c in _conds(row.get("conditions"))]
+    name = norm_name(row["name"])
+    if "surprised" in conds:
+        return f"[{name} is surprised: no move and no action this turn; no reactions until it ends]"
+    if "struck-first" in conds:
+        return f"[{name} struck first: their action is spent; move and bonus action as normal]"
+    return None
 
 
 def _reach_line(name):
@@ -389,6 +411,11 @@ def end(count=(), count_fled=False):
                 doc.save()
         if r.get("side", "").strip().lower() == "foe":
             foes.append((name, ref, cell))
+    span = state.section("Moves log")   # the unfinished round's moves still reach the session log
+    if span is not None:
+        for k in range(span[0] + 1, span[1]):
+            if state.body[k].strip().startswith("-"):
+                journal.log_delta("move " + state.body[k].strip()[1:].strip())
     i, _ = _heading_index(state)
     state.body[i] = "## Combat"
     tempo.set_section(state, "Combat", ["(not in combat)"])
@@ -450,7 +477,7 @@ def _xp(foes, count, count_fled):
 def cmd_combat(ctx):
     a = ctx.args
     if a.action == "start":
-        lines, data = start(a.init, a.add, a.surprised, a.frame, ctx.roller)
+        lines, data = start(a.init, a.add, a.surprised, a.frame, ctx.roller, a.opener)
     elif a.action == "next":
         lines, data = next_turn()
     elif a.action == "end":
@@ -469,6 +496,8 @@ def register(sub, g):
     p.add_argument("--init", action="append", default=[], help="Kael=15 (players roll)")
     p.add_argument("--add", action="append", default=[], help='"srd:thug x3 @25,15,0"')
     p.add_argument("--surprised", action="append", default=[])
+    p.add_argument("--opener", action="append", default=[],
+                   help="who made the opening strike before initiative (house rule)")
     p.add_argument("--frame", help="Phase 8")
     p.add_argument("--count", action="append", default=[], help="end: count this foe's XP (routed, captured…)")
     p.add_argument("--count-fled", action="store_true", help="end: count every standing foe")

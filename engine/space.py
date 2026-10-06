@@ -12,10 +12,14 @@ Reads the `## Combat` block of a campaign's state/current.md when --state is giv
   python engine/space.py sphere 22.5,12.5,0 --radius 20 --state ...
   python engine/space.py emanation Kael --radius 15 --state ...
   python engine/space.py line  Kael --toward 40,5,0 --length 60 --state ...
-  python engine/space.py map   --state ... [--from Kael] [--player-view]
+  python engine/space.py map   --state ... [--from Kael] [--player-view] [--at "Grusk=@bar S" …]
 
 Reads the Combat block; outside combat it reads the Stage table (tense tempo) with the
-terrain and bounds of the party's sub-area Layout (`party-location: site/area`).
+terrain and bounds of the party's sub-area Layout (`party-location: site/area`, or the
+site's first Layout when the location names no area). In a calm scene there is no Stage
+table: the map draws the room alone, and `--at "Name=<spec>"` places creatures for this
+drawing only (nothing is saved). The map draws the whole Layout, framed, at the largest
+cell size that fits 76 columns (4×2 characters per 5-ft cell, else 3×1, else 2×1).
 `--player-view` leaves out `secret` terrain and creatures that are hidden, invisible or
 unseen (02 → Behind the screen). `State.place(spec)` turns `@feature`, `@feature N|S|E|W`,
 `near <creature>` or `x,y,z` into a cell (used by `gm.py tempo/pos/combat`). Files are
@@ -153,10 +157,9 @@ class State:
                 self.combatants.append(Combatant(r))
             return
         stage = doc.table("Stage")
-        if stage is None:
-            return
-        self.source = "stage"
-        for r in stage.rows:
+        if stage is not None:
+            self.source = "stage"
+        for r in (stage.rows if stage is not None else []):
             pos = (r.get("pos") or "").strip()
             if not pos or pos == "?":
                 self.unplaced.append(re.sub(r"\s*\(PC\)", "", r.get("name", "")).strip())
@@ -491,9 +494,10 @@ def goal_cells(st, mover, target, stop):
             if 0 < dist_between([g], c.cells()) <= reach]
 
 
-def cmd_move(st, who, path, to, stop, speed, climbs):
+def plan_move(st, who, path=None, to=None, stop=None, climbs=False):
+    """(mover, waypoints or None, end cell, feet spent, [OA provokers], [warnings]) for a
+    move; exits on a wall. `gm.py move` saves the result; `space move` only prints it."""
     mover = st.find(who)
-    speed = speed or 30
     climbs = climbs or mover.climbs
     difficult, walkway, walls = st.difficult_cells(), st.walkway_cells(), st.wall_cells()
     enemies = [c for c in st.combatants
@@ -504,8 +508,8 @@ def cmd_move(st, who, path, to, stop, speed, climbs):
                      if i == len(cells) - 1 or i == 0 or
                      tuple(a - b for a, b in zip(cells[i + 1], c)) !=
                      tuple(a - b for a, b in zip(c, cells[i - 1]))]
-        print("path: " + " -> ".join(fmt(p) for p in waypoints))
     else:
+        waypoints = None
         cells = []
         cur = mover.pos
         for wp in [parse_point(p) for p in path]:
@@ -525,6 +529,14 @@ def cmd_move(st, who, path, to, stop, speed, climbs):
             if was and not now and e.name not in provoked:
                 provoked.append(e.name)
         cur = nxt
+    return mover, waypoints, cur, spent, provoked, warnings
+
+
+def cmd_move(st, who, path, to, stop, speed, climbs):
+    speed = speed or 30
+    mover, waypoints, cur, spent, provoked, warnings = plan_move(st, who, path, to, stop, climbs)
+    if waypoints is not None:
+        print("path: " + " -> ".join(fmt(p) for p in waypoints))
     ok = "OK" if spent <= speed else f"OVER by {spent - speed:g} (dash doubles speed)"
     print(f"{mover.name}: {fmt(mover.pos)} -> {fmt(cur)}  cost {spent:g} / {speed:g} ft  {ok}")
     print("opportunity attacks from: " + (", ".join(provoked) or "none"))
@@ -568,6 +580,31 @@ def cmd_area(st, kind, args):
         render(st, highlight=set(cells))
 
 
+MAP_WIDTH = 76
+
+
+def cell_size(columns, width=MAP_WIDTH):
+    """(chars per cell, rows per cell): the biggest that fits `width` (6 for labels/frame)."""
+    for w, h in ((4, 2), (3, 1)):
+        if 6 + columns * w <= width:
+            return w, h
+    return 2, 1
+
+
+def _cell_text(w, h, terrain=None, creature=None, aoe=False):
+    """The h strings (each w wide) for one 5-ft cell."""
+    if aoe:
+        base = ["*" * w] * h
+    elif terrain is not None:
+        base = [terrain * w] * h
+    else:
+        base = [(" ." if w > 2 else ".").ljust(w)] + [" " * w] * (h - 1)
+    if creature is not None:
+        top = f"[{creature}]" if w >= 3 else creature
+        base = [top.ljust(w)] + base[1:]
+    return base
+
+
 def render(st, origin_name=None, highlight=None, player_view=False):
     highlight = highlight or set()
     if player_view:  # what the party can perceive: no secret terrain, no hidden creatures
@@ -577,28 +614,45 @@ def render(st, origin_name=None, highlight=None, player_view=False):
     pts += [p for t in st.terrain for p in t.cells()] + list(highlight)
     if st.bounds:
         x0, x1, y0, y1 = st.bounds
+        # a creature placed outside the Layout (on the threshold) still shows
+        for p in pts:
+            x0, x1, y0, y1 = min(x0, p[0]), max(x1, p[0]), min(y0, p[1]), max(y1, p[1])
     elif pts:
         x0, x1 = min(p[0] for p in pts), max(p[0] for p in pts)
         y0, y1 = min(p[1] for p in pts), max(p[1] for p in pts)
     else:
         sys.exit("nothing to draw")
-    grid = {}
+    ground = {}
     # walls draw first so doors and gaps show through; higher terrain draws over lower
     for t in sorted(st.terrain, key=lambda t: 0 if t.wall else 1):
         for c in sorted(t.cells(), key=lambda p: p[2]):
-            grid[(c[0], c[1])] = t.glyph
-    for (x, y, _z) in highlight:
-        grid[(x, y)] = "*"
+            ground[(c[0], c[1])] = "#" if t.wall and not t.door else t.glyph
+    used = set()
+    for c in st.combatants:   # two creatures never share a letter (Kael K, Kira I)
+        if c.glyph in used:
+            c.glyph = next((ch for ch in c.name.upper() if ch.isalpha() and ch not in used),
+                           next(ch for ch in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" if ch not in used))
+        used.add(c.glyph)
+    who = {}
     for c in st.combatants:
         for (x, y, _z) in c.cells():
-            grid[(x, y)] = c.glyph.lower() if c.down else c.glyph
+            who[(x, y)] = c.glyph.lower() if c.down else c.glyph
+    aoe = {(x, y) for (x, y, _z) in highlight}
     xs = list(frange(x0, x1))
-    # x labels every 20 ft (4 cells = 8 chars, room for 3-digit labels)
-    print("     " + "".join(f"{int(x):<8}" for x in xs if int(x - x0) % 20 == 0))
+    w, h = cell_size(len(xs))
+    step = 10 if w >= 3 else 20       # x labels: every 10 ft on big cells, 20 on small
+    label = ""
+    for x in xs:
+        label += (f"{int(x)}" if int(x - x0) % step == 0 else "").ljust(w)
+    print("      " + label.rstrip())
+    print("     ┌" + "─" * (len(xs) * w) + "┐")
     for y in reversed(list(frange(y0, y1))):
-        row = "".join(f"{grid.get((x, y), '.'):<2}" for x in xs)
-        print(f"{int(y):>4} {row}")
-    print("     (north = +y up the page; 1 cell = 5 ft; lowercase combatant = down)")
+        cells = [_cell_text(w, h, ground.get((x, y)), who.get((x, y)), (x, y) in aoe) for x in xs]
+        for r in range(h):
+            tag = f"{int(y):>4} " if r == 0 else "     "
+            print(tag + "│" + "".join(c[r] for c in cells) + "│")
+    print("     └" + "─" * (len(xs) * w) + "┘")
+    print("     (north is up; 1 cell = 5 ft; [X] = a creature, lowercase = down; # = wall)")
     ref = st.find(origin_name) if origin_name else None
     for c in st.combatants:
         extra = f"  z={c.pos[2]:g}" if c.pos[2] else ""
@@ -642,6 +696,8 @@ def main():
     p.add_argument("--show", action="store_true")
     p = sub.add_parser("map"); p.add_argument("--from", dest="origin")
     p.add_argument("--player-view", action="store_true", help="leave out secret terrain and hidden creatures")
+    p.add_argument("--at", action="append", default=[],
+                   help='"Name=<x,y,z | @feature [N|S|E|W] | near Other>": place for this drawing only')
 
     # allow --state anywhere on the line
     argv = sys.argv[1:]
@@ -656,23 +712,40 @@ def main():
     elif args.cmd == "move":
         cmd_move(st, args.who, args.path, args.to, args.stop, args.speed, args.climbs)
     elif args.cmd == "map":
+        sketch(st, args.at)
         render(st, args.origin, player_view=args.player_view)
     else:
         cmd_area(st, args.cmd, args)
+
+
+def sketch(st, specs):
+    """Add `Name=<spec>` creatures to `st` for one drawing (map --at); saves nothing."""
+    for spec in specs:
+        name, sep, where = spec.partition("=")
+        if not sep or not name.strip() or not where.strip():
+            sys.exit(f'map --at: use "Name=<x,y,z | @feature | near Other>", not {spec!r}')
+        name = name.strip()
+        st.combatants = [c for c in st.combatants if c.name.lower() != name.lower()]
+        try:
+            pos = st.place(where, mover=name)
+        except SpaceError as e:
+            sys.exit(f"map --at {name}: {e}")
+        st.combatants.append(Combatant({"name": name, "pos": ",".join(f"{v:g}" for v in pos)}))
 
 
 def layout_for(state_path, party_location):
     """(Bounds line, Layout rows) for `site/area` from `<campaign>/locations/<site>.md`
     next to the state file, or None."""
     loc = str(party_location or "").strip()
-    if "/" not in loc:
+    if not loc:
         return None
-    site, area = loc.split("/", 1)
+    site, _, area = loc.partition("/")
     p = Path(state_path).resolve().parent.parent / "locations" / f"{site}.md"
     if not p.exists():
         return None
     from lib import geo
-    lay = geo.Frame(site, md.load(p)).layouts.get(area)
+    layouts = geo.Frame(site, md.load(p)).layouts
+    lay = layouts.get(area) if area else next(iter(layouts.values()), None)
     if lay is None:
         return None
     return lay.bounds_line, lay.rows

@@ -29,6 +29,21 @@ class Input(unittest.TestCase):
         s.handle(":as")
         self.assertEqual(s.handle("hello"), ("send", "hello"))
 
+    def test_unknown_slash_goes_to_the_gm(self):
+        s = table.InputState(known={"gm", "character", "end-session"})
+        self.assertEqual(s.handle("/character half-orc barbarian 3"), ("send", "/character half-orc barbarian 3"))
+        self.assertEqual(s.handle("/End-Session"), ("send", "/End-Session"))
+        kind, text = s.handle("/rest long")
+        self.assertEqual(kind, "send")
+        self.assertIn("a player typed `/rest long`", text)
+        self.assertIn("<<STAGE /<skill> <args>>>", text)
+        self.assertEqual(s.handle("!brief"), ("send", "!brief"))
+
+    def test_real_skills_are_known(self):
+        s = table.InputState()
+        for name in ("gm", "character", "overrule", "spoilers", "end-session", "level-up", "compact"):
+            self.assertIn(name, s.known)
+
 
 class Render(unittest.TestCase):
     def out(self, chunks, color=False, end=True):
@@ -71,6 +86,36 @@ class Render(unittest.TestCase):
         self.assertTrue(lines[2].startswith("── END SPOILERS"))
         self.assertEqual(lines[3], " after")
 
+    def test_process_talk_before_a_tool_is_dropped(self):
+        buf = io.StringIO()
+        r = table.Renderer(out=buf, color=False)
+        g = table.TextGate(r)
+        g.start(); g.delta("I'm working out who "); g.delta("sees it coming."); g.tool()      # dropped
+        g.start(); g.delta("Steel rasps free. Kael, roll to hit."); g.flush()                # kept
+        long = "The blow lands. " * 20
+        g.start(); g.delta(long[:150]); g.delta(long[150:]); g.tool()                       # long: kept
+        r.end_message()
+        out = buf.getvalue()
+        self.assertNotIn("working out", out)
+        self.assertIn("Steel rasps free. Kael, roll to hit.", out)
+        self.assertIn(long.strip(), out.replace("\n", ""))
+        self.assertEqual(g.dropped, ["I'm working out who sees it coming."])
+        shown = io.StringIO()
+        g2 = table.TextGate(table.Renderer(out=shown, color=False), passthrough=True)       # gm-view
+        g2.start(); g2.delta("Let me check."); g2.tool(); g2.r.end_message()
+        self.assertIn("Let me check.", shown.getvalue())
+
+    def test_code_fences_hidden(self):
+        self.assertEqual(self.out(["Here:\n```\n  35 │ . │\n```text\nOn."]), ["Here:", "  35 │ . │", "On."])
+
+    def test_stage_marker_is_hidden_and_collected(self):
+        buf = io.StringIO()
+        r = table.Renderer(out=buf, color=False)
+        r.text("Calling it there?\n<<STAGE /end-session>>\nAlso <<STAGE  /character  Adam: new PC >> ok\n")
+        r.end_message()
+        self.assertEqual(buf.getvalue().splitlines(), ["Calling it there?", "Also  ok"])
+        self.assertEqual(r.staged, ["/end-session", "/character Adam: new PC"])
+
     def test_unbalanced_closed_at_message_end(self):
         lines = self.out(["<<SPOILERS major/full>>\nthe truth is"])
         self.assertTrue(lines[-1].startswith("── END SPOILERS"))
@@ -80,7 +125,7 @@ class Gate(unittest.TestCase):
     def test_commands(self):
         ok = ["python engine/gm.py roll 1d20", 'python engine/gm.py do "log \'a; b\'; hp Kael -3"',
               "py engine/space.py map --player-view", f'cd "{R}" && python engine/gm.py brief',
-              f'python "{R / "tools" / "gm.py"}" roll 1d20',
+              f'python "{R / "engine" / "gm.py"}" roll 1d20',
               r'python engine/gm.py do "attitude mara wary \"asked; deflecting\"; log \"Kira asked\""']
         bad = ["whoami", "python engine/gm.py roll 1d20; whoami", 'python engine/gm.py log "$(whoami)"',
                "python engine/gm.py roll 1d20 | tee x", "python engine/gm.py roll 1d20 > x.txt",
