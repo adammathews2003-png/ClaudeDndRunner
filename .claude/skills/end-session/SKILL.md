@@ -24,5 +24,9 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
      or a typo) and run again. `--force` only if the table says to stop now.
    - It writes `sessions/history/session-NN.md`, resets the log, clears `in-session`, ends
      session rules and commits to git.
-6. **Close at the table** with one or two lines of fiction (where the party rests, what
-   hangs in the air) and "Next time…" if there's a natural hook. Don't recap mechanics.
+6. **Close at the table.** Only once the archive succeeded, your final message is the
+   closing and nothing else: a few lines of fiction (where the party rests, what hangs in
+   the air), "Next time…" if there's a natural hook, then `<<END TABLE>>` alone on the last
+   line. The table prints the fiction, hides the marker and closes the program. No
+   mechanics, no summary, no "session archived" talk. If the archive didn't succeed, no
+   marker: tell the table what's needed and stay open.

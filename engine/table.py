@@ -26,7 +26,11 @@ real command); `:quit`, `:as <PC>`, `:gm-view on|off` are local and never sent.
 Staged commands: a GM reply line `<<STAGE /end-session>>` is never printed; after the
 reply the client asks `Run /end-session? [y/N]` and on yes sends it exactly as if typed.
 This is how player-owned skills (`/overrule`, `/spoilers`, `/end-session`, …) stay the
-players' decision while the GM never answers "I can't do that". The GM's `<<SPOILERS level/depth>>`
+players' decision while the GM never answers "I can't do that".
+
+Closing: `/end-session` ends, once the session is archived, with the closing lines of
+fiction and a `<<END TABLE>>` line. The marker is never printed; the client finishes the
+reply, forgets the session id (the next launch starts a fresh conversation) and exits. The GM's `<<SPOILERS level/depth>>`
 … `<<END SPOILERS>>` answer renders as a coloured banner (closed at the end of the
 message if the end marker is missing). Bracket lines (dice, distances) print dim.
 
@@ -63,6 +67,7 @@ _SPOIL_OPEN = re.compile(r"<<\s*SPOILERS\s*([^>]*)>>", re.I)
 _SPOIL_CLOSE = re.compile(r"<<\s*END\s+SPOILERS\s*>>", re.I)
 _SPEAKER = re.compile(r"^\s*([A-Z][\w'’-]*)\s*:\s*(.+)$")
 _FENCE = re.compile(r"^\s*(```|~~~)[\w-]*\s*$")
+_END = re.compile(r"<<\s*END\s+TABLE\s*>>", re.I)
 _STAGE = re.compile(r"<<\s*STAGE\s+(/[^<>\n]+?)\s*>>", re.I)
 BUILTIN_COMMANDS = {"compact", "context"}   # Claude Code commands that work at the table
 INTERPRET = ("[table: a player typed `{text}`, which isn't a table command. Work out what they "
@@ -143,6 +148,7 @@ class Renderer:
         self.in_spoiler = False
         self.activity_shown = False
         self.staged = []        # `/command …` lines the GM staged this turn
+        self.closing = False    # the GM sent <<END TABLE>> (the session is archived)
 
     def _w(self, s):
         self.out.write(s + "\n")
@@ -164,6 +170,11 @@ class Renderer:
             self._line(line)
 
     def _line(self, line):
+        if _END.search(line):
+            self.closing = True
+            line = _END.sub("", line)
+            if not line.strip():
+                return
         for m in _STAGE.finditer(line):
             cmd = " ".join(m.group(1).split())
             if cmd not in self.staged:
@@ -534,7 +545,7 @@ class Table:
 
     async def confirm_staged(self):
         """Ask about each command the GM staged; a yes sends it as if typed."""
-        while self.render.staged:
+        while self.render.staged and not self.render.closing:
             cmd = self.render.staged.pop(0)
             try:
                 ans = await asyncio.to_thread(input, f"{BOLD}Run {cmd}?{RESET} [y/N] ")
@@ -558,6 +569,8 @@ class Table:
         if (ROOT / ".claude" / "skills" / "gm").exists():
             await self.send("/gm")
             await self.confirm_staged()
+            if self.render.closing:
+                return await self.close()
         else:
             self.render.notice("[the /gm skill isn't built yet — type to talk to the GM]")
         inp = InputState()
@@ -583,11 +596,22 @@ class Table:
                 continue
             await self.send(act[1])
             await self.confirm_staged()
+            if self.render.closing:
+                break
+        return await self.close()
+
+    async def close(self):
         try:
             await self.client.disconnect()
         except Exception:  # noqa: BLE001
             pass
-        self.render.notice("[saved]")
+        if self.render.closing:
+            sid = self._sid_path()
+            if sid.exists():
+                sid.unlink()   # the archived session's conversation is done
+            self.render.notice("[the session is archived — the table is closed]")
+        else:
+            self.render.notice("[saved]")
         return 0
 
 

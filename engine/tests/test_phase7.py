@@ -159,6 +159,31 @@ class Lint(CampaignCase):
 
 
 class Session(CampaignCase):
+    def _git(self, where, *args):
+        import subprocess
+        return subprocess.run(["git", "-C", str(where), *args], capture_output=True, text=True)
+
+    def _repo(self, where):
+        self._git(where, "init", "-q")
+        self._git(where, "config", "user.email", "t@example.com")
+        self._git(where, "config", "user.name", "t")
+        self._git(where, "add", "-A")
+        self._git(where, "commit", "-qm", "init")
+
+    def test_archive_commits_only_the_campaigns_own_repo(self):
+        self._repo(self.tmp)                      # an outer repo around the campaign folder
+        before = self._git(self.tmp, "rev-parse", "HEAD").stdout
+        run_main(["session", "start"])
+        code, lines = run_main(["session", "archive", "--summary", "x", "--force"])
+        self.assertEqual(code, 0, lines)
+        self.assertIn("[git: the campaign folder isn't its own repository — nothing committed]", lines)
+        self.assertEqual(self._git(self.tmp, "rev-parse", "HEAD").stdout, before)
+        self._repo(self.camp)                     # now the campaign has its own repo
+        run_main(["session", "start"])
+        lines = run_main(["session", "archive", "--summary", "y", "--force"])[1]
+        self.assertIn('[git: committed "session 02"]', lines)
+        self.assertEqual(self._git(self.camp, "log", "-1", "--format=%s").stdout.strip(), "session 02")
+
     def test_archive(self):
         run_main(["session", "start"])
         self.assertIs(front(self, "state/current.md")["in-session"], True)

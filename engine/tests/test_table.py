@@ -105,6 +105,15 @@ class Render(unittest.TestCase):
         g2.start(); g2.delta("Let me check."); g2.tool(); g2.r.end_message()
         self.assertIn("Let me check.", shown.getvalue())
 
+    def test_end_table_marker(self):
+        buf = io.StringIO()
+        r = table.Renderer(out=buf, color=False)
+        r.text("The fire burns low over the Crossroads Inn.\nNext time: the mill road.\n<<END TABLE>>\n")
+        r.end_message()
+        self.assertTrue(r.closing)
+        self.assertEqual(buf.getvalue().splitlines(),
+                         ["The fire burns low over the Crossroads Inn.", "Next time: the mill road."])
+
     def test_code_fences_hidden(self):
         self.assertEqual(self.out(["Here:\n```\n  35 │ . │\n```text\nOn."]), ["Here:", "  35 │ . │", "On."])
 

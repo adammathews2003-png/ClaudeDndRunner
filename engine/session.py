@@ -12,8 +12,9 @@ plan.md Phase 7 item 5).
    the ended table rules, and the raw turn log (for `trace`),
 4. resets `sessions/session-current.md` (`sessions/spoilers.md` is never reset),
 5. clears `in-session`,
-6. `git add -A && git commit -m "session NN"` from the repository root, when the
-   campaign is inside a git repo (`--no-commit` skips it).
+6. `git add -A && git commit -m "session NN"` in the campaign's own repository (the
+   campaign folder is the repo root). A campaign folder without its own repo is never
+   committed, so the engine repo around it is never touched (`--no-commit` skips it).
 """
 import re
 import subprocess
@@ -147,7 +148,10 @@ def archive(summary_file=None, summary=None, force=False, commit=True):
                  f"{len(secret)} GM lines · log reset · in-session off]")
     if commit:
         root = _git_root(campaign.root())
-        if root:
+        own = root and Path(root).resolve() == Path(campaign.root()).resolve()
+        if root and not own:
+            lines.append("[git: the campaign folder isn't its own repository — nothing committed]")
+        elif root:
             r1 = subprocess.run(["git", "-C", root, "add", "-A"], capture_output=True, text=True)
             r2 = subprocess.run(["git", "-C", root, "commit", "-q", "-m", f"session {n:02d}"],
                                 capture_output=True, text=True)
