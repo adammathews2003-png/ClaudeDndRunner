@@ -24,7 +24,7 @@ import re
 import sys
 from pathlib import Path
 
-from lib import campaign, creatures, gametime, journal, md, resolve, wacky
+from lib import campaign, creatures, gametime, journal, md, resolve, sight, wacky
 
 FORCE_EVERY = 15
 XP_NEXT = (0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000,
@@ -163,6 +163,8 @@ def party(state, settings):
     tracking = str(settings.get("xp-tracking", "on")).lower() == "on"
     for doc in campaign.pcs():
         name = _short(doc.front.get("name") or "?")
+        if campaign.player_of(doc):
+            name += f" ({campaign.player_of(doc)})"
         if doc.front.get("present") is False:
             bits.append(f"{name} (autopilot)")
             continue
@@ -177,6 +179,17 @@ def party(state, settings):
             bit += f" XP {xp:,}" + (f"/{nxt:,}" if nxt else "")
         bits.append(bit)
     return "Party: " + (" · ".join(bits) if bits else "—")
+
+
+def sight_line(state):
+    """`Sight (dark): …` for each present PC when the scene isn't brightly lit, so the GM
+    knows who sees what without asking (lib/sight.py; senses come from the PC file)."""
+    light = str(state.front.get("light") or "bright").lower()
+    if light == "bright":
+        return None
+    bits = [sight.describe(d, light, _short(d.front.get("name") or "?"))
+            for d in campaign.pcs() if d.front.get("present") is not False]
+    return f"Sight ({light}): " + (" · ".join(bits) if bits else "—")
 
 
 def _rule_rows():
@@ -254,7 +267,11 @@ def build(state=None):
     o = order(state)
     if o:
         lines.append(o)
-    lines += [party(state, settings), rules_line(rows), watch_line(state),
+    lines.append(party(state, settings))
+    sl = sight_line(state)
+    if sl:
+        lines.append(sl)
+    lines += [rules_line(rows), watch_line(state),
               "Combat: " + (combat_status(state) or "—"), log_line()]
     return lines
 

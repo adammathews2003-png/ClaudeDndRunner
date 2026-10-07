@@ -455,7 +455,7 @@ spell slots) are recomputed by the tools unless listed in `overrides`.
 ```markdown
 ---
 name: Kira Thornwood
-player: Alex
+player: Alex                      # optional: who plays her; blank or (pregen) = unclaimed
 location: crossroads-inn/common-room
 race: high elf                    # race + subrace
 class: rogue

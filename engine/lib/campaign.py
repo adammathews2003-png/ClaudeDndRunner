@@ -331,6 +331,15 @@ def resolve(name, state=None):
     raise NotFound(f"no creature named {name!r}")
 
 
+NO_PLAYER = {"", "-", "—", "(pregen)", "pregen", "none", "(none)"}
+
+
+def player_of(doc):
+    """A PC's `player:` (optional), or None when unset or a placeholder like `(pregen)`."""
+    p = str(doc.front.get("player") or "").strip()
+    return None if p.lower() in NO_PLAYER else p
+
+
 def who_is_at(site_or_area):
     """PC and NPC docs whose `location:` is at the site (any area) or exactly at
     `site/area` (docs/design/04 L307-308)."""

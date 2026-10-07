@@ -8,6 +8,8 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
 
 1. `python engine/gm.py scene enter <site[/area]> [--light dim|dark] --write [--summary "<2–4 sentences>"] [--scene "<name>"]`
    - Light: the real light there now (night outdoors → `dim`/`dark`; inside a lit inn → bright).
+     Set it honestly even when a PC has darkvision: the brief's `Sight` line works out who
+     sees what from their `senses:`, and passive notices already account for it.
    - It moves the party, rebuilds On stage / Watch for / Clocks, resets tempo to calm,
      ends `scene`-scoped table rules and runs a full lint (a `[LINT]` report line).
    - If the party is travelling between places, use `/travel` instead (it ends with

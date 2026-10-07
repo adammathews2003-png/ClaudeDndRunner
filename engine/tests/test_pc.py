@@ -128,6 +128,20 @@ class Edit(CampaignCase):
         self.assertIs(front(self, "pcs/kira-thornwood.md")["present"], False)
         self.assertIn("Kira (autopilot)", "\n".join(run_main(["brief"])[1]))
 
+    def test_roster_by_player_name(self):
+        run_main(["pc", "edit", "Kael", "--set", "player=Adam2"])
+        code, lines = run_main(["pc", "roster", "--present", "adam2,Bob", "--absent", "Kira"])
+        self.assertEqual(code, 0)
+        self.assertEqual(lines[0], "[roster: Kael Ashford (Adam2) present · Kira Thornwood absent (autopilot)]")
+        self.assertIn("'Bob' is no PC or player here", lines[1])
+        self.assertIs(front(self, "pcs/kael-ashford.md")["present"], True)
+        self.assertIn("Kael (Adam2) ", "\n".join(run_main(["brief"])[1]))
+
+    def test_pregen_has_no_player(self):
+        code, lines = run_main(["pc", "roster"])
+        self.assertIn("Kira Thornwood present", lines[0])
+        self.assertNotIn("(pregen)", lines[0])
+
 
 class LevelUp(CampaignCase):
     def test_kael_to_4(self):

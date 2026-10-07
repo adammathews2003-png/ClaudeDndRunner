@@ -17,7 +17,7 @@ calm and ends `scene`-scoped table rules. Refused during combat.
 import re
 from pathlib import Path
 
-from lib import campaign, gametime, geo, journal, md
+from lib import campaign, gametime, geo, journal, md, sight
 from lib.errors import ToolError
 import mutations
 import rules
@@ -171,13 +171,12 @@ def notices_line(frame, area, pcs, light):
         pp = d.front.get("passive-perception")
         if not isinstance(pp, int):
             continue
-        senses = " ".join(str(s) for s in (d.front.get("senses") or [])).lower()
-        dv = "darkvision" in senses
+        seen_in = sight.effective(d, light)[0]
         name = tempo.short_pc(d)
-        if light == "dark" and not dv:
+        if seen_in == "dark":
             bits.append(f"{name} (dark, no darkvision) → nothing")
             continue
-        eff = pp - 5 if (light == "dim" and not dv) or light == "dark" else pp
+        eff = pp - 5 if seen_in == "dim" else pp
         tag = f"PP {pp}" + (f"→{eff} {light}" if eff != pp else "")
         seen = [f"DC {dc} {text}" for dc, text in entries if eff >= dc]  # ties → PC
         bits.append(f"{name} ({tag}) → " + ("; ".join(seen) if seen else "nothing"))

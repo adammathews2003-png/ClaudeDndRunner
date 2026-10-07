@@ -26,6 +26,15 @@ def hook(event="UserPromptSubmit", prompt="I look around", source=None, seed=Non
 
 
 class Brief(CampaignCase):
+    def test_sight_line(self):
+        self.assertFalse(any(l.startswith("Sight") for l in run_main(["brief"])[1]))  # bright: no line
+        set_front_raw(self, "state/current.md", "light", "dark")
+        text = "\n".join(run_main(["brief"])[1])
+        self.assertIn("Sight (dark): Kael blind without a light · Kira sees to 60 ft (darkvision", text)
+        set_front_raw(self, "state/current.md", "light", "dim")
+        text = "\n".join(run_main(["brief"])[1])
+        self.assertIn("Sight (dim): Kael dim (sight Perception at disadv.) · Kira sees normally to 60 ft (darkvision)", text)
+
     def test_shapes(self):
         code, lines = run_main(["brief"])
         self.assertEqual(code, 0)
@@ -253,3 +262,16 @@ class Juice(CampaignCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Sight(unittest.TestCase):
+    def doc(self, *senses):
+        return type("D", (), {"front": {"senses": list(senses)}})()
+
+    def test_effective(self):
+        from lib import sight
+        self.assertEqual(sight.effective(self.doc("darkvision 60"), "dark"), ("dim", 60, "darkvision"))
+        self.assertEqual(sight.effective(self.doc("darkvision 60"), "dim"), ("bright", 60, "darkvision"))
+        self.assertEqual(sight.effective(self.doc(), "dark"), ("dark", None, None))
+        self.assertEqual(sight.effective(self.doc("blindsight 10", "darkvision 120"), "dark"), ("bright", 10, "blindsight"))
+        self.assertEqual(sight.effective(self.doc("darkvision 60"), "bright"), ("bright", None, None))

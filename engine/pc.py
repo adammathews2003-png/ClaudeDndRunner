@@ -534,24 +534,45 @@ def cmd_edit(ctx):
     ctx.result = {"fields": s.fields, "warnings": s.warnings}
 
 
+def labelled(doc):
+    p = campaign.player_of(doc)
+    return f"{doc.front.get('name')}" + (f" ({p})" if p else "")
+
+
+def roster_docs(name):
+    """PC docs for a roster name: an exact player name (all their PCs) wins over a PC
+    name, so "Adam" finds Adam's PC rather than prefix-matching a file like adam-*.md."""
+    by_player = [d for d in campaign.pcs() if (campaign.player_of(d) or "").lower() == name.lower()]
+    return by_player or [pc_doc(name)]
+
+
 def cmd_roster(ctx):
     a = ctx.args
     present = [x.strip() for x in as_list(a.present)]
     absent = [x.strip() for x in as_list(a.absent)]
-    out = []
+    out, unknown = [], []
     for names, flag in ((present, True), (absent, False)):
         for n in names:
-            doc = pc_doc(n)
-            doc.set_front("present", flag)
-            doc.save()
-            out.append(f"{doc.front.get('name')} {'present' if flag else 'absent (autopilot)'}")
-    if not out:
+            try:
+                docs = roster_docs(n)
+            except (PcError, campaign.CampaignError):
+                unknown.append(n)
+                continue
+            for doc in docs:
+                doc.set_front("present", flag)
+                doc.save()
+                out.append(f"{labelled(doc)} {'present' if flag else 'absent (autopilot)'}")
+    if not out and not unknown:
         for doc in campaign.pcs():
-            out.append(f"{doc.front.get('name')} {'present' if doc.front.get('present') is not False else 'absent'}")
+            out.append(f"{labelled(doc)} {'present' if doc.front.get('present') is not False else 'absent'}")
         ctx.emit("[roster: " + " · ".join(out) + "]")
         return
-    journal.log_delta("roster: " + " · ".join(out))
-    ctx.emit("[roster: " + " · ".join(out) + "]")
+    if out:
+        journal.log_delta("roster: " + " · ".join(out))
+        ctx.emit("[roster: " + " · ".join(out) + "]")
+    for n in unknown:
+        ctx.emit(f"[roster: {n!r} is no PC or player here: ask which PC is theirs "
+                 f"(then `pc edit <pc> --set player={n}`) or make them one]")
 
 
 def cmd_level_pending(ctx):

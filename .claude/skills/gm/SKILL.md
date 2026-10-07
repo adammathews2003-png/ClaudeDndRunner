@@ -53,13 +53,16 @@ arithmetic and the bookkeeping.
    nothing to read; move on without a word about it. Your first words to the table are
    the greeting.
 2. **Roster:** ask "Who's at the table today?" People answer with **player names or PC
-   names**. A PC file's `player:` says who plays it. A player name with no PC yet →
-   ask once, in one message: "Adam, Adam2: which of Kael and Kira is yours, or are you
-   bringing someone new?" Accept any phrasing ("Adam plays Kira", "I'm Kael", "set me up
-   a half-orc barbarian 3…"), and record it: `pc edit Kira --set player=Adam`.
-   A new player or new PC → run the `character` skill yourself with their words (offer a
-   pregen as the fast path). Never tell them to type a command.
-   Present → `pc roster --present A,B`; absent PCs → `pc roster --absent Name` (they run on
+   names**. Pass their answer straight to `pc roster --present A,B`: it takes either, and
+   a player name marks every PC whose `player:` is that player (the brief's party line
+   shows `Grusk (Adam)`). **Don't ask who plays what when the roster already resolved
+   them.** Only a name it reports as no PC or player → ask once, in one message: "Adam2:
+   which of Kael and Kira is yours, or are you bringing someone new?" Accept any phrasing
+   ("Adam plays Kira", "I'm Kael", "set me up a half-orc barbarian 3…"), record it with
+   `pc edit Kira --set player=Adam2` (`player:` is optional; a pregen nobody has claimed
+   has none), then rerun the roster for them. A new player or new PC → run the
+   `character` skill yourself with their words (offer a pregen as the fast path).
+   Never tell them to type a command. Absent PCs → `pc roster --absent Name` (they run on
    their `autopilot` line).
 3. **Changes since last time:** one question to the table ("Anything change with your
    characters between sessions?"). Each answer → the `character` skill in edit mode.
@@ -224,6 +227,15 @@ distances only when the character can see the target in adequate light within ~1
 (or has paced it); otherwise a band: adjacent (5) · close (≤30) · nearby (≤60) · far
 (≤120) · distant. Mechanics always use the exact value. The GM names destinations, not
 coordinates: `pos Mara @bar`, `move Kael --to Veskar`.
+
+**Light and sight.** In a dim or dark scene the brief carries a `Sight (dark): …` line
+built from each PC's `senses:` (darkvision etc. from their race). Go by it, never by a
+guess: a PC who sees (`Grusk sees to 60 ft (darkvision…)`) is **never asked whether
+they have a light**. Describe what they see, in greys under darkvision, and roll their
+sight-based Perception with disadvantage where the line says so. Ask about a torch or
+spell only for a PC the line calls `blind without a light`, and only when it matters.
+Once someone lights one, re-enter the scene with the new light (`scene enter … --light
+dim|bright --write`).
 
 ## Danger, loot and shops
 

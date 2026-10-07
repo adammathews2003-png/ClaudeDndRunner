@@ -242,6 +242,7 @@ latest batch and logs `undo turn 14 step 2`. This covers "check the record" corr
 On stage: Mara (wary) goal: keep evening calm · Tobin (friendly) goal: tell cart story · Veskar (wary)
 Order: Mara 17 · Kael 13 · Veskar 12 · Tobin 5
 Party: Kael 9/11 AC15 · Kira 30/30 AC14 [poisoned 8m]
+Sight (dark): Kael blind without a light · Kira sees to 60 ft (darkvision: grey, no colour; sight Perception at disadv.)
 Rules: R1 potions=bonus (campaign) · R3 crit 19–20 (combat)
 Watch: Harl asked of Mara → beat 1 · mill → beat 3   Next clock: Day 3 04:00 (Red Ledger cart) in 1d 8h
 Combat: — 
@@ -702,8 +703,12 @@ On apply, it updates:
 - recalculated Attacks and spell save DC/attack bonus
 - a Journal line and a session-log delta
 
-**`pc roster`** sets `present: true|false` on PC files for this session. The brief's
-party line shows absent PCs as `Bren (autopilot)`.
+**`pc roster`** sets `present: true|false` on PC files for this session. Names are PC
+names or player names: an exact `player:` match (case-insensitive) wins and marks all of
+that player's PCs; a name matching neither is reported (`'Bob' is no PC or player here…`)
+without failing the rest. `player:` is optional; blank or `(pregen)` means unclaimed. The
+brief's party line shows the player beside the PC (`Grusk (Adam) 31/42 AC13`) and absent
+PCs as `Bren (autopilot)`.
 
 **Data:** extends `data/srd/` with the 5e-bits SRD classes, subclasses, levels,
 features, races, subraces, traits, equipment, backgrounds and spells files (same
