@@ -12,6 +12,7 @@ every write goes through the engine (`engine/gm.py`).
 | `campaigns/` | one folder **and git repository** per campaign (`poc`, `loop-play`, `loop-open`, `dryrun`, …); `campaigns/.active` names the default |
 | `rules/` | condensed rule sheets the GM reads; `rules/mechanics/` for optional campaign mechanics |
 | `data/srd/` | SRD 5.1 data (CC-BY-4.0, see its LICENSE.md) |
+| `engine/templates/tables/` | random tables; `carousing.md` collects three community tables with credit to their authors (see its Credits; ask and yours comes out) |
 | `docs/design/` | the design (01–07) · `docs/build/` the build plan, status and notes |
 
 ## Running

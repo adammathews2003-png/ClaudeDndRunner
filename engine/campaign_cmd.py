@@ -138,7 +138,7 @@ def new(slug, area=None, sets=(), seed_file=None, activate=False):
     return lines
 
 
-STARTER_TABLES = ("carousing", "crit-die")   # original engine text (Phase 16)
+STARTER_TABLES = ("carousing", "crit-die")   # engine tables (Phase 16; carousing credits its sources)
 
 
 def _starter_tables(root):

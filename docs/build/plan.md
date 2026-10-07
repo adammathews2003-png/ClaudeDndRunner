@@ -933,8 +933,9 @@ re-rolls a row tagged with a campaign line; `atk` with `crit-die: on` on a natur
 seed N gives `disarm` and logs the dropped weapon; a `kill` against a PC leaves them at 0
 HP and dying under the default; `crit-die: off` leaves `atk` byte-identical to before.
 
-**Guards:** no third-party table text in the engine repo, ever (starter tables are
-original writing); carousing is GM-side until the morning reveal, so `carouse` output is
+**Guards:** third-party table text in the engine repo only with a Credits section naming
+and linking its authors (decided 2026-10-07: the carousing table combines three credited
+tables with an original one; it replaced the "never" rule); carousing is GM-side until the morning reveal, so `carouse` output is
 never pasted; the crit die never fires on ability checks or saves.
 
 ## Phase 17 — Discord bridge (2i)

@@ -1062,12 +1062,14 @@ decide what they got up to.
    night's record is `state/carousing.md`), never the night's cost.
 
 *Where the table comes from:* `tables/carousing.md` in the campaign (`| roll | result |
-effect | tags |`, ranges like `01-03`). The engine ships an **original** starter table
-(`engine/templates/tables/carousing.md`) that `campaign new` copies in. A table found
-elsewhere is brought in with `gm.py table import <file> --as carousing`. The importer
-reads pasted `01–05 text` lines and normalizes them into the table format. An imported
-table stays in the campaign folder, never in the engine repo (the rights belong to its
-author).
+effect | tags |`, ranges like `01-03`). The engine ships a combined table
+(`engine/templates/tables/carousing.md`, decided 2026-10-07) that `campaign new` copies
+in: d100, then d4 for the slot, one slot per source. Three are other people's tables,
+shipped with a **Credits** section naming and linking each author and an offer to remove
+on request; the fourth is original. Any third-party table added to the engine must carry
+the same credits. A table found elsewhere for one campaign is brought in with `gm.py
+table import <file> --as carousing`. The importer reads pasted `01–05 text` lines and
+normalizes them into the table format, writing only into that campaign's folder.
 
 **Critical hit die** (`crit-die: off | on`, default off; `crit-die-pcs: dying | dead`,
 default dying). This house rule replaces the normal critical hit. On a critical hit

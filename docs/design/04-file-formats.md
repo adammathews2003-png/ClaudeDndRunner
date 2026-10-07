@@ -407,7 +407,8 @@ number's slot count (`37.2` = 37, then 2). `effect` holds zero or more `;`-separ
 campaign's `lines:`/`veils:`; the tag `disruptive` makes `carouse` print a scenario fit
 check. Effect `twice` (carousing) rolls two more rows and applies both. Frontmatter: `die: d100` (default: inferred from the
 highest roll) and, for carousing, `cost: 1d6x10gp`. `carousing.md` and `crit-die.md`
-are copied from `engine/templates/tables/` by `campaign new` (original starter text).
+are copied from `engine/templates/tables/` by `campaign new` (crit-die: original text; carousing: three credited tables plus an
+original one, rolled d100 then d4 for the slot).
 A table imported from elsewhere (`table import`) replaces the copy and stays in the
 campaign folder. A campaign without its own copy (the POC) rolls the engine's starter.
 `state/carousing.md` (GM-only, written by `carouse`) keeps the latest night per PC, `| pc

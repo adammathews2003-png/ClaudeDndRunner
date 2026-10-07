@@ -342,7 +342,7 @@ class Carousing(Base):
         self.path("tables/carousing.md").unlink()
         set_front_raw(self, "state/current.md", "lines", [])
         out = self.ok("--seed", "11", "carouse", "Kira")
-        self.assertTrue(any(re.match(r"\[carouse Kira: d100 \d+ → ", x) for x in out))
+        self.assertTrue(any(re.match(r"\[carouse Kira: d100 \d+ · d4 \d → ", x) for x in out))
 
 
 class StarterTables(CampaignCase):
@@ -351,23 +351,26 @@ class StarterTables(CampaignCase):
         self.assertEqual(Path(car.path).parent, tables.TEMPLATES)
         self.assertEqual(car.die, 100)
         self.assertEqual(car.front.get("cost"), "1d6x10gp")
-        self.assertGreaterEqual(len(car.rows), 35)
-        gaps, over = tables.gaps_overlaps([(r.lo, r.hi) for r in car.rows], 100)
-        self.assertEqual((gaps, over), ([], []))
+        self.assertGreaterEqual(len(car.rows), 200)
+        # the combined table: every number has four slotted rows (one per source); 100 is `twice`
+        self.assertEqual([n for n in range(1, 100) if [r.slot for r in car.slots(n)] != [1, 2, 3, 4]], [])
+        self.assertEqual(car.row_for(100).effect, "twice")
         crit = tables.load("crit-die")
         self.assertEqual((crit.die, len(crit.rows)), (10, 10))
         self.assertEqual([r.effect for r in crit.rows],
                          ["dice x2", "dice x2", "dice x2", "max+dice", "dice x3", "dice x2; disarm",
                           "dice x2; prone", "dice x2; stunned 1t", "dice x2; bleed 1d4", "kill"])
-        for p in (car.path, crit.path):
-            self.assertIn("original text", Path(p).read_text(encoding="utf-8"))
+        self.assertIn("original text", Path(crit.path).read_text(encoding="utf-8"))
+        self.assertIn("Original to this engine", Path(car.path).read_text(encoding="utf-8"))
 
-    def test_guard_no_third_party_tables_in_the_engine(self):
-        """Only the engine's own original tables ship; `table import` writes into the campaign."""
+    def test_guard_third_party_tables_are_credited(self):
+        """A shipped table is the engine's own text or credits its sources (decided 2026-10-07);
+        `table import` writes into the campaign, never the engine."""
         names = sorted(p.name for p in (TOOLS / "templates" / "tables").glob("*.md"))
         self.assertEqual(names, ["carousing.md", "chase-urban.md", "chase-wild.md", "crit-die.md"])
         for n in names:
-            self.assertIn("Engine", (TOOLS / "templates" / "tables" / n).read_text(encoding="utf-8")[:400])
+            head = (TOOLS / "templates" / "tables" / n).read_text(encoding="utf-8")[:2000]
+            self.assertTrue("Engine" in head or "## Credits" in head, n)
         src = self.tmp / "p.txt"
         src.write_text("1-50 a\n51-100 b\n", encoding="utf-8")
         before = {p.name: p.read_bytes() for p in (TOOLS / "templates" / "tables").glob("*.md")}
