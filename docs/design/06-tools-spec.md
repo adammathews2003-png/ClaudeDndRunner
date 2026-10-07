@@ -416,6 +416,11 @@ gm.py split join <group> <group>   # merge when they meet (same site required)
 - **Combat time.** Combat doesn't move the clock; while split, the rounds the active
   group fought this slice (6 s each, rounded up to the minute) are charged to its
   clock when the GM cuts away (`split cut`) or the fight ends (`combat end`).
+- **Sessions.** `session archive` leaves a split in place, adds `## Split at session
+  end` (one bullet per group: place, clock, tempo; plus open tasks) to the history file
+  and says `still split (N groups, resumes next session)`. `session start` and `intro`
+  print `[SPLIT] the party is still split: … open with inn (furthest behind; split cut
+  inn first)`. Both reset the exchange counter.
 - **Long tasks** finish when the active group's clock passes their end
   (`Long task done: …` in the `[TIME]` output) and leave the list.
 - **join** requires both groups at the same site; the result's clock is the later of

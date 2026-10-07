@@ -121,6 +121,10 @@ def lines():
     first = n == 0
     out = banner.card(title(), "Our tale begins" if first else "Our tale continues")
     out.append(f"[INTRO {'first' if first else 'resume'} · session {n + 1}]")
+    import split
+    resume = split.resume_line()
+    if resume:
+        out.append(resume)
     p = premise()
     out.append(f"[PREMISE] {p}" if p else "[PREMISE] (none written: use the scenario and the opening scene)")
     _, options, chosen = why()

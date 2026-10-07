@@ -85,6 +85,9 @@ arithmetic and the bookkeeping.
    - `[INTRO resume]`: a recap from the party's point of view (the latest
      `sessions/history/session-NN.md` `## Summary` and `## Changes (public deltas)`, never
      its `## Behind the screen`), then pick up the current scene.
+   - `[SPLIT]`: the party ended last session split and still is. Recap each group's
+     thread separately, then open with the group it names (`split cut <group>` first if
+     it says so). Slices and cuts carry on as before.
    Skip steps quickly when nothing applies.
 
 ## The turn loop

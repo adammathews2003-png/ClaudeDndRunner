@@ -11,7 +11,8 @@ plan.md Phase 7 item 5).
    public changes (every `  - ` delta that isn't `(GM)`), the behind-the-screen lines,
    the ended table rules, and the raw turn log (for `trace`),
 4. resets `sessions/session-current.md` (`sessions/spoilers.md` is never reset),
-5. clears `in-session`,
+5. clears `in-session` (a split party stays split: `## Split at session end` records
+   each group, and the next `session start` says which group to open with),
 6. `git add -A && git commit -m "session NN"` in the campaign's own repository (the
    campaign folder is the repo root). A campaign folder without its own repo is never
    committed, so the engine repo around it is never touched (`--no-commit` skips it).
@@ -48,7 +49,13 @@ def start():
     state.set_front("in-session", True)
     state.save()
     journal.log_delta("session start")
-    return ["[session start · in-session: true · the brief hook is on]"], {}
+    out = ["[session start · in-session: true · the brief hook is on]"]
+    import split
+    split.reset_slice()
+    line = split.resume_line()
+    if line:
+        out.append(line)
+    return out, {}
 
 
 def _history_dir():
@@ -136,6 +143,11 @@ def archive(summary_file=None, summary=None, force=False, commit=True):
         out += ["", "## Table rules ended", "| " + " | ".join(cols) + " |",
                 "|" + "|".join("-" * (len(c) + 2) for c in cols) + "|"]
         out += ["| " + " | ".join(r.get(c, "") for c in cols) + " |" for r in ended_rows]
+    import split
+    sp = split.load()
+    if sp is not None:   # the split carries over to the next session (02 → Splitting the party)
+        out += ["", "## Split at session end"] + split.group_bullets(sp)
+        split.reset_slice()
     out += ["", "## Turn log"] + (log or ["(empty)"]) + [""]
     hist = _history_dir() / f"session-{n:02d}.md"
     hist.parent.mkdir(parents=True, exist_ok=True)
@@ -145,7 +157,8 @@ def archive(summary_file=None, summary=None, force=False, commit=True):
     state.set_front("in-session", False)
     state.save()
     lines.append(f"[session {n:02d} archived → sessions/history/session-{n:02d}.md · {len(public)} changes · "
-                 f"{len(secret)} GM lines · log reset · in-session off]")
+                 f"{len(secret)} GM lines · log reset · in-session off"
+                 + (f" · still split ({len(sp['groups'])} groups, resumes next session)" if sp else "") + "]")
     if commit:
         root = _git_root(campaign.root())
         own = root and Path(root).resolve() == Path(campaign.root()).resolve()

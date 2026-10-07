@@ -12,6 +12,11 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
    and lost; open threads as the *characters* see them. No `(GM)` facts, no beat names,
    no secrets. Keep it as plain prose without double quotes (it goes on the command line
    in step 5).
+   **Split party** (the brief has a `Split:` line): a short paragraph per group, each
+   from that group's point of view (what Grusk saw at the mill; what Kael and Kira did
+   at the inn), and where each group stands now. Don't join them just to end the
+   session: the split carries over, and the archive records each group's place and
+   clock. If a fight is still running, stop at the end of a round.
 3. **World tick (behind the screen):** what moved off-screen because of this session —
    NPC plans advancing, rumors spreading, clocks drawing near. Apply durable changes
    with the tools (`move-npc`, `attitude`, `world lead` for frontier leads that play
@@ -26,7 +31,8 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
      session rules and commits to git.
 6. **Close at the table.** Only once the archive succeeded, your final message is the
    closing and nothing else: a few lines of fiction (where the party rests, what hangs in
-   the air), "Next time…" if there's a natural hook, then `<<END TABLE>>` alone on the last
+   the air; when split, a beat for each group, cutting between them), "Next time…" if
+   there's a natural hook, then `<<END TABLE>>` alone on the last
    line. The table prints the fiction, hides the marker and closes the program. No
    mechanics, no summary, no "session archived" talk. If the archive didn't succeed, no
    marker: tell the table what's needed and stay open.

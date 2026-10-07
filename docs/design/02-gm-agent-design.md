@@ -579,6 +579,12 @@ a signal arranged beforehand. Messages travel at fiction speed.
 clocks level to the latest one (the earlier group's gap is summarised), scenes merge,
 and a quick in-character recap covers anything the others need to hear.
 
+**Ending a session while split.** The split carries over; don't force a reunion to
+stop. `/end-session` writes a summary paragraph per group (each from that group's
+point of view), a closing beat for each, and the archive records every group's place
+and clock (`## Split at session end`). The next session recaps each thread and opens
+with the group furthest behind in game time.
+
 **Out-of-turn table talk** from a waiting player is fine. Character actions from a
 waiting group are held for their next slice ("Hold that thought, Kael: we'll be with
 you shortly").

@@ -330,6 +330,41 @@ def heartbeat_bit(state):
     return f"{sp['active']} {text.split(' (')[0]}" + (" · CUT DUE" if cue else "")
 
 
+# ---------- sessions (end-session archives a split; the next session resumes it) ----------
+
+def group_bullets(sp=None):
+    """`- ▶ mill (Grusk) · old-mill/under-croft · Day 1 21:02 · calm` per group, plus tasks."""
+    sp = sp or load()
+    out = []
+    for g in sp["groups"]:
+        d = scene_doc(sp, g["group"])
+        mark = "▶ " if g["group"] == sp["active"] else ""
+        out.append(f"- {mark}{_label(g)} · {d.front.get('party-location')} · "
+                   f"{d.front.get('in-game-datetime')} · {tempo_of(d)}")
+    for t in sp["tasks"]:
+        out.append(f"- task {t['group']}: {t['what']} until {gametime.fmt(t['end'])}")
+    return out
+
+
+def reset_slice():
+    if campaign.split_path().exists():
+        _write_slice(0)
+
+
+def resume_line():
+    """For session start / intro: the split carries over; open with the group furthest behind."""
+    sp = load()
+    if sp is None:
+        return None
+    first = min((g["group"] for g in sp["groups"]),
+                key=lambda n: (*time_of(scene_doc(sp, n)), n != sp["active"]))
+    how = "it's active" if first == sp["active"] else f"`split cut {first}` first"
+    groups = " · ".join(f"{_label(g)} at {scene_doc(sp, g['group']).front.get('party-location')}"
+                        for g in sp["groups"])
+    return (f"[SPLIT] the party is still split: {groups}. Recap each group's thread; "
+            f"open with {first} (furthest behind; {how})")
+
+
 # ---------- clock integration ----------
 
 def world_window(old, new):
