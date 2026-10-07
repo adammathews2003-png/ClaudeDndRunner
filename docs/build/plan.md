@@ -749,6 +749,150 @@ levels clocks and prints the gap; `undo` reverses each split command.
 **Guards:** `current.md` is always a complete, valid scene; no PC in two groups;
 `split` never moves a PC the GM didn't name; nothing cuts without the GM.
 
+## Phase 13 — State the table forgets (2e)
+
+**Goal:** concentration, dying, light sources, supplies, exhaustion and content
+boundaries are kept by the tools, so the GM never has to remember them or invent
+their numbers (02 → Table mechanics → Phase 13).
+
+**Read first:** 02 → Table mechanics (intro + Phase 13); 04 → Table settings, PC file
+→ Added by Phases 13–15, Scene state added by Phases 13–15; 06 → Table mechanics →
+Phase 13; `engine/lib/resolve.py` (`apply_hp`, the `death-saves` rule key),
+`engine/mutations.py` (`hp`, `cond`), `engine/inventory.py` (count decrement),
+`engine/lib/sight.py`, `engine/clock.py`, `engine/combat.py` (`next`, `end`),
+`engine/rest.py`, `engine/brief.py`.
+
+**Build:** (1) settings `death-save-rolls`, `track-light`, `supplies`, `exhaustion` in
+`campaign.SETTINGS`; (2) `conc` (new `engine/conditions_ext.py` or inside
+`mutations.py`): start/end, target effects, the CON-save line on `hp -`/`dmg`, auto
+end on 0 HP / incapacitating conditions / a new `conc`, expiry via `clock` and
+`combat next`; (3) dying: `apply_hp` writes `death-saves:` instead of the note,
+`deathsave`, `stabilize`, massive damage, `combat next` prompt, `(GM)` lines when
+secret, the stable wake-up as a clock event; (4) `lib/light.py` source data, `light`
+command, `lit:` countdown in `clock`, effective light in `sight.effective` (the best
+carried source in the active group; in combat by `pos` radius), the Sight line names
+it; (5) supplies: `ammo <thing>` in Attacks notes, spending in `atk` (strict), `Ammo
+spent:` line and the recovery offer in `combat end`, `eat`, `fed:`, the dawn check
+in `clock`, `rest long` eating; (6) `exhaust`, its effects in `resolve.py` (2014 and
+2024 tables), `turn`/`move` speed, level-4 HP max, `rest long` recovery; (7) `campaign
+boundaries`, the `Table:` brief line (full brief only, in the hash), `!x` in the
+brief hook (logged, not counted as a split exchange); (8) brief party-line tags
+`[conc bless 8r]`, `DYING ✓1 ✗2`, `[exh 2]`, and the heartbeat carries dying PCs;
+(9) skills: `/gm` (boundaries at session start when unset, the X-card, light and
+supplies in narration), `/combat` (concentration saves, death saves on the dying PC's
+turn), `/campaign-new` (asks lines and veils), `/end-session` (nothing new).
+
+**Verify:** `conc Kael bless --on Kael,Kira 1m` then `dmg Kael 14` prints `CON save DC
+10`; a failed `save Kael con 10 <roll>` strips `bless` from Kira; `hp Kira =0`, then
+`deathsave Kira 1` → `✗2`, `deathsave Kira 20` → 1 HP, conscious; `dmg` of ≥ max HP
+at 0 → `dead`; `light Kael torch` in a `light: dark` scene turns Kael's Sight line
+bright and `time +61m` prints `Light out: Kael's torch`; `supplies: strict` → 3
+shortbow `atk` rolls leave `quiver (17 arrows)` and `combat end` offers 1 back; a PC
+not fed for 6 days with CON +2 gets `exhaustion: 1`; `exhaust Kira =3` → her next
+`check` and `atk` roll with disadvantage; `!x` produces the X-card line and a log
+entry with no text; every command undoes cleanly; `supplies: off` and `track-light:
+off` change nothing in inventory.
+
+**Guards:** the tool never decides a save for a player (it asks for the d20); no
+boundary text in player-facing output (the brief is GM-side); the ambient `light:` is
+never overwritten by a carried source; `death-saves` table rule still wins.
+
+## Phase 14 — Exploration, social pressure, hazards (2f)
+
+**Goal:** travel activities and getting lost, attitude-based social DCs, morale,
+chases, traps and environmental hazards, and hiding as a stored state (02 → Table
+mechanics → Phase 14).
+
+**Read first:** 02 → Table mechanics → Phase 14; 04 → Scene state added (marching
+order, `## Chase`, `TRAP` lines, navigation terrain, `environment:`); 06 → Table
+mechanics → Phase 14; 06 → `travel`, `clock advance`, `combat start | next | end`;
+`engine/lib/geo.py` (routes, bearings, frames), `engine/scene.py` (Hidden lines,
+notices), `engine/lib/encounter.py` (XP for defeated foes).
+
+**Build:** (1) settings `travel-detail`, `getting-lost`, `social-dcs`, `morale`,
+`chases`; (2) `travel --plan` and the resolving call: activities, terrain DCs,
+the wrong-bearing walk in the world frame, foraging, watchers-only encounter
+passives, forced-march saves; `order`; (3) `lib/social.py`: the 02 DC table as data,
+`check --vs --ask --leverage --flair --pitch --why --goal [--core]`, `moved-by:` on
+NPCs, the `creativity` steps, `state/social.md` with the wall stages, the result
+tiers, `social status|drop|wall`, the brief's `Social:` line, settings `creativity`
+and `social-wall`, the first-session `[TELL THE TABLE]` line from `intro`; (4) morale triggers in `combat next`, exemptions
+by SRD type, `+fled`/`+surrendered`, XP and prisoners in `combat end`; (5)
+`engine/chase.py` with the `## Chase` block, Dashes, complication tables (ship
+`tables/chase-urban.md` and `chase-wild.md` as engine defaults a campaign may
+override), the escape test, 6 s rounds on the clock (and split charging like
+combat); (6) `trap` over `TRAP` lines in `## Hidden`, `hazard fall|breath|env`, the
+hourly environment saves in `clock`, underwater rules in `atk`; (7) `hide`/`seek`,
+stored totals compared on `scene enter` and `combat start`, advantage-then-reveal on
+`atk`; (8) `lint`: `TRAP` lines parse, `terrain:`/`forage:` values valid; (9) skills:
+`/gm` (travel activities, social asks, hiding; the one plain-words line about the
+wall at the first session, switching it off when a player asks, explaining it only
+on request), `/campaign-new` (asks `social-wall` with the other settings: "on by
+default; it can make social scenes easier when you're stuck, and you can turn it off
+any time"), `/combat` (morale, chases, underwater), `/scene` (traps and the marching
+order).
+
+**Verify:** dryrun `travel old-mill --plan` with activities prints the navigation and
+forage DCs; on the road no navigation check is asked; a trackless leg with a failed
+`--nav` ends somewhere other than the destination and says `Lost`; `check Kira
+persuasion --vs mara --ask major` with Mara wary prints DC 30 (no refusal); with
+`--flair 3 --pitch x` under `creativity: light` DC 22 and advantage, and `moved-by:
+[nothing]` on Mara makes it flair 2 (DC 25, no advantage); the same `--pitch` again
+scores 0; three failed `--goal` attempts print stages 1–3, and a fourth with a new
+skill starts a band lower while one with the same skill doesn't; success removes the
+goal row; `--core` exits 1; `social wall off` writes the setting and stops the stages,
+and a first-session `intro` prints the `[TELL THE TABLE]` line only while it's on; with Mara friendly `--ask major` prints DC 20; a bandit group dropping under half HP prints one morale line
+and never again for that trigger; a fled bandit counts toward `xp award`; `chase
+start --quarry Veskar` → `chase next` × 4 spends Dashes and the 5th asks for a CON
+save; `trap trigger` on a fixture pit applies the fall damage and `prone`, and `trap
+status` shows `triggered`; `hazard breath Kael` with CON +1 → `holding breath 2m`;
+`hide Kira 17` then `scene enter` with Veskar (passive 14) arriving → not spotted;
+`seek Veskar 18` → spotted; each undoes.
+
+**Guards:** getting lost never moves the party along a route it didn't take; the
+social tool refuses only `--core`; flair is never shown to players and is logged
+before the result; morale never fires for the party side; traps never show their
+`(GM)` details in player output; no straight-line teleport while lost (world frame
+travel only).
+
+## Phase 15 — Optional subsystems (2g)
+
+**Goal:** inspiration, readied actions, magic items, downtime, allied creatures,
+weather, encumbrance, faction renown, mounts and lingering injuries, each behind a
+setting and each buildable on its own (02 → Table mechanics → Phase 15).
+
+**Read first:** 02 → Table mechanics → Phase 15; 04 → Table settings, PC file → Added
+by Phases 13–15 (magic-item tags, `## Companions`, `## Downtime`), `state/factions.md`;
+06 → Table mechanics → Phase 15; `engine/pc.py` (derivation, `overrides`),
+`engine/inventory.py`, `engine/combat.py`, `engine/clock.py`.
+
+**Build** (any order; tick each in the completion notes): (1) settings `inspiration`,
+`downtime`, `weather`, `encumbrance`, `renown`, `lingering-injuries`; (2) `inspire`
+and `--insp` on `atk/save/check`; (3) `ready` and the `combat next` reminders; (4)
+magic items: download `5e-SRD-Magic-Items.json`, `attune`, `charge` + clock recharge,
+`identify`, bracketed bonuses in `pc` derivation; (5) `downtime` with lifestyle costs
+and the clock; (6) `companion add`, `hire`, companions in `combat start`, wages in
+`clock`; (7) `weather` rolls at dawn per `climate:`, effects on light sources,
+ranged attacks and the brief header; (8) encumbrance from SRD weights in `pc card`,
+`turn`/`move`, `travel` and the resolver; (9) `renown` and `state/factions.md`, the
+attitude shift in brief and social DCs; (10) `mount`/`dismount`; (11) `injury`; (12)
+skills: `/gm` (inspiration awards, downtime between adventures), `/combat` (readied
+actions, companions, mounts), `/level-up` (attunement and magic items in the card).
+
+**Verify:** per item, a seeded test: inspiration spent once gives advantage and a
+second `--insp` errors; a readied action prints before the matching turn and clears
+at the owner's turn; a fourth attunement is refused; `charge` at 0 then dawn rolls
+the recharge; `downtime Kira craft "chain shirt" 10d --lifestyle modest` adds 50 gp
+of progress, spends 10 gp of lifestyle and moves the clock 10 days; a familiar
+enters `combat start` with `ctrl Kira`; strong wind puts out a lit torch; Kira at
+STR 8 carrying 45 lb with `variant` shows `[enc]` and speed −10; renown 3 with the
+Red Ledger makes a wary member's DC table read as neutral; a mounted fight keeps the
+horse on Kael's initiative.
+
+**Guards:** every subsystem's `off` leaves the existing commands unchanged
+(regression-test the default settings against the Phase 1–12 suite); non-SRD tables
+(carousing, injuries) are campaign-supplied, never shipped as rules text.
+
 ## Phase 10 — Verification sweep and dry-run readiness (README Phase 3)
 
 1. **Anti-pattern grep** over `engine/` and `.claude/` for everything in 0.8; all empty.

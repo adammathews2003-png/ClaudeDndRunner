@@ -364,6 +364,34 @@ gains `loop`, `loop-baseline`, `loop-start`, `loop-end`; PCs gain `loop-bed: sit
 `## Memory across loops`; a regenerated piece already carried is marked `hollow` in
 its `notes`.
 
+**Table settings (Phases 13–15; 02 → Table mechanics).** Frontmatter, else
+`state/current.md`, defaults shown:
+
+| key | values | default | phase |
+|---|---|---|---|
+| `death-save-rolls` | `open \| secret` | open | 13 |
+| `track-light` | `on \| off` | on | 13 |
+| `supplies` | `strict \| loose \| off` | loose | 13 |
+| `exhaustion` | `2014 \| 2024` | 2014 | 13 |
+| `travel-detail` | `summary \| activities` | summary | 14 |
+| `getting-lost` | `on \| off` | on | 14 |
+| `social-dcs` | `dmg \| gm` | dmg | 14 |
+| `creativity` | `off \| light \| generous` | light | 14 |
+| `social-wall` | `off \| <n>` | 3 | 14 |
+| `morale` | `on \| off` | on | 14 |
+| `chases` | `dmg \| narrative` | dmg | 14 |
+| `inspiration` | `advantage \| reroll \| off` | advantage | 15 |
+| `downtime` | `off \| light \| full` | light | 15 |
+| `weather` | `off \| on` | off | 15 |
+| `encumbrance` | `off \| basic \| variant` | off | 15 |
+| `renown` | `off \| party \| per-pc` | off | 15 |
+| `lingering-injuries` | `off \| on` | off | 15 |
+
+**Content boundaries** (Phase 13, campaign.md only, never `current.md`):
+`lines: [harm to children, sexual violence]` (never appears) and `veils: [torture]`
+(off screen only). Written by `gm.py campaign boundaries`; an empty list means asked
+and none; a missing key means not yet asked.
+
 ## Custom-bestiary file — `campaigns/<name>/custom-bestiary/<slug>.md`
 
 A custom monster, made with `gm.py monster new "<name>" --from "<SRD or custom monster>"`
@@ -412,6 +440,7 @@ faction: none
 attitude-to-party: neutral    # hostile | wary | neutral | friendly | ally
 statblock: commoner           # SRD name, or "custom: see below"
 default-goal: keep the evening calm   # optional; seeds the On stage line on scene entry
+moved-by: [honesty]           # optional (Phase 14): audacity | honesty | flattery | humour | piety | coin | nothing
 status: alive                 # alive | dead | missing — set by tools (combat end)
 ---
 
@@ -520,6 +549,33 @@ Short backstory + goals the GM can hook.
 ## Journal
 GM appends durable character developments here.
 ```
+
+**Added by Phases 13–15** (frontmatter keys appear only while they mean something;
+NPCs take the same keys, and in combat the Combatants row's `conditions` mirrors
+them):
+```yaml
+concentration: {spell: bless, until: "Day 1 18:31", on: [Kael, Kira]}   # 13; until = game time, or "3r"
+death-saves: {ok: 1, fail: 2}     # 13; only while dying at 0 HP; `stable` / `dead` are conditions
+lit: [torch 40m]                  # 13; light sources this creature carries, lit, with time left
+fed: "Day 1"                      # 13; last day with a full ration and water (supplies on)
+exhaustion: 0                     # 13; 0–6
+inspiration: false                # 15
+attuned: [cloak of protection]    # 15; at most 3
+```
+- **Ammunition and supplies** (13) stay ordinary `## Inventory` text with counts:
+  `quiver (20 arrows)`, `rations (5 days)`, `waterskin (full|half|empty)`, `flask of
+  oil (2)`, `torches (4)`. The Attacks row's `notes` names the ammunition it uses
+  (`ammo arrows`).
+- **Magic items** (15) carry their tags in the inventory line:
+  `wand of magic missiles (uncommon, charges 5/7, recharge 1d6+1 dawn, destroy on 1)`,
+  `cloak of protection (uncommon, attune, ac +1, saves +1)`,
+  `unidentified: smoky glass ring (GM: ring of mind shielding)`; the `(GM: …)` part
+  is the true name and is stripped from player-facing output until identified.
+- **Weight** (15) comes from the SRD equipment data; a custom item may carry `(5 lb)`.
+- **`## Companions`** (15): `| name | ref | hp | acts | notes |` (`acts`: own init |
+  with me; e.g. `Ash | srd:owl | 1/1 | own init | familiar, telepathic link`).
+- **`## Downtime`** (15): `| activity | progress | goal | cost/day | notes |` (e.g.
+  `craft chain shirt | 25 gp | 50 gp | 1 gp | at Brannoc's forge`).
 
 ## Scenario file — `scenarios/<slug>.md`
 
@@ -679,6 +735,49 @@ counter is hook scratch in `.gm/split-slice` (not canon, not undone).
 when nobody can sense the fight), `split-sense-ft: 300` (how far a fight carries),
 `split-max-ahead: 30` (minutes a group may run ahead of the others before a cut is
 due; 1 while any waiting group is fighting).
+
+### Scene state added by Phases 13–15 (02 → Table mechanics)
+
+`current.md` frontmatter (parked split scenes carry the same keys):
+```yaml
+light: dark                       # still the AMBIENT light; carried sources are on creatures (lit:)
+marching-order: {front: [Kael], middle: [Kira], back: [Grusk]}   # 14
+weather: "light rain, light wind, cool"   # 15; rolled at dawn when weather: on
+environment: extreme-cold         # 14; none | extreme-cold | extreme-heat | underwater | thin-air
+```
+- **Combatants `conditions`** gain `conc bless`, `dying ✓1 ✗2`, `stable`, `exh 2`,
+  `hidden 17` (the Stealth total it must beat), `ready: shoot whoever opens the door`
+  and `ctrl Kira` (an allied creature's controller). `notes` gains `leader` and
+  `morale: fearless`. `side` is unchanged (familiars and hirelings are `party`).
+- **Combat block** gains a line under the heading: `Ammo spent: Kira arrows 6 ·
+  Grusk javelins 2` (13), and `Morale: thugs checked (half HP)` once a side has rolled
+  (14).
+- **`## Chase`** (14) replaces `## Combat` while a chase runs (they don't overlap):
+  ```markdown
+  ## Chase — round 3 · up: Veskar · env: urban
+  | name | role | pos ft | speed | dashes | exh | notes |
+  |---|---|---|---|---|---|---|
+  | Veskar | quarry | 140 | 30 | 1/3 | 0 | out of sight of Kira |
+  | Kael | pursuer | 90 | 30 | 2/4 | 0 | |
+  | Kira | pursuer | 100 | 35 | 0/5 | 1 | |
+  ```
+- **Traps** (14) are `## Hidden` lines with a `TRAP` tag:
+  `- DC 15: TRAP pit (cellar) · trigger: step on the third stair · disarm: DC 12 thieves'
+  tools · effect: DEX save DC 13 or fall 20 ft · state: armed` (`state`: armed |
+  triggered | disarmed | spent; written by `gm.py trap`).
+- **Navigation** (14): a route row's `kind` (road / path / trail / trackless …) says
+  whether a party can get lost on it (only `trail` and `trackless`), and an area's or
+  route's `terrain:` (grassland | arctic | desert | hills | forest | jungle | swamp |
+  mountains | coast | sea) gives the navigation DC and foraging (`forage: abundant |
+  limited | scarce`). Area frontmatter `climate: temperate` drives weather (15).
+- **`state/social.md`** (14, unless `social-wall: off`): one row per open social goal,
+  written by `check --vs … --goal`, removed on success:
+  `| npc | goal | fails | approaches | pitches | since |`
+  (`approaches` = the skills and arguments tried, so a "different approach" can be
+  told; `pitches` = short tags of flair pitches already scored, so a repeat scores 0;
+  `since` = game time of the first attempt). A split party shares it.
+- **`state/factions.md`** (15, `renown` on): `| faction | renown | rank | who | notes |`
+  (`who` = party or a PC); NPCs name theirs with `faction: red-ledger`.
 
 ## Table rules — `state/table-rules.md` (player overrules)
 

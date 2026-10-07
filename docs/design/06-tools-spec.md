@@ -977,6 +977,254 @@ fixed above the party's unshifted level: item power never lowers a fixed wall).
   loop campaign without a baseline, and warns on `## Memory across loops` sections in
   campaigns without the mechanic.
 
+## Table mechanics (02 → Table mechanics; 04 → Table settings, Scene state added)
+
+Every command here follows the usual contract: players roll their own d20s (a result
+is passed in, as with `save`/`check`), the GM rolls everything else through the tool,
+each write is a journaled mutation that `undo` reverses, and a setting at `off` makes
+the command say so and do nothing.
+
+### Phase 13 — state the table forgets
+
+```
+gm.py conc Kael bless [--on Kael,Kira] [1m|10r|1h]   # start concentrating (ends any other)
+gm.py conc Kael end ["failed save"]                 # ends it and strips the targets' effect
+gm.py deathsave Kael <d20>                          # record a death save (gm-rolls-all: no d20)
+gm.py stabilize Kael [--by Kira <d20>] [--kit]      # Medicine DC 10, or a healer's kit use
+gm.py light Kael torch|lantern|candle|cantrip|daylight|out
+gm.py eat [Kael ...] [--bought "3 sp"]              # one day's food and water each
+gm.py exhaust Kael +1|-1|=0 ["forced march"]
+gm.py campaign boundaries --line "…" --veil "…" [--drop "…"]
+```
+- **Concentration.** `conc` writes `concentration:` and adds `<spell>` as a condition
+  on each `--on` target with the same duration. `hp -`/`dmg` on a concentrating
+  creature appends `concentration: CON save DC 12 to keep bless (gm.py save Kael con
+  12)`; a failed `save` that the tool can match to that line ends it. 0 HP,
+  `+incapacitated` (or a condition that includes it: paralyzed, petrified, stunned,
+  unconscious) and a new `conc` end it automatically. Expiry runs through the clock
+  and `combat next` like any duration. The brief's party line shows `[conc bless 8r]`.
+- **Dying.** `hp` to 0 on a PC sets `death-saves: {ok: 0, fail: 0}` and `+unconscious`
+  (the death-saves table rule still decides whether that happens). `deathsave`: 10+
+  is a success, 1 two failures, 20 is 1 HP (clears the state and `unconscious`); three
+  successes → `stable`, three failures → `dead`. Damage at 0 HP adds a failure (two
+  with `dmg --crit`), or kills outright when it is at least the HP maximum. Any
+  healing clears the state. `combat next` on a dying PC's turn prints `Kael is dying
+  (✓1 ✗2): death save — ask for a d20 (gm.py deathsave Kael <d20>)`; with
+  `death-save-rolls: secret` it says `roll it hidden (gm.py deathsave Kael)` and the
+  result line is `(GM)`. A stable PC wakes with 1 HP after 1d4 hours (rolled at
+  `stabilize`, fired by the clock). The resolve.py note `at 0 HP: death save failure`
+  becomes this write.
+- **Light.** `light` spends the item (`torches (4)` → `(3)`; a lantern spends a
+  `flask of oil` and needs a lantern in the inventory; cantrips need the spell) and
+  writes `lit: [torch 60m]`; `out` puts out the newest. Data (`lib/light.py`): bright
+  / dim radius and duration per source (torch 20/20 1 h, hooded lantern 30/30 6 h per
+  flask, bullseye lantern 60/60 cone 6 h, candle 5/5 1 h, *light* 20/20 1 h, *daylight*
+  60/60 1 h). The clock counts `lit` down (`Light out: Kael's torch (Day 1 19:30)`) and
+  warns at 10 minutes left. **Effective light** for a PC = the brighter of the ambient
+  `light:` and the best source carried by anyone in the active group (in combat or a
+  Stage, only within that source's radius of the PC's `pos`); `lib/sight.py` and the
+  scene notices use it, and the Sight line names it: `Sight (dark · Kael's torch 40m:
+  bright 20 ft, dim 40 ft): …`. `track-light: off` → `light` writes `lit: [torch]`
+  with no time and spends nothing.
+- **Supplies.** `strict`: `atk` with an Attacks row whose notes say `ammo <thing>`
+  spends one from the inventory (`quiver (20 arrows)` → `(19 arrows)`) and adds to the
+  Combat block's `Ammo spent:`; it refuses at 0 (`Kira has no arrows`). `combat end`
+  prints `Ammo: Kira spent 6 arrows; after a search, 3 can be recovered (gm.py item
+  Kira +3 arrows)`. `loose`: no per-shot spending; `combat end` prints `Ammo: Kira,
+  Grusk fired this fight (estimate and spend with gm.py item)`. Food and water:
+  `eat` spends `rations` and a day of water (a waterskin goes full → half → empty;
+  refilling is `item`), or coin with `--bought`, and sets `fed:` to today. `rest long`
+  calls it for each PC (`loose`: only away from a settlement with an inn or market,
+  i.e. not at a site tagged `services`). The clock, crossing each dawn, prints
+  `Supplies: Grusk last ate Day 1 (2 days; exhaustion after 5)` for anyone behind;
+  past the limit it applies the exhaustion (food) or asks for the CON save (water).
+- **Exhaustion.** `exhaust` writes `exhaustion:` (6 → `dead`). `lib/resolve.py`
+  applies the level's effects to `check`/`save`/`atk` (disadvantage, or the 2024
+  penalty) and `turn`/`move` use the reduced speed; level 4 halves HP max in `hp`
+  arithmetic (2014). `rest long` removes one if the PC ate (or `supplies: off`).
+  Party line: `[exh 2]`.
+- **Boundaries.** `campaign boundaries` edits `lines:`/`veils:` in campaign.md (the POC
+  without one: `current.md`). The **full brief** adds `Table: lines — …; veils — …`
+  after `Party:` (or `Table: boundaries not asked yet` until set; nothing once they're
+  set to empty). The **`!x` prompt** (X-card): the hook prints `X-card: the last thing
+  described is out — rewind it in one line and steer away; don't ask why`, logs `x-card`
+  with no detail, and is not an exchange for split counting.
+
+### Phase 14 — exploration, social pressure, hazards
+
+```
+gm.py travel <to> --plan [--activities Kira=navigate,Kael=watch,Grusk=forage]
+gm.py travel <to> --nav <d20 total> [--forage Grusk=<total>] [--hours 10]
+gm.py order front=Kael middle=Kira back=Grusk
+gm.py check Kira persuasion --vs mara --ask none|free|minor|major [--leverage -5..5]
+      [--flair 0-3 --pitch "goat grandfather"] [--why "…"] [--goal "get the ledger"] [<total>]
+gm.py social status [<npc>] | social drop <npc> "<goal>" | social wall on|off|<n>
+gm.py chase start --quarry Veskar --pursuers Kael,Kira [--lead 60] [--env urban|wild]
+gm.py chase next | dash <who> | end
+gm.py trap trigger|disarm|status <trap> [--who Kael] [<d20 total>]
+gm.py hazard fall <who> <ft> | breath <who> | env extreme-cold|extreme-heat|underwater|none
+gm.py hide Kira <total> | hide Kael,Kira <t1>,<t2> --group | seek Veskar <total>
+```
+- **Travel activities** (`travel-detail: activities`). `--plan` prints what the trip
+  needs before anything moves: `Navigate: Kira, Survival DC 15 (forest, trackless) ·
+  Forage: Grusk, Survival DC 15 (limited) · Watch: Kael (passive 13; fast pace −5) ·
+  Forced march: 10 h > 8 h, CON saves DC 9+1/h from hour 9`. The second call takes the
+  rolled totals and runs the journey: a failed navigation (getting lost on) picks a
+  wrong bearing (d6 off the intended one, 60° steps), spends 1d6 h on it, then prints
+  `Lost: … the navigator may check again`; the party ends up where that bearing led
+  (`world` frame), never at the destination. Forage yields `1d6 + WIS mod` lb (added
+  as rations: 1 lb a day). Encounter rolls use only the watchers' passives. Forced
+  march hours ask for the CON saves (`gm.py save … con 10`, then `exhaust`).
+  `getting-lost` never applies to `road`, `street` or `path` routes.
+- **Marching order** `order` writes `marching-order:`; `travel` and `scene enter`
+  print it; an ambush from ahead or behind names the front or back row first.
+- **Social DCs** (`social-dcs: dmg`; 02 → Social stakes). `check … --vs <npc> --ask
+  <size>` reads the NPC's attitude (and faction renown, Phase 15) and takes the
+  starting DC from the 02 table (no "won't": the hardest cell is 30). Then, in order:
+  `--leverage` (−5..+5) adds; `--flair` with `moved-by:` applied (±1 step, 0–3; a
+  `--pitch` tag already in `state/social.md` for this NPC scores 0) takes off the
+  `creativity` steps (light 2/5/8 + advantage at 3; generous 5/8/10 + advantage from
+  2; off 0); the wall stage takes one band (5) off when `fails` ≥ `social-wall` and
+  this attempt's skill or `--why` isn't in `approaches`. DC floor 0. A flair ≥ 1
+  without `--pitch` is an error (the repeat check needs it). The whole sum prints for
+  the GM and logs as one `(GM)` line written **before** the roll result:
+  ```
+  [social] Kira persuasion vs toll-keeper · hostile · major: DC 30
+    leverage 0 · flair 3 (moved by audacity: 2→3, "goat grandfather"): −8, advantage
+    wall: 2 fails on "cross the bridge" (stage 2: he names his price) → DC 22
+  ```
+  Without a `<total>` it stops there (the GM tells the player what to roll, foreseen
+  or blind, with advantage when given); with one it resolves and prints the tier:
+  `yes, and` (beat by 5+) · `yes` · `yes, but` (missed by < 5, flair ≥ 2) · `no, but`
+  (missed by < 5) · `no, and — consider: attitude toll-keeper hostile` (missed by 5+;
+  the attitude change stays the GM's `attitude` call).
+- **The wall** (`social-wall: <n>`). With `--goal`, a failure adds to that row's
+  `fails`, `approaches` and `pitches` in `state/social.md` and prints the stage cue:
+  `stage 1: show a feeling` · `stage 2: have them name what it would take` · `stage
+  3+: a different approach starts a band lower; offer a route around them`. A success
+  removes the row (logged `[social] cross the bridge — won after 3 tries`). `social
+  status` lists open goals (the brief adds `Social: toll-keeper "cross the bridge" 2
+  fails` while that NPC is on stage); `social drop` closes one the party gave up on.
+  `social-wall: off` → no rows, no stages. `social wall off|on|<n>` writes the setting
+  (campaign.md, else `current.md`; `on` = 3) with a public log line `[social] wall
+  off (table's choice)`; open rows are kept, so switching it back on resumes them.
+  `intro` on the first session adds `[TELL THE TABLE] social-wall on: mention once,
+  plainly, that repeated tries with an NPC can get easier and that they can ask to
+  turn it off` (nothing when it's off).
+- **The scenario guard.** An ask the GM marks `--core` (it would break the core
+  scenario, 02 → Player plans) prints `[social] no roll: core scenario — steer to
+  another route to the same goal` and exits 1; nothing else refuses.
+- **Morale** (`morale: on`). `combat next` tracks, per foe side and per group row, the
+  triggers (first below half HP, `leader` down, half the side down) and prints
+  `Morale: Thugs — WIS save DC 10 (gm.py save Thugs wis 10); fail → flee or surrender`
+  once per trigger. Exempt: SRD type construct, ooze, undead (unless the stat block is
+  an intelligent one: `morale` in its notes), and `morale: fearless`. `cond Thugs
+  +fled` / `+surrendered` removes them from the turn order; `combat end` counts both
+  as defeated for `xp award` and adds surrendered foes to On stage as `prisoner`.
+- **Chases** (`chases: dmg`). `chase start` writes `## Chase` (04): positions from
+  `--lead`, speeds from the files, Dashes = 3 + CON mod. `chase next` advances one
+  participant (Dash or not: `dash <who>`, past the free ones a DC 10 CON save or
+  `exhaust +1`), rolls d20 on `tables/chase-<env>.md` (a campaign table; the engine
+  ships a generic one) for the next participant (1–10 complication), and after the
+  quarry's turn, if it is out of the pursuers' sight (gap > their sight in the light,
+  or a complication broke line of sight), asks for its Stealth against the pursuers'
+  best passive Perception. Gap 0 → `chase end` with `[caught: start combat or grapple]`;
+  an escape → `[escaped]`. Rounds are 6 s on the clock, as in combat.
+- **Traps.** `trap trigger <id>` resolves the line's effect (asks the target's save,
+  rolls damage, applies `hazard fall` and the like), `trap disarm <id> --who Kira
+  <total>` compares against the disarm DC (a miss by 5+ triggers it), `trap status`
+  lists the site's traps for the GM. `state:` is written back on the `## Hidden` line.
+  `scene enter` already reveals a trap to a PC whose passive Perception beats its DC.
+- **Hazards.** `fall` rolls 1d6 per 10 ft (max 20d6), applies it and `+prone`.
+  `breath` starts the clock on a creature: `holding breath 3m` (1 + CON mod minutes,
+  min 30 s), then `choking 2r` (CON mod rounds, min 1), then 0 HP and dying.
+  `env` sets `environment:`; with `extreme-cold`/`extreme-heat` the clock asks the
+  hourly CON saves (cold DC 10; heat DC 5 +1 per hour, skipped with water drunk)
+  for every PC not exempt (cold-weather gear or cold resistance; heat: fire
+  resistance, or heat adaptation in `senses:`/features). `underwater` adds the
+  attack rules to `atk` (melee disadvantage except dagger, javelin, shortsword,
+  spear, trident; ranged auto-miss past normal range and disadvantage within it
+  except crossbows, nets and thrown javelin, spear, trident, dart) and fire
+  resistance.
+- **Hiding.** `hide` adds `hidden <total>` to the creature (Combatants or Stage row,
+  else frontmatter `conditions`) and prints every creature in the scene whose passive
+  Perception is at least the total (`spotted by Veskar (passive 14)`). With `--group`,
+  the group is hidden if at least half succeeded (each at their own total). `seek`
+  compares an active Perception total against every hidden creature in range. An
+  `atk` from a hidden creature has advantage and then removes `hidden`; `scene enter`
+  and `combat start` compare arriving creatures' passives against stored totals.
+  In bright light with no cover or obscurement the tool warns `Kira is in plain view`
+  (the GM decides).
+
+### Phase 15 — optional subsystems
+
+```
+gm.py inspire Kira ["the toast to the dead"] | atk|save|check … --insp
+gm.py ready Kira "shoot whoever opens the door" | ready Kira fire | ready Kira drop
+gm.py attune Kira "<item>" | unattune | charge Kira "<item>" -1 | identify Kira "<item>"
+gm.py downtime Kira craft "chain shirt" 10d [--lifestyle modest] | downtime status
+gm.py companion add Kira Ash srd:owl --acts own|with | hire "Bren" --wage "2 gp/day"
+gm.py weather [roll | set "heavy rain, strong wind, cold"]
+gm.py renown "Red Ledger" +1 "returned the ledger" [--who Kira]
+gm.py mount Kael horse | dismount Kael
+gm.py injury Kael                                   # lingering-injuries: on
+```
+- **Inspiration.** `inspire` sets `inspiration: true` (refuses a second); `--insp`
+  on a d20 command spends it: advantage (`advantage`) or, after the roll, a reroll
+  that keeps the new result (`reroll`). Party line: `★`.
+- **Readied actions.** `ready` writes `ready: …` on the combatant and spends nothing
+  until it fires; `ready fire` spends the reaction (and a held spell's slot was spent
+  when readied; it holds concentration via `conc`); `combat next` clears an unfired
+  ready at the start of its owner's turn and, before every other combatant's turn,
+  prints `Readied: Kira — shoot whoever opens the door`.
+- **Magic items.** `attune` refuses a fourth item and an item without `attune`;
+  it takes a short rest (`rest short` with `--attune Kira="<item>"`, or this command
+  with `--during-rest`). Bracketed numbers on an equipped (and attuned if needed) item
+  feed `pc` derivation (`ac +1`, `saves +1`, `attack +1`, `damage +1`). `charge` spends
+  charges; the clock rolls each item's recharge at its time (`dawn`) and the destroy
+  roll at 0. `identify` (after a short rest with the item, or *identify*) swaps the
+  line to its `(GM: …)` true name. Data: the SRD magic-items list joins
+  `data/srd/` (5e-SRD-Magic-Items.json).
+- **Downtime.** `downtime <pc> <activity> <days>` (light: craft, train, research,
+  recuperate, work; full: plus campaign tables `tables/downtime-<activity>.md`) adds
+  progress to `## Downtime`, spends the lifestyle cost per day (wretched 0, squalid 1
+  sp, poor 2 sp, modest 1 gp, comfortable 2 gp, wealthy 4 gp, aristocratic 10 gp),
+  rolls any complication, and advances the clock by the longest PC's days (the whole
+  party; the usual `[TIME]` packet follows). Crafting: 5 gp of market value per day,
+  half the price in materials up front. Training: 250 days at 1 gp a day.
+- **Allied creatures.** `companion add` writes a `## Companions` row; `combat start`
+  adds the companions of present PCs as `party` rows with `ctrl <PC>` (own init: rolled
+  as a monster; `with`: placed directly after the controller). `combat next` on a
+  controlled row prints `Ash (Kira's)`, so the GM asks Kira. `hire` makes an NPC with
+  `hired-by:`, `wage:` and `loyalty:` (the clock charges wages each day; a morale
+  check uses loyalty).
+- **Weather** (`weather: on`). At each dawn the clock rolls temperature, wind and
+  precipitation (d20 each: 1–14 normal / 15–17 colder by 1d4×10 °F / 18–20 warmer;
+  wind 1–12 none / 13–17 light / 18–20 strong; precipitation 1–12 none / 13–17 light
+  / 18–20 heavy, snow if freezing) per the area's `climate:` and writes `weather:`.
+  Effects: heavy precipitation lightly obscures (sight Perception at disadvantage);
+  strong wind gives disadvantage on ranged attacks and Perception by hearing, puts out
+  open flames (`lit` torches and candles go out; lanterns don't), and grounds
+  non-magical flight; extreme temperatures set `environment:` (Phase 14). The brief
+  header carries it: `· light rain, cool`.
+- **Encumbrance** (`encumbrance: basic|variant`). Inventory weight from the SRD
+  equipment data (`(N lb)` for custom items, coins at 50 per lb); the thresholds in
+  02. `pc card` shows `load 62/150 lb`; the speed change goes through `turn`/`move`
+  and `travel`; `variant` heavy load adds the disadvantage in the resolver. Party line
+  `[enc]` / `[heavy]`.
+- **Renown** (`renown: party|per-pc`). `renown` edits `state/factions.md` with a
+  reason (public log line); rank names are the campaign's (`rank:` free text).
+  Attitude shift for the faction's NPCs (02) applies in `brief` and the social DC.
+- **Mounts.** `mount` links rider and mount rows (`mounted on horse` / `ridden by
+  Kael`); a controlled mount takes the rider's initiative and its turn may only be
+  Dash, Disengage or Dodge; forced movement or prone on the mount → DC 10 DEX save or
+  the rider falls prone within 5 ft. Vehicles are SRD equipment rows (cart, boat, ship
+  speed and HP) used by `travel --by`.
+- **Lingering injuries** (`lingering-injuries: on`). On a crit against a PC or a drop
+  to 0 HP, `hp`/`dmg` appends `consider: gm.py injury Kael`; `injury` rolls on the
+  campaign's `tables/injuries.md` and writes the result to `## Features & abilities`
+  as `(injury)` with its cure.
+
 ## Build order
 
 | Step | Contents | Why first |
@@ -991,6 +1239,10 @@ fixed above the party's unshifted level: item power never lowers a fixed wall).
 | 2a.7 | `combat reframe`, `world place` suggestions, `world import`, `space.py map --place` (area/world maps) | deferred until play asks for them; none is needed to run the POC |
 | 2b | GM skills (02), written to call these commands | |
 | 2c | `campaign`, `encounter budget/build/threat`, `danger`, `loop` (mechanic-gated); `/campaign new|scenario|fill|status` authoring skills (07); `rules/mechanics/time-loop.md` | the first real campaign is authored with these and uses the loop mechanic; `encounter build` replaces fixed rosters in the GM's `/combat` recipe |
+| 2d | `split` (02 → Splitting the party) | built 2026-10-06 |
+| 2e | `conc`, `deathsave`/`stabilize`, `light` + `lib/light.py`, `eat` + supply spending, `exhaust`, `campaign boundaries` + `!x` (Phase 13) | the state an AI GM most often loses or gets wrong, each plugging into existing tools (`dmg`, `combat next`, `clock`, `rest`, the brief) |
+| 2f | travel activities + `order`, social DCs, morale, `chase`, `trap`, `hazard`, `hide`/`seek` (Phase 14) | more design per item; morale and travel first (the current scenario meets both) |
+| 2g | `inspire`, `ready`, magic items, `downtime`, companions, `weather`, encumbrance, `renown`, mounts, injuries (Phase 15) | toggles and rarer situations; build on demand, in any order |
 
 Each step ships with seeded tests in `engine/tests/` against a fixture copy of `campaigns/poc/`.
 POC content files are migrated to the new formats (04) in step 2a.1.

@@ -31,6 +31,10 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 11 | 2c | `campaign`, `encounter`, `danger`, `loop` tools; `/campaign` authoring skills; time-loop rules sheet (`docs/design/07`) | [x] 2026-10-05 |
 | 10 | Phase 3 | Verification sweep + dry-run readiness | [ ] |
 | 12 | 2d | `split` (splitting the party: groups, slices, per-group clocks, sensing, join) + `/gm` guidance (02 → Splitting the party) | [x] 2026-10-06 |
+| 13 | 2e | Table bookkeeping: `conc`, dying/`deathsave`, carried light sources, supplies, exhaustion, content boundaries + `!x` (02 → Table mechanics) | [ ] |
+| 14 | 2f | Exploration and pressure: travel activities + getting lost, social DCs, morale, chases, traps and hazards, hiding as a state | [ ] |
+| 15 | 2g | Optional subsystems: inspiration, readied actions, magic items, downtime, companions, weather, encumbrance, renown, mounts, injuries | [ ] |
 
 Tick a phase here when its verification checklist in `plan.md` passes. Phases 1→7 are
-sequential; 8 can wait indefinitely; 9 needs 1–7; 11 needs 7 and 9; 10 needs 9 and 11; 12 needs 9.
+sequential; 8 can wait indefinitely; 9 needs 1–7; 11 needs 7 and 9; 10 needs 9 and 11; 12 needs 9; 13 needs 12; 14 needs 13 (exhaustion, light); 15 needs 13 and
+the social DCs from 14 for renown, otherwise its items stand alone.

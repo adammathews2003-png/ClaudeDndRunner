@@ -41,6 +41,7 @@ xp-absent: full             # full | half | none of an award for absent PCs
 wacky-juice: on             # on | off: random NPC chaos at the table (02 → Wacky Juice)
 wacky-juice-value: 5        # % chance per eligible player prompt
 wacky-juice-cooldown: 3     # player prompts before it can fire again
+social-wall: 3              # off | N: repeated failed tries with an NPC slowly ease (02 → Social stakes); asked at creation
 reveal-policy: paired       # shape-only | fill-in | outline | full | paired (see below)
 mechanics: [time-loop]      # optional modules (below); empty for a standard campaign
 seed-file: campaign-seed.md # the driver's own words, kept verbatim

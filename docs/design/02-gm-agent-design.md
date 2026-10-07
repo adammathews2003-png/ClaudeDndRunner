@@ -195,6 +195,8 @@ Even then:
   `/overrule` still applies, and the GM doesn't mention it.
 
 **Not refusals:**
+- *Hard asks of NPCs* start from a long-shot DC the pitch can bring down (Table
+  mechanics → Social stakes: leverage, flair and the stuck-table stages).
 - *The character lacks an ability or resource* (no spell slot, no rope). State the fact
   openly, since rules questions about PCs are always answered, and offer the nearest
   version they *can* attempt.
@@ -588,6 +590,263 @@ with the group furthest behind in game time.
 **Out-of-turn table talk** from a waiting player is fine. Character actions from a
 waiting group are held for their next slice ("Hold that thought, Kael: we'll be with
 you shortly").
+
+## Table mechanics: what the GM must not forget (Phases 13–15)
+
+**Planned (2026-10-06)**, from a gap analysis against the 5e play pillars (combat,
+exploration, social), downtime and the SRD's environment rules. The test for each
+item: how often it comes up, and how likely an AI GM is to get the number wrong or
+lose the state without a tool. The answer is the same as everywhere else: **the tool
+keeps the state and supplies the number; the GM narrates.** Every item that a table
+might want to play loosely has a setting (04 → Campaign file → Table settings), and
+`off` always means "the GM handles it in the fiction, as before".
+
+### Phase 13: state the table forgets
+
+**Concentration.** A caster has at most one concentration spell, recorded on them
+(`conc Kael bless --on Kael,Kira 1m`). Targets get the effect as a condition with
+the same duration. Damage to a concentrating creature prints the CON save it owes
+(DC 10 or half the damage, whichever is higher); a failed save, a second
+concentration spell, dropping to 0 HP or an incapacitating condition ends it, and
+ending it strips the effect from every target. The GM never has to remember who is
+still blessed.
+
+**Dying.** A PC at 0 HP is **dying**, and the PC file holds the count (`death-saves:
+{ok: 1, fail: 2}`) until they're healed, stable or dead. On the dying PC's turn the
+brief asks for a death save (the player rolls it, as with every d20): 10+ is a
+success, a 1 is two failures, a 20 is 1 HP and back up. Damage while down is a
+failure (two on a crit); damage of at least their HP maximum is instant death.
+Three successes or a Medicine DC 10 check (or a healer's kit use) make them stable;
+a stable PC wakes with 1 HP after 1d4 hours. `death-save-rolls: secret` has the GM
+roll them hidden and narrate only how the PC looks ("his breathing is getting
+shallower"); the table-rule key `death-saves` (`on | off | dc N`) still governs
+whether the rules apply at all.
+
+**Light.** `light:` on the scene is the **ambient** light. Lit sources are carried
+by a creature (`light Kael torch`) and burn down on the clock: torch 1 h (bright 20
+ft, dim 20 more), lantern 6 h per flask of oil (30/30), candle 1 h (5/5), *light*
+1 h (20/20), *daylight* 1 h (60/60). The brief's Sight line uses the best light
+any member of the active group carries, so "do you have a light?" has an answer on
+the page. A torch going out is a beat: the clock output says so, and the GM
+narrates it. `track-light: off` keeps sources lit until put out, with nothing
+counted down or used up.
+
+**Supplies.** Ammunition, rations, water and light fuel are inventory lines with
+counts (`quiver (20 arrows)`, `rations (5 days)`, `waterskin (full)`), and the tools
+spend them:
+- `supplies: strict`: every ranged `atk` spends one piece of ammunition; after the
+  fight `combat end` offers back half of what was spent (if the party searches).
+  Eating and drinking are a daily need: `rest long` spends one ration and one day of
+  water per PC, and the clock flags anyone who misses a day.
+- `supplies: loose` (default): ammunition is reckoned once at `combat end` (the GM
+  estimates), and food and water count only away from towns (travel of a day or
+  more, wilderness rests).
+- `supplies: off`: nothing is counted; running out happens only when the story wants.
+Missing food: a PC can go 3 + CON modifier days (at least 1) without food; each day
+after that is one level of exhaustion. Missing water: less than half the day's need
+is a DC 15 CON save or one level of exhaustion (automatic with none at all).
+
+**Exhaustion.** Levels 0–6 on the creature, shown on the party line and applied by
+the resolver (`exhaustion: 2014`: 1 disadvantage on ability checks · 2 speed halved ·
+3 disadvantage on attacks and saves · 4 HP maximum halved · 5 speed 0 · 6 death;
+`exhaustion: 2024`: −2 per level on every d20 test and −5 ft speed per level, death
+at 6). A long rest with food and water removes one level. Sources: missed food and
+water, forced marches and hazards (Phase 14), chase Dashes (Phase 14), spells and
+monsters (the GM, by mutation).
+
+**Content boundaries.** Session zero records what the table won't have:
+`lines:` (never appears, not even off-screen) and `veils:` (may happen, but off
+screen: fade out, summarise the result). They ride in the full brief, every time,
+and rank with Behind the screen: nothing in the campaign, Wacky Juice or a player's
+prompt overrides them. A player's prompt that drifts toward a line is steered away
+without a lecture. `/campaign new` asks for them; `/gm` asks once if they're unset.
+A player can type `!x` (the X-card) at any time: the hook tells the GM to rewind the
+last thing described and steer away, no explanation asked, and logs it without a
+reason.
+
+### Phase 14: exploration, social pressure, hazards
+
+**Travel as play.** With `travel-detail: activities`, each PC on a journey does one
+thing: **navigate** (Survival against the terrain's DC to stay on course), **forage**
+(Survival DC 10 / 15 / 20 for abundant / limited / scarce land; 1d6 + WIS modifier
+lb of food and as much water), **track**, **map**, or **keep watch**. Only PCs keeping
+watch (or doing nothing else) add their passive Perception against ambushes and
+encounters; a fast pace costs −5 passive Perception, and only a slow pace allows
+stealth. The **marching order** (front / middle / back) decides who meets trouble
+first. A day of more than 8 hours on the march is a **forced march**: each extra hour
+is a CON save (DC 10 + 1 per extra hour) or one level of exhaustion.
+**Getting lost** (`getting-lost: on`) applies only off roads and paths: the navigator's
+Survival check against the terrain DC (grassland 5; arctic, desert, hills 10; forest,
+jungle, swamp, mountains 15), and a miss sends the party 1d6 hours on a wrong
+bearing before anyone notices. The tool supplies the DC and the bearing; the GM makes
+it a story ("the river should be on your left").
+`travel-detail: summary` keeps today's one-packet journey.
+
+**Social stakes.** **Decided (2026-10-07).** The same promise as Player plans
+(above): the answer is a roll, not a no. With `social-dcs: dmg`, a persuasion,
+deception or intimidation check against an NPC **starts** from a DC set by their
+attitude and the size of the ask (the DMG's conversation table, mapped onto the five
+attitudes, with the DMG's "won't" turned into long shots):
+
+| attitude | stand aside / no harm | help at no cost | minor risk or cost | major risk |
+|---|---|---|---|---|
+| ally | 0 | 0 | 0 | 10 |
+| friendly | 0 | 0 | 10 | 20 |
+| neutral | 0 | 10 | 20 | 25 |
+| wary | 5 | 15 | 25 | 30 |
+| hostile | 10 | 20 | 25 | 30 |
+
+That starting DC is a ceiling the players can bring down, never a wall. The only true
+"no" is the one Player plans already allows: an ask that would break the core
+scenario. Even then the GM turns the attempt toward another route to the same goal
+(another NPC, a document, a better moment) rather than ending it.
+
+Two things the GM scores **before** the roll, separately:
+- **Leverage (−5 to +5):** does the pitch give this NPC a real reason? Coin, a threat
+  they believe, a shared enemy, something they want, a promise they trust. A pitch
+  that works against their interests is a positive number (it raises the DC).
+- **Flair (0–3):** is it surprising, funny, true to the character, or built on
+  something the table set up earlier? **It doesn't have to be logical.** The fiction
+  supplies the reason: the NPC is thrown, amused, curious, or too baffled to say no.
+  The rubric keeps it honest:
+  - 0: a plain ask, or a pitch already tried on this NPC;
+  - 1: a fresh angle, or a nice character touch;
+  - 2: specific to this NPC or to details established in play, and in character;
+  - 3: all of 2, and it surprised the table (the goat that is surely the toll-keeper's
+    reincarnated grandfather).
+
+  With `creativity: light` (default) flair takes 2 / 5 / 8 off the DC and a 3 also
+  gives advantage; with `generous` (comedy campaigns) it takes 5 / 8 / 10 off and
+  gives advantage from 2; with `off` flair is ignored.
+- **NPC tastes.** An NPC may be `moved-by:` audacity, honesty, flattery, humour,
+  piety, coin, or `nothing` (all business: every flair pitch counts one lower). A
+  pitch that plays to it counts one flair
+  higher (at most 3); one that grates (flattery on the honest magistrate, a joke to
+  someone grieving) counts one lower. Creativity still pays, but it's aimed at a
+  person, not at a number.
+
+**Flair is behind the screen.** Players feel it in the DC band (when foreseen), the
+result and the NPC's reaction, never as a score, so the table doesn't start pitching
+for points. Each pitch earns flair once per NPC: the same trick twice scores 0. The
+score and a reason go into a `(GM)` log line before the dice land, so the result
+can't reshape it.
+
+**When the table hits a wall.** The tool counts failed attempts per NPC per **goal**
+(`--goal "get the ledger"`), so the GM can't lose track of a scene going in circles.
+Asking again never wins by itself; failing teaches the way through:
+- **After 1 failure:** the NPC shows a feeling (a glance at the door, "not here").
+- **After 2:** the NPC says, in the fiction, what it would take ("bring me proof my
+  brother's alive and we'll talk").
+- **After `social-wall` failures (default 3):** an attempt with a **different
+  approach** (another skill, a new argument, new leverage, another PC) starts one
+  band lower. If the scene still stalls, the GM offers a route around the NPC (someone
+  who owes them, a document, the right moment) instead of a fourth try at the same
+  door.
+
+Success clears the goal's count. `social-wall: off` drops the counting.
+
+**The table chooses it, and can switch it off.** Some tables will find the wall
+generous; some will find it cheap. So it's a campaign-creation question
+(`/campaign-new` asks it alongside advancement, in a line: on by default), and the
+first session's opening mentions it once, in plain words and without the machinery:
+"If a conversation with someone keeps going nowhere, the game can make it a
+little easier over repeated tries. If that ever feels too cheap, just say so and
+I'll turn it off."
+Players can switch it off (or back on) at any time by asking, the same way as Wacky
+Juice; the GM runs `social wall off` and says it's done. The stages, the count and the
+band are explained only if a player asks how it works (rules questions get honest
+answers, 02 → Behind the screen), and never announced as they happen: the NPC simply
+softens in the fiction.
+
+**Results read as "yes, and".** The margin `check` already prints gives the tier:
+beat by 5+ is **yes, and** (more than they asked: a favour, a name, a door left
+open); success is **yes**; a miss by under 5 is **yes, but** on a flair 2+ pitch (they
+get it at a cost or only part of it) and otherwise **no, but** (with something learned
+toward the wall stages above); a miss by 5+ is **no, and** (attitude drops a step).
+`social-dcs: gm` keeps picking DCs by judgment, but flair, tastes, the wall and the
+tiers still apply.
+
+**Morale.** Most creatures don't fight to the death. With `morale: on`, `combat next`
+flags a morale check (WIS save DC 10) for a foe side or group the first time one of
+these happens: a creature drops below half its HP, its leader falls, or half the side
+is down. On a failure they flee (Dash and Disengage) or surrender if cornered.
+Mindless creatures (constructs, oozes, most undead) and NPCs marked `morale: fearless`
+never check. Foes who flee or surrender count as defeated for XP. A captured foe
+joins On stage as a prisoner.
+
+**Chases.** With `chases: dmg`, a chase is a block like combat: each participant's
+position along the chase, speed, and **Dashes**: 3 + CON modifier free ones, each
+more is a DC 10 CON save or a level of exhaustion. At the end of each turn the GM
+rolls on the environment's complication table (urban or wilderness) for the next
+participant. The quarry escapes when it breaks line of sight and wins Stealth against
+the pursuers' best passive Perception, or when the pursuers give up; it's caught when
+the gap closes, which becomes combat or a grapple. `chases: narrative` plays chases as
+a contest or two, as today.
+
+**Traps and hazards.** A trap is a `TRAP` line under a location's `## Hidden`: how
+it's noticed (the passive Perception DC, as now), what disarms it, what triggers it,
+and what it does. The tool keeps its state (armed / triggered / disarmed) and
+resolves the effect, so the GM never invents a trap's damage. The SRD's environment
+rules become commands with exact numbers:
+- **falling:** 1d6 bludgeoning per 10 ft, at most 20d6, and the creature lands prone;
+- **suffocating and drowning:** breath held for 1 + CON modifier minutes (at least 30
+  s), then CON modifier rounds (at least 1), then 0 HP and dying;
+- **extreme cold and heat:** a CON save each hour (cold DC 10; heat DC 5 + 1 per hour)
+  or a level of exhaustion, with the gear and resistances that exempt it;
+- **underwater combat:** melee at disadvantage except daggers, javelins, shortswords,
+  spears and tridents; ranged attacks miss beyond normal range and are at disadvantage
+  within it (crossbows, nets and thrown darts, javelins, spears and tridents aside);
+  creatures underwater resist fire.
+
+**Hiding as a state.** A hidden creature stays hidden at a known Stealth total (`hide
+Kira 17`) until it attacks, makes noise, steps into plain view, or someone beats the
+total with an active Perception check. Every creature that arrives or looks later is
+compared against the **stored** total with its passive Perception, so the GM never
+re-rolls stealth or forgets who saw what. A group moving quietly succeeds if at least
+half of them succeed (the group check rule).
+
+### Phase 15: optional subsystems
+
+Cheap toggles and rarer situations. Each is off or minimal unless the campaign turns
+it on.
+- **Inspiration** (`inspiration: advantage | reroll | off`): the GM awards it for play
+  that fits a character; one at a time per PC. The player spends it for advantage on
+  one d20 (`advantage`, 2014) or a reroll (`reroll`, 2024).
+- **Readied actions:** the trigger and the action are stored on the combatant, and
+  `combat next` reminds the GM before each turn whose action could meet a trigger. A
+  readied spell holds concentration until released.
+- **Magic items:** attunement (3 items, a short rest to attune), charges with their
+  recharge (rolled at dawn by the clock, with the "destroyed on a 1" roll where the
+  item has one), and identification over a short rest. An item's numbers (`+1 AC`,
+  `+1 saves`) feed the PC's derived stats while it's equipped (and attuned, if it
+  needs to be).
+- **Downtime** (`downtime: off | light | full`): days between adventures spent on an
+  activity with progress tracked (crafting at 5 gp of value per day, training 250
+  days at 1 gp a day, research, recuperating, working a profession), a lifestyle cost
+  per day, and the clock moved by the days spent (with the world firing as usual).
+  `full` adds campaign-supplied activity tables (carousing, crime, pit fights) with
+  their complications.
+- **Allied creatures:** familiars, animal companions, summons, mounts and hirelings
+  are combatants on the party's side with a controller. Each acts on the turn the rules
+  give it (its own initiative, or the controller's turn) and `combat next` names the
+  controlling player. Hirelings are NPCs with a wage and a loyalty that feeds morale.
+- **Weather** (`weather: off | on`): rolled each dawn per the region's climate
+  (temperature, wind, precipitation). Heavy rain or snow lightly obscures sight;
+  strong wind gives disadvantage on ranged attacks and puts out open flames; extreme
+  temperatures are the Phase 14 hazard. The brief's header shows it.
+- **Encumbrance** (`encumbrance: off | basic | variant`): weights from the SRD
+  equipment data. `basic`: over STR × 15 lb, speed drops to 5 ft. `variant`: over
+  STR × 5 lb is −10 ft speed; over STR × 10 lb is −20 ft and disadvantage on STR, DEX
+  and CON checks, attacks and saves. Fifty coins weigh a pound.
+- **Faction renown** (`renown: off | party | per-pc`): standing with each faction,
+  raised and lowered with reasons. A faction's NPCs start a step warmer at renown 3+
+  and a step colder below 0, which feeds the Phase 14 social DCs.
+- **Rare situations:** mounted combat (a controlled mount moves on the rider's
+  initiative and may only Dash, Disengage or Dodge; a rider knocked prone or whose
+  mount is moved against its will makes a DC 10 DEX save or falls), vehicles (HP, AC
+  and speed rows for carts and boats, which `travel --by` already names), and
+  lingering injuries (`lingering-injuries: off | on`, from a campaign table, on a crit
+  or a drop to 0 HP).
 
 ## Spatial model (theater of the mind, backed by coordinates)
 
