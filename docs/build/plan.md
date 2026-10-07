@@ -895,7 +895,8 @@ horse on Kael's initiative.
 
 ## Phase 16 — Table extras (2h)
 
-**Goal:** pre-rolls applied to the right check, carousing with a d100 table and real
+**Goal:** pre-rolls applied to the right check, a first-session "how to play" talk
+that teaches name prefixes and rolling ahead, carousing with a d100 table and real
 consequences, and the optional critical hit die (02 → Dice → Pre-rolls; 02 → Table
 mechanics → Phase 16).
 
@@ -912,7 +913,10 @@ inference) and the effect-code applier, reusing `loot`'s parser where it fits; (
 `table import` with gap/overlap reports; (5) an **original** starter
 `engine/templates/tables/carousing.md` (100 results across d100 ranges, about 40 rows,
 silly and weird, each with consequences that can be filed) and `crit-die.md` (the
-starter d10 in 02), copied by `campaign new`; (6) `carouse` with cost, tag-based
+starter d10 in 02), copied by `campaign new`; (5b) `[HOW TO PLAY]` in `intro` for the
+first session plus `intro --how-to-play [--for <PC>]` (02 → How to play; 06 → `intro`),
+with the session-start step in `/gm` and the new-player hand-off at the end of
+`/character`; (6) `carouse` with cost, tag-based
 re-rolls against `lines:`/`veils:`, `--reroll`, and GM-only log lines; (7) crit die in
 `atk` with the codes in 06, `crit-die-pcs`, and the Legendary Resistance note; (8)
 skills: `/gm` (pre-rolls, carousing: the pause, morning reveal, filing consequences),
@@ -920,7 +924,10 @@ skills: `/gm` (pre-rolls, carousing: the pause, morning reveal, filing consequen
 
 **Verify:** seeded tests: `check Kira investigation 15 --total 17 --rolled-as perception`
 uses Kira's Investigation bonus and prints both skills; `--d20 14` with `adv` rolls one
-more die and keeps the higher; `table import` of a pasted list with a gap reports it;
+more die and keeps the higher; first-session `intro` prints `[HOW TO PLAY]` with the
+roll-ahead line, `gm-rolls-all` drops it, a second `intro` in the same session doesn't
+repeat it, and `--for Kira` prints the short version; `table import` of a pasted list
+with a gap reports it;
 `carouse Kira,Kael --seed N` charges the cost, applies a `coin` and an `item` code, and
 re-rolls a row tagged with a campaign line; `atk` with `crit-die: on` on a natural 20 at
 seed N gives `disarm` and logs the dropped weapon; a `kill` against a PC leaves them at 0

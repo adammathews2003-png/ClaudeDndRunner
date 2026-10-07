@@ -43,11 +43,43 @@ skills say *when* to call a command, and the tools do the math and the file writ
    answer goes through the same intake loop in *edit* mode, touching only what changed.
 3. **Pending level-ups** (from `level-pending` in a PC file) → the level-up flow
    (below), one PC at a time.
-4. **Recap** from the party's point of view (no `(GM)` lines), then the opening
+4. **How to play** (the campaign's first session, and a new player joining later; see
+   below), once the characters are settled.
+5. **Recap** from the party's point of view (no `(GM)` lines), then the opening
    scene's narration.
 
-Steps 1–3 are skipped quickly when nothing applies ("Same table as last time, no
+Steps 1–4 are skipped quickly when nothing applies ("Same table as last time, no
 changes" → straight to the recap). Each step is a short exchange, not a form.
+
+### How to play (decided 2026-10-07; built with Phase 16)
+
+After character creation and before the curtain goes up, the GM gives the table a short
+talk in its own out-of-character voice about **how to talk to the game**. It isn't a
+rules lecture. It's six lines at most, friendly, with one example per point:
+- **Speak as your character.** Start a line with the character's name: *"Kira: I check
+  the trapdoor."* Your own name works too if you play one character. A line with no name
+  is table talk: questions for the GM, or chatter among yourselves.
+- **Say what you try, not how it ends.** *"I try to pick the lock"*, not *"I pick the
+  lock and grab the ledger."* The GM tells you when something needs a roll.
+- **Roll ahead to save time.** *"Kira: I search the desk, rolled 16"* gets an answer
+  straight away. *"Kira: I search the desk"* works too, but the GM comes back and asks
+  for the roll first. Give the number on the die, or the total if that's easier. Don't
+  worry about naming the right skill; the GM uses the one that fits. If you think you
+  might have advantage, roll two dice and give both.
+- **Ask anything.** What your character sees, knows or remembers, and how a rule works.
+  Rules questions about your own character always get a straight answer.
+- Plus whatever the campaign's settings add as `[TELL THE TABLE]` lines (social wall,
+  carousing, the crit die, Discord). One plain sentence each, no mechanics.
+
+**What it depends on.** Under `dice-mode: gm-rolls-all` the roll-ahead point is left
+out (the GM rolls everything). With the Discord bridge on (Phase 17), it adds: "On
+Discord it's the same: start with your character's name."
+
+**When.** Once per campaign, in the first session. Also when a **new player** joins
+later: at the end of their intake, addressed to them and kept shorter, since the others
+already know it. Never at the start of every session. If anyone asks ("how do I do
+this again?", "how do rolls work?"), the GM gives the relevant part again in table
+voice, any time.
 
 ### Character intake loop (`/character`)
 **Input can be at any level of detail**, from "half-orc barbarian, level 3, berserker,

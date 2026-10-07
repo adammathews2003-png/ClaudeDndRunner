@@ -570,6 +570,17 @@ for the first session, "Our tale continues" after), then GM-only lines: `[INTRO 
 `## Why you're here (player-safe)` (04). `--why` records the table's answer as a
 `Chosen:` line and logs it.
 
+**How to play (Phase 16; 02 → How to play).** On the first session, `intro` prints
+`[HOW TO PLAY]` lines **before** the title card, for the GM to say in table voice once
+the characters are settled: name prefixes, intent over outcome, the roll-ahead point
+with an example drawn from a present PC (`Kira: I search the desk, rolled 16`), and
+asking anything. It reads `dice-mode` (`gm-rolls-all` drops the roll-ahead line) and
+`discord.md` (adds the Discord line when the bridge is on). The existing per-setting
+`[TELL THE TABLE]` lines follow. `intro --how-to-play [--for <PC>]` prints the same
+block on demand: for a new player at the end of intake (`--for` makes it the short
+version addressed to them) or when someone asks again. It's logged once per campaign
+as `[intro] how to play given`, so a second `/gm` in session 1 doesn't repeat it.
+
 ### `gm.py turn` / `gm.py move` — the turn budget and real movement
 The creature who's up has a budget, one line under `## Combat`:
 `Turn: Kael · action yes · attacks 0/2 · bonus yes · object yes · move 30/30` (attacks per
