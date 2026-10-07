@@ -7,11 +7,16 @@ rest`; rules/rests-and-recovery.md; plan.md Phase 7 item 3).
   `short` resources reset, 1 h on the clock.
 - `--interrupted`: the rest gives nothing (the GM's call); only logged, no time passes
   beyond what the GM advances.
+- Phase 13: a long rest first eats (supplies.eat: a ration and a day of water each;
+  `supplies: loose` only away from a `services` site, `off` never), then removes one
+  level of exhaustion from each PC who ate (or always with `supplies: off`, or in town
+  under `loose`); HP fill to the maximum (halved at exhaustion 4+, 2014 table), and a
+  dying or stable PC wakes.
 Default: every present PC. Uses the PC files and the clock (clock advance).
 """
 import re
 
-from lib import campaign, md
+from lib import campaign, gametime, md, resolve
 from lib.chargen import mod
 from lib.errors import ToolError
 from lib import journal
@@ -66,6 +71,16 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
         journal.log_delta(f"rest {kind} interrupted ({who}) — no benefit")
         return [f"[rest {kind} interrupted · {who} · no benefit]"], {}
     spend = _hd(hd)
+    if kind == "long":
+        import supplies
+        eaters = [str(d.front.get("name")) for d in docs if supplies.counts_here(d)]
+        if eaters:
+            lines += supplies.eat(eaters, quiet_off=True)
+        docs = [md.load(d.path) for d in docs]
+        today = gametime.parse(campaign.load_state().front.get("in-game-datetime"))[0]
+        mode = str(campaign.settings().get("supplies", "loose")).lower()
+        lines += _recover_exhaustion(docs, today, mode, supplies)
+        docs = [md.load(d.path) for d in docs]
     for d in docs:
         name = str(d.front.get("name")).split()[0]
         hp = dict(d.front.get("hp") or {})
@@ -78,9 +93,11 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
             back = max(1, level // 2)
             new_left = min(level, left + back)
             hp.pop("temp", None)
-            hp["current"] = mx
+            top = resolve.exhaustion_hp_max(mx, int(d.front.get("exhaustion") or 0),
+                                            campaign.settings().get("exhaustion", "2014"))
+            hp["current"] = top
             hdice["left"] = new_left
-            bits.append(f"HP {cur}→{mx}/{mx}")
+            bits.append(f"HP {cur}→{top}/{top}")
             bits.append(f"hit dice {left}→{new_left}/{level}")
             reset = _reset_resources(d, ("long", "short"))
         else:
@@ -105,6 +122,10 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
         d.set_front("hp", hp)
         d.set_front("hit-dice", hdice)
         d.save()
+        if int(hp.get("current") or 0) > 0:
+            import conditions_ext
+            woke = conditions_ext.clear_dying(md.load(d.path), "rested")
+            lines += woke
         if reset:
             bits.append("reset: " + ", ".join(reset))
         line = f"rest {kind} · {name}" + (" · " + " · ".join(bits) if bits else " · nothing to recover")
@@ -112,6 +133,21 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
         lines.append(f"[{line}]")
     clk, data = clock.advance("+8h" if kind == "long" else "+1h")
     return lines + clk, data
+
+
+def _recover_exhaustion(docs, today, mode, supplies):
+    """A long rest with food and water removes one level of exhaustion."""
+    import conditions_ext
+    out = []
+    for d in docs:
+        if not int(d.front.get("exhaustion") or 0):
+            continue
+        ate = mode == "off" or not supplies.counts_here(d) or supplies.ate_today(d, today)
+        if ate:
+            out += conditions_ext.exhaust(str(d.front.get("name")), "-1", "long rest")
+        else:
+            out.append(f"[{str(d.front.get('name')).split()[0]}: no food, so the long rest removes no exhaustion]")
+    return out
 
 
 def cmd_rest(ctx):

@@ -68,6 +68,11 @@ arithmetic and the bookkeeping.
    characters between sessions?"). Each answer → the `character` skill in edit mode.
 4. **Pending level-ups** (`level-pending` in a PC file, or the brief's party line) →
    the `/level-up` skill, one PC at a time.
+   **Content boundaries.** If the brief says `Table: boundaries not asked yet`, ask once,
+   in one short message: "Before we start: anything you never want in the game (lines),
+   or want kept off screen (veils)?" Record the answer with `campaign boundaries --line
+   "…" --veil "…"`, or `campaign boundaries --none`. Mention that anyone can type `!x`
+   at any time to wipe the last thing described, no reason needed.
 5. **The opening.** Once characters are settled, run `python engine/gm.py intro`.
    - Paste its title card **verbatim in a code block**, then a few lines of grand,
      storyteller's voice to raise the curtain ("Gather close. Our tale begins in a
@@ -238,6 +243,17 @@ players may change the rate by asking (`juice 10`, `juice off`).
 Short (2–4 sentences), medium (1–2 paragraphs) or long (3+) by novelty, story weight
 and whether the players are mid-task. Every narration block ends in an affordance.
 
+## Content boundaries and the X-card
+
+The full brief's `Table: lines — …; veils — …` line ranks with Behind the screen:
+nothing in the campaign, a scenario, Wacky Juice or a player's prompt overrides it.
+A **line** never appears, not even off screen or as backstory. A **veil** may happen,
+but off screen: fade out and summarise the result. A prompt drifting toward a line is
+steered away in fiction, without a lecture. Never quote the boundaries to the table.
+**`X-card:`** with the brief (a player typed `!x`): rewind the last thing you
+described in one line ("Let's say that didn't happen —") and take the scene somewhere
+else. Don't ask why, don't make it a moment; it's logged without detail.
+
 ## Behind the screen (what narration may never contain)
 
 The single exception is a `/spoilers` answer; the rules apply again right after it.
@@ -284,8 +300,25 @@ guess: a PC who sees (`Grusk sees to 60 ft (darkvision…)`) is **never asked wh
 they have a light**. Describe what they see, in greys under darkvision, and roll their
 sight-based Perception with disadvantage where the line says so. Ask about a torch or
 spell only for a PC the line calls `blind without a light`, and only when it matters.
-Once someone lights one, re-enter the scene with the new light (`scene enter … --light
-dim|bright --write`).
+A carried light is its own command: `light Kael torch|lantern|candle|cantrip|daylight`
+spends the torch or the flask of oil (refused when they have none: they don't have
+one), and `light Kael out` puts it out. The Sight line then names it (`Sight (dark ·
+Kael's torch 40m: bright 20 ft, dim 40 ft)`) and counts it for everyone near the
+carrier. **Never** change the scene's `--light` for a torch: that's the ambient light.
+`[TIME]`'s `Light low:` / `Light out: Kael's torch` are beats: narrate the flame
+guttering and the dark closing in, then ask what they do.
+
+**Supplies.** Ammunition, rations, water and oil are inventory counts, and the tools
+spend them (`supplies: strict | loose | off`). A day's food and water: `eat` (or `eat
+Kira --bought "3 sp"` at an inn); `rest long` eats for the party. `[TIME]`'s
+`Supplies: Grusk last ate Day 1 (…)` is hunger setting in: say so in the fiction
+(gnawing stomach, dizziness), and `Water:` lines mean the CON save they name. Running
+out is a story beat, not a lecture.
+
+**Exhaustion** (`[exh 2]` on the party line) is applied by the tools: checks, saves,
+attacks and speed already carry it. Narrate it (heavy limbs, stumbling); add a level
+with `exhaust Grusk +1 "forced march"` for spells, monsters and ordeals the tools
+don't know about.
 
 ## Splitting the party
 
@@ -403,10 +436,14 @@ them (`<<STAGE /end-session>>`) when a player's words ask for one, never run the
 - Dice & outcomes: `roll 2d6+3 [--secret]` · `atk Veskar Kael [--with scimitar] [adv|dis] [--cover half]`
   · `atk Kira Veskar --d20 14` · `save Kael dex 14 --d20 9` · `check Mara insight 12 --secret`
   · `contest Kira stealth Mara perception --d20 15` · `contest Kira stealth passive`
-- State: `hp Kael -6|+4|=11|+temp 5` · `dmg Veskar 8 fire` · `cond Kael +poisoned 3r|10m` / `-poisoned`
+- State: `hp Kael -6|+4|=11|+temp 5` · `dmg Veskar 8 fire [--crit]` · `cond Kael +poisoned 3r|10m|1h` / `-poisoned`
   · `item Kira -dagger "taken"` / `item Kira + "brass key"` · `coin Kira -5gp` · `res Kael -"spell slot 1"`
   · `attitude mara friendly "why"` · `move-npc veskar old-mill` · `move-party village-square`
   · `time +20m` · `clock advance to dawn` · `rest short --hd Kael=2` / `rest long` · `undo`
+- Table mechanics: `conc Kael bless --on Kael,Kira 1m` / `conc Kael end` · `deathsave Kira 14`
+  · `stabilize Kira --by Kael 12 | --kit | --spell` · `light Kael torch|lantern|candle|cantrip|daylight|out`
+  · `eat [Kira] [--bought "3 sp"]` · `item Kira +3 arrows` · `exhaust Grusk +1 "forced march"`
+  · `campaign boundaries --line "…" --veil "…" [--drop "…"] [--none]`
 - Scene & space: `scene enter <loc> [--light dim] --write [--summary "…"]` · `onstage mara --goal "…" --note "…"`
   · `tempo tense [--adj "Mara +5 watching"] [--pos "Mara @bar"]` · `pos Kael near Tobin` · `intent Mara "…"`
   · `tempo calm` · `space dist A B` · `move Kael --to Veskar [--dash]` · `turn` / `turn use bonus|action|object|dash` · `space cone Kael --toward @door --length 15`

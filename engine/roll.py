@@ -62,6 +62,21 @@ def _d20(roller, c, bonus, mode, d20, total, state, rules, label=""):
     return roller.d20(bonus, mode)
 
 
+def _exhaustion(c, kind, mode):
+    """(mode, bonus change, note) after the creature's exhaustion (02 → Table mechanics →
+    Exhaustion): 2014 disadvantage on checks (1+) / attacks and saves (3+); 2024 −2 per
+    level. The note is printed even when the player reports the d20."""
+    level = c.exhaustion()
+    if not level:
+        return mode, 0, ""
+    ruleset = campaign.settings().get("exhaustion", "2014")
+    dis, penalty, note = resolve.exhaustion_d20(level, kind, ruleset)
+    new = resolve.with_disadvantage(mode, dis)
+    if dis and mode == "adv":
+        note += ", adv and dis cancel"
+    return new, penalty, note
+
+
 def _outcome(outcome, note, margin=None):
     """`SUCCESS by 6 (note)`: the margin is how far the total landed from the DC or the
     other side (02 → Player plans, outcome tiers); None leaves it out (total cover)."""
@@ -173,7 +188,12 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
         long_range = normal is not None and dist > normal
     mode, extra, mode_notes = resolve.attack_mode(mode, long_range=long_range,
                                                   flanked=_flanked(state, a, t), rules=rules)
-    roll = _d20(roller, a, atk["hit"] + extra, mode, d20, total, state, rules)
+    mode, exh_bonus, exh_note = _exhaustion(a, "attack", mode)
+    if exh_note:
+        mode_notes = mode_notes + [exh_note]
+    import supplies
+    ammo_line = supplies.spend_ammo(a, atk)   # refuses before the roll when out of ammunition
+    roll = _d20(roller, a, atk["hit"] + extra + exh_bonus, mode, d20, total, state, rules)
     outcome, note = resolve.attack(roll, ac, attacker_is_pc=a.is_pc, target_is_pc=t.is_pc,
                                    cover=cover, rules=rules)
     note = ", ".join(x for x in mode_notes + [note] if x)
@@ -182,9 +202,10 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     body = f"{head}: {roll.text} vs {ac_txt} — {_outcome(outcome, note)}"
     data = {"attacker": a.name, "target": t.name, "attack": atk["name"], "roll": roll.as_dict(),
             "ac": eff, "outcome": outcome, "note": note}
+    extra_lines = [ammo_line] if ammo_line else []
     if outcome not in ("HIT", "CRIT"):
         journal.log_delta(f"atk {body}")
-        return [f"[{body}]"], data
+        return [f"[{body}]"] + extra_lines, data
     if outcome == "CRIT":
         amount, dtext = resolve.crit_damage(roller, atk["damage"], rules)
     else:
@@ -197,14 +218,14 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     roll_note = f" [{atk['damage']}{crit}: {dtext}]"
     if not apply:
         journal.log_delta(f"atk {body}{roll_note} · not applied")
-        return [f"[{body} · not applied]"], data
-    _, hp_data = mutations.dmg(t.name, amount, dtype, rules=rules, log=False)
+        return [f"[{body} · not applied]"] + extra_lines, data
+    _, hp_data = mutations.dmg(t.name, amount, dtype, rules=rules, log=False, crit=outcome == "CRIT")
     if hp_data.get("resist_note"):
         body += f" → {hp_data['applied']} ({hp_data['resist_note']})"
     body += f" · {hp_data['tail']}"
     data["hp"] = hp_data
     journal.log_delta(f"atk {body}{roll_note}")
-    return [f"[{body}]"], data
+    return [f"[{body}]"] + extra_lines + hp_data.get("after", []), data
 
 
 def cmd_atk(ctx):
@@ -230,18 +251,22 @@ def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None,
     if not ab:
         raise RollError(f"save: unknown ability {ability!r} (str dex con int wis cha)")
     dc_from_pc = creatures.get(by, state).is_pc if by else False
-    bonus = c.save_bonus(ab)
+    mode, exh_bonus, exh_note = _exhaustion(c, "save", mode)
+    bonus = c.save_bonus(ab) + exh_bonus
     roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
     outcome, note = resolve.save(roll, dc, saver_is_pc=c.is_pc, dc_from_pc=dc_from_pc,
                                  cover=cover, ability=ab, rules=rules)
+    note = ", ".join(x for x in (exh_note, note) if x)
     shown = resolve.save_total(roll, cover, ab)
     rtext = roll.text if shown == roll.total else f"{roll.text} → {shown}"
-    margin = None if note == "total cover" else shown - dc
+    margin = None if note.endswith("total cover") else shown - dc
     body = f"{c.name} {ab.upper()} save: {rtext} vs DC {dc} — {_outcome(outcome, note, margin)}"
     _log(body, secret)
+    import conditions_ext
+    after = conditions_ext.after_save(c.name, ab, dc, outcome)
     return _wrap(body, secret), {"name": c.name, "ability": ab, "dc": dc, "roll": roll.as_dict(),
                                  "outcome": outcome, "note": note,
-                                 "margin": None if margin is None else abs(margin)}
+                                 "margin": None if margin is None else abs(margin), "after": after}
 
 
 def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, secret=False,
@@ -250,9 +275,11 @@ def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, 
     rules = resolve.active_keys()
     c = creatures.get(name, state)
     vs_pc = creatures.get(vs, state).is_pc if vs else False
-    bonus = c.skill_bonus(skill)
+    mode, exh_bonus, exh_note = _exhaustion(c, "check", mode)
+    bonus = c.skill_bonus(skill) + exh_bonus
     roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
     outcome, note = resolve.check(roll, dc, checker_is_pc=c.is_pc, vs_pc=vs_pc, rules=rules)
+    note = ", ".join(x for x in (exh_note, note) if x)
     margin = roll.total - dc
     body = f"{c.name} {creatures.skill_key(skill)}: {roll.text} vs DC {dc} — {_outcome(outcome, note, margin)}"
     _log(body, secret)
@@ -266,6 +293,8 @@ def cmd_save(ctx):
     line, data = saving_throw(a.target, a.ability, a.dc, mode=_mode(a), d20=a.d20, total=a.total,
                               by=a.by, cover=a.cover, secret=a.secret, roller=ctx.roller)
     ctx.emit(line)
+    for extra in data.get("after", []):
+        ctx.emit(extra)
     ctx.result = data
 
 
@@ -311,8 +340,9 @@ def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, 
     if not passive and b_skill is None:
         raise RollError("contest: name the second skill (contest A skill B skill)")
     a_given = (d20, total) if (a.is_pc or passive or not b.is_pc) else (None, None)
-    a_roll = _d20(roller, a, a.skill_bonus(a_skill), mode, *a_given, state, rules)
-    a_txt = f"{a.name} {creatures.skill_key(a_skill)} {a_roll.text}"
+    mode, a_exh, a_note = _exhaustion(a, "check", mode)
+    a_roll = _d20(roller, a, a.skill_bonus(a_skill) + a_exh, mode, *a_given, state, rules)
+    a_txt = f"{a.name} {creatures.skill_key(a_skill)} {a_roll.text}" + (f" ({a_note})" if a_note else "")
     if passive:
         sense = creatures.skill_key(b_skill or "perception")
         parts, results = [], []
@@ -341,10 +371,11 @@ def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, 
         b_given = (d20b, totalb) if a.is_pc else (d20, total)
     else:
         b_given = (None, None)
-    b_roll = _d20(roller, b, b.skill_bonus(b_skill), None, *b_given, state, rules)
+    b_mode, b_exh, b_note = _exhaustion(b, "check", None)
+    b_roll = _d20(roller, b, b.skill_bonus(b_skill) + b_exh, b_mode, *b_given, state, rules)
     win, note = resolve.contest(a_roll.total, b_roll.total, a_is_pc=a.is_pc, b_is_pc=b.is_pc,
                                 rules=rules)
-    b_txt = f"{b.name} {creatures.skill_key(b_skill)} {b_roll.text}"
+    b_txt = f"{b.name} {creatures.skill_key(b_skill)} {b_roll.text}" + (f" ({b_note})" if b_note else "")
     if win == "TIE":
         verdict = f"TIE ({note})"
     else:

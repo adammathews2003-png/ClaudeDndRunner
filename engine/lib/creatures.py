@@ -279,6 +279,15 @@ class Creature:
             return self.monster.hp
         raise CreatureError(f"{self.name}: no `hp` in {Path(self.doc.path).name}")
 
+    def exhaustion(self):
+        """Exhaustion level 0–6: the file's `exhaustion:`, else a Combatants row's `exh N`."""
+        v = self.front.get("exhaustion")
+        if isinstance(v, int):
+            return max(0, min(6, v))
+        row = self.combat_row or {}
+        m = re.search(r"(?:^|,)\s*exh\s+(\d)", row.get("conditions", "") or "")
+        return int(m.group(1)) if m else 0
+
     def size(self):
         """T/S/M/L/H/G from the file's `size`, the SRD block, else M."""
         s = str(self.front.get("size") or "").strip()[:1].upper()

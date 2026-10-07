@@ -23,7 +23,20 @@ _LINE = re.compile(r"^Turn:\s*(?P<name>[^·]+?)\s*·\s*action (?P<action>\w+)\s*
 
 
 def speed_of(c):
-    """Walking speed in feet: the PC/NPC file's `speed`, else the stat block's walk, else 30."""
+    """Walking speed in feet: the PC/NPC file's `speed`, else the stat block's walk, else
+    30; reduced by exhaustion (2014: halved at 2, 0 at 5; 2024: −5 ft per level)."""
+    base = _base_speed(c)
+    try:
+        level = c.exhaustion()
+    except Exception:  # noqa: BLE001 — a row with no file
+        level = 0
+    if not level:
+        return base
+    from . import campaign, resolve
+    return resolve.exhaustion_speed(base, level, campaign.settings().get("exhaustion", "2014"))
+
+
+def _base_speed(c):
     try:
         v = c.front.get("speed")
     except Exception:  # noqa: BLE001 — a row with no file

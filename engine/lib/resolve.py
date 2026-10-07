@@ -302,7 +302,9 @@ def adjust_damage(amount, dtype=None, *, resist=(), immune=(), vuln=()):
 def apply_hp(cur, mx, temp, op, n, *, is_pc=False, rules=None):
     """HP arithmetic for `hp`/`dmg` (06 L141). op: '-' damage (temp HP absorbs first),
     '+' heal, '=' set, 'temp' grant temp HP (no stacking: keep the higher). Clamps to
-    0..max; a `death-saves=off` rule drops a PC to 1 instead of 0 (06 L200).
+    0..max (pass the exhaustion-halved max, see exhaustion_hp_max); a `death-saves=off`
+    rule drops a PC to 1 instead of 0 (06 L200). What 0 HP means for a PC (dying, death
+    save failures, massive damage) is conditions_ext.after_hp's write.
     -> (cur, temp, note)."""
     temp = temp or 0
     note = ""
@@ -312,8 +314,7 @@ def apply_hp(cur, mx, temp, op, n, *, is_pc=False, rules=None):
         if n <= temp:
             return cur, temp, f"temp HP don't stack (kept {temp})"
         return cur, n, ""
-    if op == "-" and cur == 0 and is_pc and n > 0:
-        note = "at 0 HP: death save failure (2 on a crit)"
+    # damage at 0 HP is a death save failure: written by conditions_ext.after_hp (Phase 13)
     if op == "-":
         absorbed = min(temp, n)
         temp -= absorbed
@@ -334,3 +335,86 @@ def apply_hp(cur, mx, temp, op, n, *, is_pc=False, rules=None):
             new = 1
             note = _join(note, f"death-saves off ({r['id']}): 1 HP")
     return new, temp, note
+
+
+# ---------- dying (02 → Table mechanics → Dying; 06 → Phase 13) ----------
+
+def death_saves(rules=None):
+    """(on, success DC, rule id): the `death-saves` table rule (`on | off | dc N`)."""
+    r = _rule(rules, "death-saves")
+    if r is None:
+        return True, 10, None
+    if r["value"] == "off":
+        return False, 10, r["id"]
+    m = re.fullmatch(r"dc (\d+)", r["value"])
+    return True, (int(m.group(1)) if m else 10), r["id"]
+
+
+def death_save(natural, ok, fail, dc=10):
+    """One death save on a natural d20 -> (ok, fail, result) with result 'up' (a 20:
+    1 HP), 'stable' (third success), 'dead' (third failure) or '' (still dying). A 1
+    is two failures."""
+    if natural == 20:
+        return ok, fail, "up"
+    if natural == 1:
+        fail += 2
+    elif natural >= dc:
+        ok += 1
+    else:
+        fail += 1
+    if fail >= 3:
+        return ok, min(fail, 3), "dead"
+    if ok >= 3:
+        return 3, fail, "stable"
+    return ok, fail, ""
+
+
+# ---------- exhaustion (02 → Table mechanics → Exhaustion) ----------
+
+EXHAUSTION_2014 = {1: "disadvantage on ability checks", 2: "speed halved",
+                   3: "disadvantage on attacks and saves", 4: "HP maximum halved",
+                   5: "speed 0", 6: "death"}
+
+
+def exhaustion_effects(level, ruleset="2014"):
+    """Short text of what `level` does under the table's ruleset."""
+    if not level:
+        return "no effect"
+    if str(ruleset) == "2024":
+        return "death" if level >= 6 else f"−{2 * level} on d20 tests, −{5 * level} ft speed"
+    return "; ".join(EXHAUSTION_2014[k] for k in range(1, min(level, 6) + 1))
+
+
+def exhaustion_d20(level, kind, ruleset="2014"):
+    """(disadvantage, penalty, note) for a d20 test of `kind` (check | save | attack):
+    2014: level 1+ disadvantage on checks, 3+ on attacks and saves; 2024: −2 per level
+    on every d20 test."""
+    if not level:
+        return False, 0, ""
+    if str(ruleset) == "2024":
+        return False, -2 * level, f"exhaustion {level}: −{2 * level}"
+    if (kind == "check" and level >= 1) or (kind in ("attack", "save") and level >= 3):
+        return True, 0, f"exhaustion {level}: disadvantage"
+    return False, 0, ""
+
+
+def with_disadvantage(mode, dis):
+    """Add a disadvantage source to an asked-for mode (advantage and disadvantage cancel)."""
+    if not dis:
+        return mode
+    return None if mode == "adv" else "dis"
+
+
+def exhaustion_speed(speed, level, ruleset="2014"):
+    if not level:
+        return speed
+    if str(ruleset) == "2024":
+        return max(0, speed - 5 * level)
+    if level >= 5:
+        return 0
+    return speed // 2 if level >= 2 else speed
+
+
+def exhaustion_hp_max(mx, level, ruleset="2014"):
+    """The HP maximum the arithmetic uses: halved at level 4+ under the 2014 table."""
+    return mx // 2 if level and level >= 4 and str(ruleset) != "2024" else mx

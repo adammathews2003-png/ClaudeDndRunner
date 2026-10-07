@@ -12,6 +12,8 @@ Campaign slug: $ARGUMENTS
 Read first: `campaigns/<slug>/campaign.md`, `campaigns/<slug>/campaign-seed.md`, `docs/design/07-campaign-authoring.md`
 (shapes, difficulty, items, mechanics), `docs/design/04-file-formats.md` (every file format:
 follow them exactly), and as a worked example `campaigns/poc/` (scenario, NPCs, locations).
+`campaign.md`'s `lines:` never appear anywhere in what you write, not even off screen or
+in a backstory; `veils:` may happen only off screen.
 
 ## Write
 1. **The truth and the arcs** in `campaign.md ## Author notes (GM-only)`: what's really

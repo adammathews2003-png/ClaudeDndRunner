@@ -94,8 +94,9 @@ def _split_quoted(text):
 
 
 def _split_items(text):
-    """Split a list/map body on top-level commas, honouring quotes."""
-    items, buf, q = [], [], None
+    """Split a list/map body on top-level commas, honouring quotes and one inner
+    `[…]` (a list value inside a map: `{spell: bless, on: [Kael, Kira]}`)."""
+    items, buf, q, depth = [], [], None, 0
     for ch in text:
         if q:
             buf.append(ch)
@@ -104,7 +105,10 @@ def _split_items(text):
         elif ch in "\"'":
             q = ch
             buf.append(ch)
-        elif ch == ",":
+        elif ch in "[]":
+            depth += 1 if ch == "[" else -1
+            buf.append(ch)
+        elif ch == "," and depth <= 0:
             items.append("".join(buf))
             buf = []
         else:
@@ -143,7 +147,9 @@ def parse_value(text):
         out = {}
         for item in _split_items(text[1:-1]):
             k, _, v = item.partition(":")
-            out[k.strip()] = parse_scalar(v)
+            v = v.strip()
+            out[k.strip()] = ([parse_scalar(x) for x in _split_items(v[1:-1])]
+                              if v.startswith("[") and v.endswith("]") else parse_scalar(v))
         return out
     return parse_scalar(text)
 
@@ -177,7 +183,8 @@ def fmt_value(value, quoted=False):
     if isinstance(value, (list, tuple)):
         return "[" + ", ".join(fmt_scalar(v) for v in value) + "]"
     if isinstance(value, dict):
-        return "{" + ", ".join(f"{k}: {fmt_scalar(v)}" for k, v in value.items()) + "}"
+        return "{" + ", ".join(f"{k}: {fmt_value(v) if isinstance(v, (list, tuple)) else fmt_scalar(v)}"
+                               for k, v in value.items()) + "}"
     return fmt_scalar(value, quoted)
 
 
@@ -337,6 +344,20 @@ class Doc:
             self.head.insert(len(self.head) - 1, line)
             self._front_lines[key] = len(self.head) - 2
         self.front[key] = value
+
+    def del_front(self, key):
+        """Remove a frontmatter line (a key that only appears while it means something,
+        04 → PC file, Added by Phases 13–15). No-op when absent."""
+        if key not in self._front_lines:
+            return
+        i = self._front_lines.pop(key)
+        del self.head[i]
+        for k, j in self._front_lines.items():
+            if j > i:
+                self._front_lines[k] = j - 1
+        self.front.pop(key, None)
+        self.front_comments.pop(key, None)
+        self.front_quoted.discard(key)
 
     # -- sections --
     def headings(self):

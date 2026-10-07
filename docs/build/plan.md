@@ -1270,3 +1270,68 @@ Line references in this plan predate the move; search for the quoted heading.
 - Verified by `engine/tests/test_split.py` (10 tests) and a hand run on a copy of
   dryrun (split, travel, 7-round fight with the other group 4,375 ft away, task, join,
   undo of the join).
+
+## Phase 13 — completion notes (2026-10-07)
+
+- New modules: `engine/conditions_ext.py` (`conc`, `deathsave`, `stabilize`, `exhaust`,
+  plus the hooks `after_hp` / `after_cond` / `after_save` that `mutations` and `roll`
+  call), `engine/supplies.py` (`light`, `eat`, ammunition, the clock's light countdown
+  and dawn food check), `engine/lib/light.py` (source data, best carried source,
+  effective light by radius). `campaign boundaries` lives in `campaign_cmd.py`; the
+  four settings are in `campaign.SETTINGS` (`exhaustion: 2024` is read as a string).
+- `lib/md.py`: a map value may be an inline list (`concentration: {spell: bless, until:
+  Day 1 18:31, on: [Kael, Kira]}`, as 04 shows it) and `Doc.del_front(key)` removes a
+  key that only appears while it means something. 04/06 parsing contract updated.
+- Where state lives: files keep `concentration` / `death-saves` / `exhaustion` / `lit` /
+  `fed`; in combat the Combatants row mirrors them (`conc bless 8r`, `dying ✓1 ✗2`,
+  `exh 2`). `combat start` seeds the mirrors, `combat end` strips them before writing
+  conditions back. A combatant without a file (an `srd:` row) keeps its targets and the
+  owed save in `notes` (`conc→Kira`, `conc-save 12`).
+- Decisions where the spec was silent:
+  - Durations: in combat `1m` (or less) becomes `10r`, longer stays minutes/hours; out
+    of combat `Nr` becomes minutes. With no duration given, the SRD spell's
+    "Concentration, up to …" is used; none found → until ended. Effects are conditions
+    named by the spell's slug (`hold-person`), because condition names are one word.
+  - Round-based concentration ends at `combat end` (its targets' `Nr` conditions
+    already did, per the Phase 4 rule).
+  - Only `hp -N` / `dmg` / `atk` owe a CON save; `hp =N` downwards doesn't (only `=0`
+    ends it, as 0 HP). The save is matched by ability `con`, the creature and the exact
+    DC owed; an unmatched CON save changes nothing.
+  - Massive damage also applies when damage drops a PC to 0 with at least the HP max
+    left over (SRD); 06 now says so. `atk` crits count as two failures at 0 HP.
+  - `deathsave` with no d20 is rolled by the tool only under `death-save-rolls: secret`
+    or `dice-mode: gm-rolls-all`; otherwise it asks for the player's d20. A `death-saves
+    dc N` table rule sets the success number. Dead PCs are skipped by `combat next`.
+  - `stabilize --spell` (spare the dying) added; `--kit` spends a `healer's kit uses`
+    Resources row of `--by` or of the first scene PC who has one.
+  - Light: a hooded lantern unless the inventory has a `bullseye lantern`. Without
+    positions (no combat/Stage, or `?`), a carried source lights the whole group
+    brightly; with positions, its bright/dim radius from the carrier. Lights burn only
+    on the clock (combat rounds don't move it, as before).
+  - Counted inventory entries understand `quiver (20 arrows)`, `torches (4)`,
+    `2 flasks of oil`, `5 days rations`; a container keeps `(0 arrows)`, a counted item
+    at 0 is removed. `item Kira +3 arrows` / `-3 arrows` was added so the `combat end`
+    offer is runnable as printed. Ammunition spends only the inventory (a matching
+    `## Resources` row, like the POC Kira's `arrows`, is left alone).
+  - `loose` still writes `Ammo spent:` (no inventory change) so `combat end` can name who
+    fired. The line sits under the `## Combat` heading after the `Turn:` line.
+  - Food: `eat` sets `fed:` when the PC eats; with no water it asks for the CON save at
+    once. A PC without `fed:` isn't tracked until their first `eat`/long rest. At each
+    dawn a PC behind gets one `Supplies:` line; each day past 3 + CON adds a level;
+    `Water:` asks the save only when their waterskin is empty or missing. `--bought`
+    is the price for each PC. `services` (a location tag) is new; the POC has none, so
+    a default (`loose`) long rest in the POC now eats a ration.
+  - Exhaustion 4 (2014) caps current HP at the halved maximum when it is reached; a
+    long rest removes one level when the PC ate (or `supplies: off`, or in town under
+    `loose`) and heals to the (possibly halved) maximum. Exhaustion also applies to
+    `contest` rolls (ability checks).
+  - Boundaries: 04 said campaign.md only, 06 said the POC uses current.md; followed 06
+    (like every setting) and fixed 04. `campaign boundaries --none` records "asked,
+    none"; with no flags it prints them. The session log gets only a `(GM)` count.
+  - `!x` is logged as `x-card`, comes first in the hook output, and the brief/heartbeat
+    follows as usual (the full brief's `Table:` line is part of the hash).
+- Existing tests updated for spec'd output changes: `test_mutations` (the 0-HP note
+  became the death-save write; `hp -99` from 11 now also reports massive-damage death)
+  and `test_brief.test_shapes` (the `Table: boundaries not asked yet` line).
+- Verified by `engine/tests/test_phase13.py` (36 tests: every Verify bullet, undo of
+  every new command, `supplies: off` / `track-light: off`, LF and CRLF files).

@@ -5,7 +5,8 @@ reading the whole file) and markdown body for prose. Frontmatter fields are the 
 body sections are conventions.
 
 **Parsing contract (tools read and write these files, see 06):** frontmatter uses only
-`key: scalar`, `key: [inline, list]`, `key: {one: 1, level: 2}` (one-level inline map),
+`key: scalar`, `key: [inline, list]`, `key: {one: 1, level: 2}` (one-level inline map;
+a value inside it may be an inline list, `{spell: bless, on: [Kael, Kira]}`, Phase 13),
 `# comments` and quoted strings. No nested blocks or multi-line values. Anything richer
 goes in a markdown table in the body. Tables are read by header name, so extra columns
 are always safe. Line endings: the working tree is mixed CRLF/LF (`core.autocrlf` is
@@ -419,10 +420,15 @@ debounce: 4             # auto mode: seconds of quiet before a batch is sent
 `player` matches PC `player:` values. The bot token is never stored here; it comes from
 the `DND_DISCORD_TOKEN` environment variable (06 → Discord bridge).
 
-**Content boundaries** (Phase 13, campaign.md only, never `current.md`):
+**Content boundaries** (Phase 13, campaign.md; a campaign without one, like the POC,
+keeps them in `current.md`, as with every setting):
 `lines: [harm to children, sexual violence]` (never appears) and `veils: [torture]`
-(off screen only). Written by `gm.py campaign boundaries`; an empty list means asked
-and none; a missing key means not yet asked.
+(off screen only). Written by `gm.py campaign boundaries` (`--none` writes both empty);
+an empty list means asked and none; a missing key means not yet asked.
+
+**`services` tag** (Phase 13): a site whose `tags:` include `services` (an inn, a
+market) is a place where the party eats without counting rations under `supplies:
+loose`.
 
 ## Custom-bestiary file — `campaigns/<name>/custom-bestiary/<slug>.md`
 
@@ -597,7 +603,11 @@ attuned: [cloak of protection]    # 15; at most 3
 - **Ammunition and supplies** (13) stay ordinary `## Inventory` text with counts:
   `quiver (20 arrows)`, `rations (5 days)`, `waterskin (full|half|empty)`, `flask of
   oil (2)`, `torches (4)`. The Attacks row's `notes` names the ammunition it uses
-  (`ammo arrows`).
+  (`ammo arrows`). A leading count works too (`2 flasks of oil`, `5 days rations`); a
+  bare `waterskin` is full. `stable` carries the hours until the PC wakes (`stable 3h`).
+  Spell effects from `conc` are conditions named by the spell's slug (`bless 10r`,
+  `hold-person 1m`). A combatant without a file keeps its concentration targets in its
+  row's `notes` (`conc→Kael+Kira`, `conc-save 12` while a save is owed).
 - **Magic items** (15) carry their tags in the inventory line:
   `wand of magic missiles (uncommon, charges 5/7, recharge 1d6+1 dawn, destroy on 1)`,
   `cloak of protection (uncommon, attune, ac +1, saves +1)`,

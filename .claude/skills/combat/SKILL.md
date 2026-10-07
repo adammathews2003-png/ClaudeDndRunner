@@ -69,12 +69,27 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
   move them with `move`, roll with the tools (`atk Veskar Kael`, `save …`, `space cone …`
   for areas), narrate, then `combat next`. Multiattack follows the stat block.
 - **Conditions:** `cond Kael +poisoned 3r` (rounds tick down at round end), `-prone`.
+- **Concentration:** when a caster casts a concentration spell, `conc Kael bless --on
+  Kael,Kira 1m` (it ends the caster's previous one; the targets get `bless 10r`). Damage
+  to a concentrating creature prints `[concentration: CON save DC 12 to keep bless (gm.py
+  save Kael con 12)]`: ask the player for that d20 (`save Kael con 12 --d20 9`); the tool
+  rolls an NPC's. A failed save, 0 HP, an incapacitating condition or the duration ends
+  it and strips every target: narrate the glow fading. Don't track it yourself.
+- **Ammunition:** a shot with an `ammo arrows` attack is counted for you (`supplies:
+  strict` spends it and says `Kira has no arrows` when the quiver's empty: the attack
+  doesn't happen; offer the dagger).
 - **Advance:** `python engine/gm.py combat next` — who's up, where, who is within reach,
   and the new turn's budget. A surprised creature's turn passes with no move or action.
   Moves of the round go to the session log automatically.
 - Paste public roll lines; describe enemy HP in fiction only ("bloodied", "staggering").
-- A PC at 0 HP makes death saves (d20, 10+ succeeds; three of either; nat 20 = up with
-  1 HP; damage while down = a failure). Most monsters just die at 0.
+- **Dying.** A PC at 0 HP is dying; the tools write it (`DYING ✓0 ✗0` on the party line)
+  and count damage while down (a failure; `dmg Kira 6 --crit` is two; damage of their HP
+  maximum kills). On the dying PC's turn `combat next` prints `Kira is dying (✓1 ✗2):
+  death save — ask for a d20`: ask the player, then `deathsave Kira 14` and narrate only
+  what it looks like. With `roll it hidden` (`death-save-rolls: secret`), run `deathsave
+  Kira` yourself and narrate the breathing, never the count. Help: `stabilize Kira --by
+  Kael 12` (Medicine DC 10, the player's d20), `--kit` (a healer's kit use) or `--spell`
+  (spare the dying); any healing brings them back. Most monsters just die at 0.
 - **Split party:** only the active group fights; the others are in their own scenes.
   Watch the brief's `Slice:` line at each round's end: `Cut every round` (another group
   can sense the fight) → `split cut` after this round; `Cut due: 6 rounds played` →
@@ -86,6 +101,9 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
    - Writes HP/conditions back to the files, marks dead NPCs, ends `combat` rules, runs
      lint, and prints `[XP available: …]` (foes at 0 HP; `--count` adds the routed,
      captured or talked-down; `--count-fled` all standing foes, if you judge so).
+   - `[Ammo: Kira spent 6 arrows; after a search, 3 can be recovered (gm.py item Kira +3
+     arrows)]`: if they search, run that `item`. Under `loose` it names who fired: estimate
+     with them and spend it with `item Kira -4 arrows`.
 2. Award XP if the campaign tracks it: `python engine/gm.py xp award from-combat --reason "the inn brawl"`.
    Don't quote XP numbers in narration unless a player asks.
 3. Narrate the aftermath and hand the scene back (tempo is calm again).

@@ -76,9 +76,10 @@ def _split_group(table, i):
     return at, f"{base} ×{count}"
 
 
-def _apply_hp(name, op, n, *, verb="hp", dtype=None, rules=None, log=True):
+def _apply_hp(name, op, n, *, verb="hp", dtype=None, rules=None, log=True, crit=False):
     """Shared by hp/dmg/atk. Returns (line, data); data["tail"] is the `Kael 9→2/11`
-    part atk appends to its own line."""
+    part atk appends to its own line; data["after"] holds the follow-up lines of
+    conditions_ext.after_hp (a concentration save owed, dying, death save failures)."""
     if n < 0:
         raise MutationError(f"{verb}: amounts are never negative (got {n})")
     state = campaign.load_state()
@@ -115,10 +116,14 @@ def _apply_hp(name, op, n, *, verb="hp", dtype=None, rules=None, log=True):
     if op == "-" and dtype:
         resist, immune, vuln = c.damage_traits()
         n_applied, note_dmg = resolve.adjust_damage(n, dtype, resist=resist, immune=immune, vuln=vuln)
+    exh = c.exhaustion()
+    eff_mx = resolve.exhaustion_hp_max(mx, exh, campaign.settings(state).get("exhaustion", "2014"))
     try:
-        new, new_temp, note = resolve.apply_hp(cur, mx, temp, op, n_applied, is_pc=c.is_pc, rules=rules)
+        new, new_temp, note = resolve.apply_hp(cur, eff_mx, temp, op, n_applied, is_pc=c.is_pc, rules=rules)
     except resolve.ResolveError as e:
         raise MutationError(str(e)) from None
+    if eff_mx != mx:
+        note = ", ".join(x for x in (note, f"exhaustion {exh}: HP max {eff_mx}") if x)
     if i >= 0:
         table.set(i, "hp", fmt_hp_cell(new, mx, new_temp, each))
         state.save()
@@ -148,6 +153,11 @@ def _apply_hp(name, op, n, *, verb="hp", dtype=None, rules=None, log=True):
         journal.log_delta(body)
     data = {"name": who, "hp": new, "max": mx, "temp": new_temp, "was": cur,
             "applied": n_applied, "note": notes, "resist_note": note_dmg, "tail": tail}
+    import conditions_ext
+    lost = max(0, n_applied - (temp - new_temp)) if op == "-" else 0   # past temp HP
+    data["after"] = conditions_ext.after_hp(who, is_pc=c.is_pc, op=op, cur=cur, new=new, mx=mx,
+                                            taken=n_applied if op == "-" else 0, hp_lost=lost,
+                                            crit=crit)         if (op == "-" and n_applied > 0) or cur != new else []
     return f"[{body}]", data
 
 
@@ -156,9 +166,10 @@ def hp(name, op, n, rules=None):
     return _apply_hp(name, op, n, rules=rules)
 
 
-def dmg(name, amount, dtype=None, rules=None, log=True):
-    """`log=False` lets atk fold the HP change into its own delta line."""
-    return _apply_hp(name, "-", amount, verb="dmg", dtype=dtype or "", rules=rules, log=log)
+def dmg(name, amount, dtype=None, rules=None, log=True, crit=False):
+    """`log=False` lets atk fold the HP change into its own delta line. `crit`: damage
+    at 0 HP is two death save failures."""
+    return _apply_hp(name, "-", amount, verb="dmg", dtype=dtype or "", rules=rules, log=log, crit=crit)
 
 
 def parse_hp_args(tokens):
@@ -175,7 +186,7 @@ def parse_hp_args(tokens):
 
 # ---------- conditions ----------
 
-_DUR = re.compile(r"^\d+[rm]$", re.I)
+_DUR = re.compile(r"^\d+[rmh]$", re.I)
 
 
 def _conds_from_cell(cell):
@@ -186,13 +197,14 @@ def _conds_from_cell(cell):
 
 
 def cond(name, change, duration=None):
-    """change '+prone' / '-prone'; duration '3r' (rounds) or '10m' (minutes)."""
+    """change '+prone' / '-prone'; duration '3r' (rounds), '10m' (minutes) or '1h'.
+    An incapacitating condition ends the creature's concentration (conditions_ext)."""
     m = re.fullmatch(r"([+-])\s*([A-Za-z][\w-]*)", change.strip())
     if not m:
         raise MutationError(f"cond: want +name or -name, got {change!r}")
     sign, cname = m.group(1), m.group(2).lower()
     if duration and not _DUR.match(duration):
-        raise MutationError(f"cond: duration is Nr (rounds) or Nm (minutes), got {duration!r}")
+        raise MutationError(f"cond: duration is Nr (rounds), Nm (minutes) or Nh, got {duration!r}")
     if duration and sign == "-":
         raise MutationError("cond: a duration only goes with +condition")
     state = campaign.load_state()
@@ -219,7 +231,11 @@ def cond(name, change, duration=None):
     shown = ", ".join(rest) if rest else "none"
     body = f"cond {c.name} {sign}{cname}" + (f" {duration.lower()}" if duration else "") + f" · now {shown}"
     journal.log_delta(body)
-    return f"[{body}]", {"name": c.name, "before": before, "conditions": rest}
+    after = []
+    if sign == "+":
+        import conditions_ext
+        after = conditions_ext.after_cond(c.name, cname)
+    return f"[{body}]", {"name": c.name, "before": before, "conditions": rest, "after": after}
 
 
 # ---------- places ----------
@@ -365,6 +381,8 @@ def advance_time(spec):
 def emit(ctx, out):
     line, data = out
     ctx.emit(line)
+    for extra in data.get("after", []) if isinstance(data, dict) else []:
+        ctx.emit(extra)
     ctx.result = data
 
 
@@ -374,7 +392,7 @@ def cmd_hp(ctx):
 
 
 def cmd_dmg(ctx):
-    emit(ctx, dmg(ctx.args.target, ctx.args.amount, ctx.args.type))
+    emit(ctx, dmg(ctx.args.target, ctx.args.amount, ctx.args.type, crit=ctx.args.crit))
 
 
 def cmd_cond(ctx):
@@ -423,11 +441,12 @@ def register(sub, g):
     p.add_argument("target"); p.add_argument("change", nargs=R)
     p.set_defaults(func=cmd_hp)
 
-    p = sub.add_parser("dmg", parents=[g], help="dmg NAME N [type]")
+    p = sub.add_parser("dmg", parents=[g], help="dmg NAME N [type] [--crit]")
     p.add_argument("target"); p.add_argument("amount", type=int); p.add_argument("type", nargs="?")
+    p.add_argument("--crit", action="store_true", help="a critical hit (two death save failures at 0 HP)")
     p.set_defaults(func=cmd_dmg)
 
-    p = sub.add_parser("cond", parents=[g], help="cond NAME +cond [3r|10m] | -cond")
+    p = sub.add_parser("cond", parents=[g], help="cond NAME +cond [3r|10m|1h] | -cond")
     p.add_argument("target"); p.add_argument("change", nargs=R)
     p.set_defaults(func=cmd_cond)
 

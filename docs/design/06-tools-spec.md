@@ -82,8 +82,9 @@ run directly.
 
 ### Parsing contract (`lib/md.py`)
 To stay dependency-free (decided: no PyYAML), frontmatter is restricted to a YAML subset:
-`key: scalar` · `key: [a, b]` (inline list) · `key: {a: 1, b: 2}` (one-level inline map)
-· `# comments` · quoted strings. **No nested blocks, no multi-line values.** Anything
+`key: scalar` · `key: [a, b]` (inline list) · `key: {a: 1, b: 2}` (one-level inline map,
+whose values may be inline lists: `{spell: bless, on: [Kael, Kira]}`) · `# comments` ·
+quoted strings. **No nested blocks, no multi-line values.** Anything
 richer goes in a markdown table in the body (Attacks, Resources). Writers preserve
 comments, key order and untouched lines byte-for-byte. `lint` flags frontmatter outside
 the subset.
@@ -1067,12 +1068,13 @@ the command say so and do nothing.
 ```
 gm.py conc Kael bless [--on Kael,Kira] [1m|10r|1h]   # start concentrating (ends any other)
 gm.py conc Kael end ["failed save"]                 # ends it and strips the targets' effect
-gm.py deathsave Kael <d20>                          # record a death save (gm-rolls-all: no d20)
-gm.py stabilize Kael [--by Kira <d20>] [--kit]      # Medicine DC 10, or a healer's kit use
+gm.py deathsave Kael <d20>                          # record a death save (gm-rolls-all / secret: no d20)
+gm.py stabilize Kael [--by Kira <d20>] [--kit] [--spell]   # Medicine DC 10, a healer's kit use, or spare the dying
 gm.py light Kael torch|lantern|candle|cantrip|daylight|out
 gm.py eat [Kael ...] [--bought "3 sp"]              # one day's food and water each
 gm.py exhaust Kael +1|-1|=0 ["forced march"]
-gm.py campaign boundaries --line "…" --veil "…" [--drop "…"]
+gm.py campaign boundaries --line "…" --veil "…" [--drop "…"] [--none]   # no flags: print them
+gm.py item Kira +3 arrows                           # +N/-N: a counted entry (`quiver (17 arrows)` → `(20 arrows)`)
 ```
 - **Concentration.** `conc` writes `concentration:` and adds `<spell>` as a condition
   on each `--on` target with the same duration. `hp -`/`dmg` on a concentrating
@@ -1085,7 +1087,9 @@ gm.py campaign boundaries --line "…" --veil "…" [--drop "…"]
   (the death-saves table rule still decides whether that happens). `deathsave`: 10+
   is a success, 1 two failures, 20 is 1 HP (clears the state and `unconscious`); three
   successes → `stable`, three failures → `dead`. Damage at 0 HP adds a failure (two
-  with `dmg --crit`), or kills outright when it is at least the HP maximum. Any
+  with `dmg --crit`, or an `atk` crit), or kills outright when it is at least the HP
+  maximum; so does damage that drops a PC to 0 with at least the HP maximum left over
+  (SRD massive damage). Any
   healing clears the state. `combat next` on a dying PC's turn prints `Kael is dying
   (✓1 ✗2): death save — ask for a d20 (gm.py deathsave Kael <d20>)`; with
   `death-save-rolls: secret` it says `roll it hidden (gm.py deathsave Kael)` and the

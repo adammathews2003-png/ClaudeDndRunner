@@ -49,10 +49,11 @@ class Brief(CampaignCase):
         self.assertEqual(lines[1], "On stage: Mara (neutral) goal: a quiet evening · "
                                    "Tobin (friendly) goal: find someone who'll listen")
         self.assertEqual(lines[2], "Party: Kael 30/30 AC18 · Kira 30/30 AC14")
-        self.assertEqual(lines[3], "Rules: —")
-        self.assertTrue(lines[4].startswith("Watch: Party asks Mara about Harl → beat 1 · "))
-        self.assertTrue(lines[4].endswith("Next clock: Day 3 02:00 (Veskar moves Harl to the mill) in 1d 7h30m"))
-        self.assertEqual(lines[5:], ["Combat: —", "Log: no turns yet"])
+        self.assertEqual(lines[3], "Table: boundaries not asked yet")   # Phase 13
+        self.assertEqual(lines[4], "Rules: —")
+        self.assertTrue(lines[5].startswith("Watch: Party asks Mara about Harl → beat 1 · "))
+        self.assertTrue(lines[5].endswith("Next clock: Day 3 02:00 (Veskar moves Harl to the mill) in 1d 7h30m"))
+        self.assertEqual(lines[6:], ["Combat: —", "Log: no turns yet"])
 
     def test_long(self):
         code, lines = run_main(["brief", "--long"])

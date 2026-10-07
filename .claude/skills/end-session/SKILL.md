@@ -11,7 +11,9 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
 2. **Summary (half a page, the party's point of view):** what they did, learned, gained
    and lost; open threads as the *characters* see them. No `(GM)` facts, no beat names,
    no secrets. Keep it as plain prose without double quotes (it goes on the command line
-   in step 5).
+   in step 5). Never mention the X-card or the table's lines and veils in it. A PC left
+   dying, stable, exhausted or concentrating stays that way in the files: say how the
+   character is, not the count.
    **Split party** (the brief has a `Split:` line): a short paragraph per group, each
    from that group's point of view (what Grusk saw at the mill; what Kael and Kira did
    at the inn), and where each group stands now. Don't join them just to end the

@@ -5,6 +5,10 @@ SRD 5.1 → Vision and Light: dim light is lightly obscured (disadvantage on Per
 checks that rely on sight); darkness is heavily obscured (effectively blinded).
 Darkvision: within range, dim counts as bright and darkness as dim (shades of grey).
 Blindsight and truesight perceive within range regardless of light.
+
+Carried sources (Phase 13, lib/light.py): `scene_light(doc, ambient, state)` is the
+light a PC actually has: the ambient `light:` or the best source carried by the active
+group, by radius from the carrier's `pos` in combat or a Stage.
 """
 import re
 
@@ -49,3 +53,44 @@ def describe(doc, light, name):
     if eff == "dark":
         return f"{name} blind without a light"
     return f"{name} sees normally"
+
+
+def _row_for(state, doc):
+    """The Combatants (else Stage) row of a PC/NPC file, or None."""
+    from pathlib import Path
+    if state is None:
+        return None
+    table = state.table("Combatants") or state.table("Stage")
+    if table is None:
+        return None
+    slug = Path(doc.path).stem
+    full = str(doc.front.get("name") or slug).lower()
+    for row in table.rows:
+        ref = (row.get("ref") or "").strip().lower()
+        name = re.sub(r"\s*\(PC\)", "", row.get("name", ""), flags=re.I).strip().lower()
+        if ref.endswith("/" + slug) or name in (full, full.split()[0]):
+            return row
+    return None
+
+
+def distance_fn(state):
+    """f(carrier_doc, doc) -> feet between their rows' positions, or None."""
+    def dist(a, b):
+        if a is b or a.path == b.path:
+            return 0
+        ra, rb = _row_for(state, a), _row_for(state, b)
+        if ra is None or rb is None or "?" in (ra.get("pos") or "?") or "?" in (rb.get("pos") or "?"):
+            return None
+        try:
+            import space
+            return space.dist_between(space.Combatant(ra).cells(), space.Combatant(rb).cells())
+        except Exception:  # noqa: BLE001 — an unreadable position lights like no position
+            return None
+    return dist
+
+
+def scene_light(doc, ambient, state=None, docs=None):
+    """The effective light for `doc`: ambient, or the best carried source of the group."""
+    from . import campaign, light
+    group = campaign.scene_pcs() if docs is None else docs
+    return light.level_for(doc, ambient, group, distance_fn(state))

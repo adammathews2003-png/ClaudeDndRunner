@@ -25,9 +25,17 @@ and the generation runs in a forked context that returns a shape card.
    (`time-loop` or none), the starting area's name, and a folder slug.
 2. **Ask only for what's missing**, in one grouped, numbered message with the options.
    Propose defaults ("I'll use medium difficulty — OK?"). No secrets, no plot ideas.
+   Always include **content boundaries** in that message: "Anything you never want in
+   this game (lines), or want kept off screen (veils)? 'None' is a fine answer." The
+   table settings (`supplies` strict | loose | off, `track-light` on | off,
+   `death-save-rolls` open | secret, `exhaustion` 2014 | 2024) keep their defaults unless
+   the seed touches them.
 3. **Write the seed verbatim** to a scratch file (e.g. `<slug>-seed.md` in your scratch
    space, or pass the text you have), then:
    `python engine/gm.py campaign new <slug> --area "<starting area>" --set length="3-5 sessions" start-level=3 difficulty=hard shape=mystery tone=comedic … [--set "mechanics=time-loop"] --seed-file <seed file>`
+   Then record the boundaries (the generator reads them and keeps every line out):
+   `python engine/gm.py --campaign <slug> campaign boundaries --line "…" --veil "…"` (or
+   `--none`).
 4. **Generate in a fork:** invoke the `campaign-generate` skill with the slug as its
    argument. It writes every file and returns **only the shape card**.
 5. Show the driver the shape card exactly as returned. Record it:

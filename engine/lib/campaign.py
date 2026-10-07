@@ -153,7 +153,7 @@ def load_state():
 # ---------- campaign settings ----------
 
 # Table configuration keys and their defaults (04 → Campaign file: Advancement,
-# Wacky Juice). Read from campaign.md frontmatter, else current.md's (the POC has no
+# Wacky Juice, Split party, Table settings). Read from campaign.md frontmatter, else current.md's (the POC has no
 # campaign.md), else the default.
 SETTINGS = {
     "setting": "",
@@ -168,6 +168,10 @@ SETTINGS = {
     "split-combat-rounds": 6,
     "split-sense-ft": 300,
     "split-max-ahead": 30,
+    "death-save-rolls": "open",     # open | secret (Phase 13)
+    "track-light": "on",            # on | off
+    "supplies": "loose",            # strict | loose | off
+    "exhaustion": "2014",           # 2014 | 2024
 }
 
 
@@ -180,6 +184,13 @@ def settings_doc():
     """The Doc that holds the settings keys: campaign.md when it exists, else current.md."""
     p = campaign_doc_path()
     return md.load(p) if p.exists() else load_state()
+
+
+def boundaries_front(state=None):
+    """The frontmatter that holds `lines:`/`veils:` (content boundaries, Phase 13):
+    campaign.md, else current.md for a campaign without one (06 → Phase 13)."""
+    p = campaign_doc_path()
+    return md.load(p).front if p.exists() else (state or load_state()).front
 
 
 def settings(state=None):
@@ -202,6 +213,8 @@ def settings(state=None):
             value = "on"
         elif value is False:
             value = "off"
+        elif isinstance(SETTINGS[key], str) and not isinstance(value, str):
+            value = str(value)          # `exhaustion: 2024` parses as a number
         out[key] = value
     return out
 

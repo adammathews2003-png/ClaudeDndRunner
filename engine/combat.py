@@ -33,13 +33,14 @@ from pathlib import Path
 from lib import campaign, creatures, dice, geo, journal, resolve, srd, turnstate
 from lib.creatures import GROUP, fmt_hp_cell, norm_name, parse_hp_cell
 from lib.errors import ToolError
+import conditions_ext
 import rules
 import space
 import tempo
 
 COLS = ["init", "name", "glyph", "side", "pos", "size", "ref", "HP", "AC", "conditions", "notes"]
 _HEAD = re.compile(r"^Combat\s*[—-]\s*round\s*(\d+)\s*·\s*up:\s*(.+)$", re.I)
-_DUR = re.compile(r"^(\S+)\s+(\d+)r$", re.I)
+_DUR = re.compile(r"^(.+?)\s+(\d+)r$", re.I)   # `poisoned 3r`, `conc bless 8r`
 
 
 class CombatError(ToolError):
@@ -255,6 +256,8 @@ def _numbers(c, mon, name):
     except creatures.CreatureError:
         ac = mon.ac if mon else "?"
     conds = [str(x) for x in (c.front.get("conditions") or [])] if c is not None and c.doc is not None else []
+    if c is not None and c.doc is not None:   # Phase 13 mirrors: conc, dying, exh
+        conds = conditions_ext.strip_mirrors(conds) + conditions_ext.mirrors(c.front)
     if mon is not None and mon.reach() > 5:
         notes = f"reach {mon.reach()}"
     return hp, ac, conds, notes
@@ -277,7 +280,9 @@ def map_lines(player_view=False, origin=None):
 
 def _alive(row):
     is_pc = "(pc)" in row.get("name", "").lower() or row.get("ref", "").startswith("pcs/")
-    return is_pc or not row.get("hp", "").startswith("0/")
+    if is_pc:
+        return "dead" not in [c.split()[0].lower() for c in _conds(row.get("conditions"))]
+    return not row.get("hp", "").startswith("0/")
 
 
 def next_turn():
@@ -304,9 +309,10 @@ def next_turn():
             break
     else:
         raise CombatError("combat next: nobody left standing")
+    ended_conc = []
     if wrapped:
         round_no += 1
-        lines += _end_of_round(state, round_no - 1)
+        lines += _end_of_round(state, round_no - 1, ended_conc)
         table = state.table("Combatants")
     new_up = norm_name(table.rows[j]["name"])
     i, _ = _heading_index(state)
@@ -314,15 +320,25 @@ def next_turn():
     budget = turnstate.reset(state, new_up)
     state.save()
     journal.log_delta(f"combat round {round_no} · up: {new_up}", gm=True)
+    for caster in ended_conc:   # a round-based concentration ran out with its targets' effect
+        try:
+            lines += conditions_ext.end_conc(caster, "duration ended")
+        except ToolError:
+            pass
     lines.insert(0, f"[round {round_no} · up: {new_up}]")
     note = _turn_note(table.rows[j])
     lines.insert(1, note or turnstate.turn_start_line(budget))
+    dying = conditions_ext.dying_prompt(new_up)
+    if dying:
+        lines.insert(2, dying)
     lines.append(_reach_line(new_up))
     return lines, {"round": round_no, "up": new_up}
 
 
-def _end_of_round(state, finished):
-    """Move the Moves log into the session log and tick `Nr` durations."""
+def _end_of_round(state, finished, ended_conc=None):
+    """Move the Moves log into the session log and tick `Nr` durations. A `conc <spell>
+    Nr` mirror that runs out puts its creature in `ended_conc` (next_turn ends the
+    record after saving)."""
     out = []
     span = state.section("Moves log")
     if span is not None:
@@ -349,6 +365,11 @@ def _end_of_round(state, finished):
         for e in ended:
             out.append(f"[{norm_name(r['name'])}: {e} ended]")
             journal.log_delta(f"cond {norm_name(r['name'])} -{e} (expired)")
+            if e.lower().startswith("conc ") and ended_conc is not None:
+                ended_conc.append(norm_name(r["name"]))
+                notes = [b.strip() for b in (r.get("notes") or "").split(";")
+                         if b.strip() and not b.strip().startswith("conc")]
+                table.set(i, "notes", "; ".join(notes))   # a file-less caster's record
     return out
 
 
@@ -395,7 +416,7 @@ def end(count=(), count_fled=False):
         name = norm_name(r["name"])
         ref = r.get("ref", "").strip()
         cell = parse_hp_cell(r.get("hp", ""))
-        conds = [c for c in _conds(r.get("conditions")) if not _DUR.match(c)]
+        conds = conditions_ext.strip_mirrors([c for c in _conds(r.get("conditions")) if not _DUR.match(c)])
         if ref and not ref.startswith("srd:"):
             p = campaign.root() / (ref if ref.endswith(".md") else ref + ".md")
             if p.exists() and cell is not None:
@@ -419,12 +440,16 @@ def end(count=(), count_fled=False):
         for k in range(span[0] + 1, span[1]):
             if state.body[k].strip().startswith("-"):
                 journal.log_delta("move " + state.body[k].strip()[1:].strip())
+    import supplies
+    ammo = supplies.ammo_lines(state)
     i, _ = _heading_index(state)
     state.body[i] = "## Combat"
     tempo.set_section(state, "Combat", ["(not in combat)"])
     tempo.set_tempo(state, "calm", [])
     state.save()
     lines += rules.end_scope("combat")
+    lines += conditions_ext.end_round_concs()
+    lines += ammo
     journal.log_delta("combat end")
     if sp:
         lines += split.charge_combat(played)

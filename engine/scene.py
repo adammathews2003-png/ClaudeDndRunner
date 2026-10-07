@@ -170,7 +170,7 @@ def notices_line(frame, area, pcs, light):
         pp = d.front.get("passive-perception")
         if not isinstance(pp, int):
             continue
-        seen_in = sight.effective(d, light)[0]
+        seen_in = sight.effective(d, sight.scene_light(d, light, None, pcs))[0]   # carried light counts
         name = tempo.short_pc(d)
         if seen_in == "dark":
             bits.append(f"{name} (dark, no darkvision) → nothing")

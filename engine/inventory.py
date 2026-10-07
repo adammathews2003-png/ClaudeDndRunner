@@ -11,7 +11,14 @@ then a leading word, then a substring; a tie between entries is an error listing
 them). A count is decremented instead of removing the entry: leading (`2 daggers` →
 `1 dagger`) or in parentheses (`quiver (20 arrows)` → `quiver (19 arrows)`) — only
 for an exact/plural match; a looser match removes the whole entry.
-`item + thing` appends to the `Pack:` bullet.
+`item + thing` appends to the `Pack:` bullet. `item Kira +3 arrows` / `-3 arrows` adds
+to or takes from a counted entry (`quiver (17 arrows)` → `(20 arrows)`; Phase 13); with
+no counted entry, `+3 arrows` is appended to the pack.
+
+Counted supplies (Phase 13, 04 → Ammunition and supplies): `counted(doc, noun)` finds the
+entry holding a count of `noun` — `quiver (20 arrows)`, `torches (4)`, `2 flasks of oil`,
+`rations (5 days)`, `5 days rations` — and `adjust_count(doc, noun, delta)` rewrites it
+(a container keeps its `(0 arrows)`; a counted item at 0 is gone). Callers save.
 """
 import re
 
@@ -133,12 +140,104 @@ def _decrement(entry, kind):
     return None
 
 
-def item(name, sign, text, reason=""):
+def _sing_word(w):
+    lw = w.lower()
+    if lw.endswith(("ches", "shes", "xes", "sses")):
+        return w[:-2]
+    if lw.endswith("ies") and len(lw) > 4:
+        return w[:-3] + "y"
+    if lw.endswith("s") and not lw.endswith("ss") and len(lw) > 2:
+        return w[:-1]
+    return w
+
+
+def _sing_text(text):
+    return " ".join(_sing_word(w) for w in re.findall(r"[a-z'-]+", text.lower()))
+
+
+def _has_noun(text, stem):
+    return re.search(rf"(^|\s){re.escape(stem)}(\s|$)", _sing_text(text)) is not None
+
+
+def counted(doc, noun):
+    """[(line j, entry k, entry text, count, kind)] for inventory entries holding a count
+    of `noun`. kind: 'paren-noun' (`quiver (20 arrows)`: the container stays at 0),
+    'paren' (`torches (4)`, `rations (5 days)`), 'lead' (`2 flasks of oil`), 'one'."""
+    span = doc.section("Inventory")
+    if span is None:
+        return []
+    stem = _sing_text(noun)
+    out = []
+    for j in range(span[0] + 1, span[1]):
+        line = doc.body[j]
+        if not line.strip() or re.match(r"^\s*-\s+Coin:", line):
+            continue
+        _, entries, _ = _split_entries(line)
+        for k, e in enumerate(entries):
+            paren = re.search(r"\((\d+)(?:\s+([^)]*))?\)", e)
+            base = re.sub(r"\([^)]*\)", " ", e).strip()
+            lead = re.match(r"^(\d+)\s+(.*)$", base)
+            if paren and paren.group(2) and _has_noun(paren.group(2), stem):
+                out.append((j, k, e, int(paren.group(1)), "paren-noun"))
+            elif _has_noun(lead.group(2) if lead else base, stem):
+                if paren:
+                    out.append((j, k, e, int(paren.group(1)), "paren"))
+                elif lead:
+                    out.append((j, k, e, int(lead.group(1)), "lead"))
+                else:
+                    out.append((j, k, e, 1, "one"))
+    return out
+
+
+def adjust_count(doc, noun, delta, owner="", strict=True):
+    """Change the count of `noun` by `delta`. -> (before, after, entry before, entry
+    after or None). Raises when there is none (or not enough). Doesn't save."""
+    hits = counted(doc, noun)
+    if delta < 0:
+        hits = [h for h in hits if h[3] > 0]
+    if not hits:
+        raise InventoryError(f"{owner or 'they'} {'has' if owner else 'have'} no {noun}")
+    if len(hits) > 1 and strict:
+        raise InventoryError(f"{noun!r} is ambiguous: " + "; ".join(h[2] for h in hits))
+    j, k, e, n, kind = hits[0]
+    new = n + delta
+    if new < 0:
+        raise InventoryError(f"{owner or 'they'} {'has' if owner else 'have'} only {n} {noun}")
+    if kind in ("paren-noun", "paren"):
+        m = re.search(r"\((\d+)", e)
+        after = e[:m.start(1)] + str(new) + e[m.end(1):]
+        if new == 0 and kind == "paren":
+            after = None
+    elif kind == "lead":
+        m = re.match(r"^(\d+)(\s+)(.*)$", e)
+        rest = m.group(3)
+        after = None if new == 0 else f"{new}{m.group(2)}{_sing_first(rest) if new == 1 else rest}"
+    else:
+        after = None if new == 0 else (e if new == 1 else f"{new} {e}")
+    prefix, entries, trailing = _split_entries(doc.body[j])
+    if after is None:
+        del entries[k]
+    else:
+        entries[k] = after
+    doc.body[j] = (prefix + ", ".join(entries) + ("," if trailing and entries else "")).rstrip()
+    return n, new, e, after
+
+
+def item(name, sign, text, reason="", count=None):
     text = text.strip()
     if not text:
         raise InventoryError("item: name the item")
     c = creature(name)
     doc, (start, end) = _inventory(c)
+    if count is not None:   # `item Kira +3 arrows`: a counted entry, else a new pack entry
+        hits = counted(doc, text)
+        if hits or sign == "-":
+            n, new, before, after = adjust_count(doc, text, count if sign == "+" else -count, c.name)
+            doc.save()
+            body = f"item {c.name} {sign}{count} {text} · {before} → {after or 'gone'}" + (f" ({reason})" if reason else "")
+            journal.log_delta(body)
+            return f"[{body}]", {"name": c.name, "sign": sign, "item": text, "from": n, "to": new}
+        text = f"{count} {text}"
     if sign == "+":
         pack = None
         for j in range(start + 1, end):
@@ -194,6 +293,8 @@ def parse_item_args(tokens):
         if len(tokens) < 2:
             raise InventoryError("item: name the item")
         return first, tokens[1], " ".join(tokens[2:])
+    if re.fullmatch(r"[+-]\d+", first) and len(tokens) >= 2:   # `+3 arrows`: a count
+        return first[0], tokens[1], " ".join(tokens[2:]), int(first[1:])
     if first[:1] in "+-":
         return first[0], first[1:], " ".join(tokens[1:])
     raise InventoryError(f"item: want +name or -name, got {first!r}")
@@ -309,8 +410,8 @@ def cmd_attitude(ctx):
 
 
 def cmd_item(ctx):
-    sign, text, reason = parse_item_args(ctx.args.change)
-    emit(ctx, item(ctx.args.target, sign, text, reason))
+    parsed = parse_item_args(ctx.args.change)
+    emit(ctx, item(ctx.args.target, *parsed))
 
 
 def cmd_coin(ctx):
@@ -328,7 +429,7 @@ def register(sub, g):
     p.add_argument("target"); p.add_argument("value"); p.add_argument("reason", nargs="?")
     p.set_defaults(func=cmd_attitude)
 
-    p = sub.add_parser("item", parents=[g], help='item NAME -thing "reason" | + "thing"')
+    p = sub.add_parser("item", parents=[g], help='item NAME -thing "reason" | + "thing" | +3 arrows')
     p.add_argument("target"); p.add_argument("change", nargs=R)
     p.set_defaults(func=cmd_item)
 

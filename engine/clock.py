@@ -16,6 +16,10 @@ Advances `in-game-datetime` and reports everything it crossed:
   intents for the GM to narrate or override.
 - Conditions with minute/hour durations (`poisoned 10m`, `blessed 1h`) count down on
   PC/NPC files; expiries are reported.
+- Phase 13: carried light sources burn down (`Light out: Kael's torch (Day 1 19:30)`,
+  a warning at 10 minutes left), concentration with a game-time `until` ends, a
+  `stable Nh` PC wakes with 1 HP, and each dawn crossed checks who didn't eat
+  (supplies.py; `Supplies: …` lines, exhaustion past the limit).
 - Scenario `- CLOCK Day N HH:MM:` lines and `## Clocks` bullets that fall inside the
   window fire: printed in full and logged as `(GM)` lines. Whether a beat happens is
   the GM's call.
@@ -177,6 +181,7 @@ def _tick_conditions(minutes, docs=None):
     for doc in campaign.pcs() + campaign.npcs() if docs is None else docs:
         conds = [str(c) for c in (doc.front.get("conditions") or []) if str(c).strip()]
         kept, changed = [], False
+        woke = False
         for c in conds:
             m = _DUR.match(c)
             if not m:
@@ -185,15 +190,48 @@ def _tick_conditions(minutes, docs=None):
             left = int(m.group(2)) * (60 if m.group(3).lower() == "h" else 1) - minutes
             changed = True
             if left <= 0:
-                expired.append(f"{_first(doc.front.get('name'))} {m.group(1)}")
+                what = f"{_first(doc.front.get('name'))} {m.group(1)}"
+                woke = woke or (m.group(1).lower() == "stable" and Path(doc.path).parent.name == "pcs")
+                expired.append(what + (" (wakes with 1 HP)" if woke and m.group(1).lower() == "stable" else ""))
             else:
                 kept.append(f"{m.group(1)} {left // 60}h" if left % 60 == 0 and left >= 60 else f"{m.group(1)} {left}m")
         if changed:
             doc.set_front("conditions", kept)
+            if woke:
+                import conditions_ext
+                conditions_ext.wake(doc)   # 1 HP, no longer unconscious
             doc.save()
     for e in expired:
         journal.log_delta(f"cond {e} expired")
     return expired
+
+
+def _table_mechanics(old, new, w_old, w_new):
+    """Phase 13 bookkeeping on the clock: light burning down, concentration running out,
+    the dawn food check. PCs of the active group on their own clock; NPCs on the world
+    clock while split."""
+    import conditions_ext
+    import supplies
+    pcs = campaign.scene_pcs(include_absent=True)
+    if split.info() is None:
+        npcs, n_old, n_new = campaign.npcs(), old, new
+    else:
+        npcs, n_old, n_new = campaign.npcs(), w_old, w_new
+    out = []
+    if _setting_on("track-light"):
+        out += ["  " + x for x in supplies.tick_light(gametime.diff(old, new), pcs, old)]
+        if gametime.diff(n_old, n_new) > 0:
+            out += ["  " + x for x in supplies.tick_light(gametime.diff(n_old, n_new), npcs, n_old)]
+    ended = conditions_ext.expire_concs(new, campaign.scene_pcs(include_absent=True))
+    if gametime.diff(n_old, n_new) > 0:
+        ended += conditions_ext.expire_concs(n_new, campaign.npcs())
+    out += ["  Concentration: " + x.strip("[]") for x in ended]
+    out += supplies.dawn_check(old, new, pcs)
+    return out
+
+
+def _setting_on(key):
+    return str(campaign.settings().get(key, "on")).strip().lower() != "off"
 
 
 def clock_lines(state):
@@ -255,6 +293,7 @@ def advance(spec, *, log_time=True):
                    + (_tick_conditions(w_minutes, campaign.npcs()) if w_minutes > 0 else []))
     if expired:
         lines.append("  Conditions expired: " + ", ".join(expired))
+    lines += _table_mechanics(old, new, w_old, w_new)
     fired, nxt = [], None
     for t, text, src in clock_lines(campaign.load_state()):
         if gametime.diff(w_old, t) > 0 and gametime.diff(t, w_new) >= 0:

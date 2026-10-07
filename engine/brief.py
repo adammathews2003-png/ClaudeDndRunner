@@ -14,7 +14,14 @@ adds the scene Summary, the last 5 turns of the session log and the spoiler reco
 - UserPromptSubmit: the full brief when it changed since the last injection (hash of
   every line but `Log:`, kept in `<campaign>/.gm/brief-hash`), on every 15th prompt,
   or when the prompt starts with `!brief`; otherwise a one-line heartbeat. Then the
-  Wacky Juice roll (lib/wacky.py) may append a `Juice:` line.
+  Wacky Juice roll (lib/wacky.py) may append a `Juice:` line. A prompt starting with
+  `!x` (the X-card, Phase 13) puts an `X-card:` line first and logs `x-card` with no
+  detail; it is never a split exchange.
+The full brief carries `Table: lines — …; veils — …` after `Party:` (content
+boundaries, GM-side only; `Table: boundaries not asked yet` until set, nothing once set
+empty). The party line tags `DYING ✓1 ✗2`, `[conc bless 8r]`, `[exh 2]`; the Sight
+line names the best carried light (`Sight (dark · Kael's torch 40m: bright 20 ft, dim
+40 ft): …`).
 The hook never fails the prompt: any error prints `[GM BRIEF] unavailable: <reason>`
 and exits 0.
 """
@@ -24,9 +31,11 @@ import re
 import sys
 from pathlib import Path
 
-from lib import campaign, creatures, gametime, journal, md, resolve, sight, wacky
+from lib import campaign, creatures, gametime, journal, light, md, resolve, sight, wacky
 
 FORCE_EVERY = 15
+XCARD = ("X-card: the last thing described is out — rewind it in one line and steer away; "
+         "don't ask why")
 XP_NEXT = (0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000,
            120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000)
 _TEMPO = re.compile(r"^Tempo:\s*([a-z]+)", re.I)
@@ -169,9 +178,17 @@ def party(state, settings):
             bits.append(f"{name} (autopilot)")
             continue
         cur, mx, temp, ac, conds = _pc_numbers(state, doc)
+        import conditions_ext
+        conds, tags = conditions_ext.tags(doc.front, conds, _now(state))
         bit = f"{name} {cur}/{mx}" + (f" (+{temp} temp)" if temp else "") + f" AC{ac}"
+        dying = [t for t in tags if t.startswith("DYING")]
+        if dying:
+            bit += " " + dying[0]
         if conds:
             bit += " [" + ", ".join(conds) + "]"
+        rest = [t for t in tags if not t.startswith("DYING")]
+        if rest:
+            bit += " " + " ".join(rest)
         xp = doc.front.get("xp")
         if tracking and isinstance(xp, int):
             level = doc.front.get("level") if isinstance(doc.front.get("level"), int) else 1
@@ -183,13 +200,32 @@ def party(state, settings):
 
 def sight_line(state):
     """`Sight (dark): …` for each present PC when the scene isn't brightly lit, so the GM
-    knows who sees what without asking (lib/sight.py; senses come from the PC file)."""
-    light = str(state.front.get("light") or "bright").lower()
-    if light == "bright":
+    knows who sees what without asking (lib/sight.py; senses come from the PC file).
+    A carried light (lib/light.py) is named and counts: `Sight (dark · Kael's torch 40m:
+    bright 20 ft, dim 40 ft): Kael sees normally · …`."""
+    ambient = str(state.front.get("light") or "bright").lower()
+    if ambient == "bright":
         return None
-    bits = [sight.describe(d, light, _short(d.front.get("name") or "?"))
-            for d in campaign.scene_pcs()]
-    return f"Sight ({light}): " + (" · ".join(bits) if bits else "—")
+    docs = campaign.scene_pcs()
+    group = campaign.scene_pcs(include_absent=True)
+    best = light.best(group)
+    bits = [sight.describe(d, sight.scene_light(d, ambient, state, group), _short(d.front.get("name") or "?"))
+            for d in docs]
+    head = ambient + (f" · {light.describe(best)}" if best else "")
+    return f"Sight ({head}): " + (" · ".join(bits) if bits else "—")
+
+
+def table_line(settings_doc_front):
+    """`Table: lines — …; veils — …` (content boundaries; 02 → Table mechanics), or the
+    not-asked reminder, or None once both are set empty."""
+    f = settings_doc_front
+    if "lines" not in f and "veils" not in f:
+        return "Table: boundaries not asked yet"
+    lines = [str(x) for x in (f.get("lines") or []) if str(x).strip()]
+    veils = [str(x) for x in (f.get("veils") or []) if str(x).strip()]
+    if not lines and not veils:
+        return None
+    return f"Table: lines — {', '.join(lines) or 'none'}; veils — {', '.join(veils) or 'none'}"
 
 
 def _rule_rows():
@@ -268,6 +304,9 @@ def build(state=None):
     if o:
         lines.append(o)
     lines.append(party(state, settings))
+    tl = table_line(campaign.boundaries_front(state))
+    if tl:
+        lines.append(tl)
     sl = sight_line(state)
     if sl:
         lines.append(sl)
@@ -322,11 +361,16 @@ def heartbeat(state, since_turn):
         if doc.front.get("present") is False:
             continue
         cur, mx, temp, _, conds = _pc_numbers(state, doc)
+        import conditions_ext
+        conds, _ = conditions_ext.tags(doc.front, conds)
+        ds = conditions_ext.dying_state(doc.front)
         hurt = isinstance(cur, int) and isinstance(mx, int) and cur < mx
-        if hurt or conds:
+        if hurt or conds or ds:
             b = _short(doc.front.get("name") or "?")
             if hurt:
                 b += f" {cur}/{mx}"
+            if ds:
+                b += " DYING ✓%d ✗%d" % ds
             if conds:
                 b += " " + ", ".join(c.split()[0] for c in conds)
             bits.append(b)
@@ -414,6 +458,10 @@ def hook(ctx, long):
         _clear_hash()
         return build(state) + long_extra(state)
     prompt = str(data.get("prompt") or "")
+    xcard = []
+    if re.match(r"^\s*!x(?![\w-])", prompt, re.I):   # the X-card: logged, no detail, not an exchange
+        journal.log_delta("x-card")
+        xcard = [XCARD]
     import split
     held = split.count_prompt(prompt)
     lines = build(state)
@@ -430,7 +478,7 @@ def hook(ctx, long):
     juice = wacky.hook_roll(prompt, ctx.roller, state)
     if juice:
         out.append(juice)
-    return out + held
+    return xcard + out + held
 
 
 def cmd_brief(ctx):

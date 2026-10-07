@@ -9,6 +9,7 @@ context (`/campaign-new`, `/campaign-scenario`), never a tool.
     campaign fill --add "<question>" --default "<default>" # the generator queues one
     campaign status [--level shape-only|fill-in|outline|full]
     campaign ledger add "<what the driver was told>" --via <skill>
+    campaign boundaries [--line "…"] [--veil "…"] [--drop "…"] [--none]   # content boundaries (Phase 13)
 
 `status` prints only what the reveal level allows: shape-only = settings, the
 player-safe premise, known places and frontier leads; fill-in adds the queue; outline
@@ -221,6 +222,33 @@ def status(level=None):
     return out
 
 
+def boundaries(add_lines=(), add_veils=(), drop=(), none=False):
+    """Edit `lines:`/`veils:` (02 → Table mechanics → Content boundaries) in campaign.md,
+    or current.md for a campaign without one. `--none` records "asked, none" (empty
+    lists); with nothing to change it prints them (GM-side output only). The session log
+    gets a count, never the text."""
+    p = campaign.campaign_doc_path()
+    doc = md.load(p) if p.exists() else campaign.load_state()
+    clean = lambda xs: [x.replace(",", ";").strip() for x in xs if x and x.strip()]  # noqa: E731
+    cur = {k: [str(x) for x in (doc.front.get(k) or []) if str(x).strip()] for k in ("lines", "veils")}
+    asked = "lines" in doc.front or "veils" in doc.front
+    changed = bool(add_lines or add_veils or drop or none)
+    if changed:
+        gone = {x.strip().lower() for x in drop}
+        missing = [x for x in drop if x.strip().lower() not in {y.lower() for y in cur["lines"] + cur["veils"]}]
+        if missing:
+            raise CampaignCmdError(f"campaign boundaries: nothing to drop called {missing[0]!r}")
+        for k, add in (("lines", clean(add_lines)), ("veils", clean(add_veils))):
+            kept = [x for x in cur[k] if x.lower() not in gone]
+            cur[k] = kept + [x for x in add if x.lower() not in {y.lower() for y in kept}]
+            doc.set_front(k, cur[k])
+        doc.save()
+        journal.log_delta(f"boundaries: {len(cur['lines'])} line(s), {len(cur['veils'])} veil(s)", gm=True)
+    elif not asked:
+        return ["[boundaries: not asked yet — campaign boundaries --line \"…\" --veil \"…\" (or --none)]"]
+    return [f"[boundaries · lines: {', '.join(cur['lines']) or 'none'} · veils: {', '.join(cur['veils']) or 'none'}]"]
+
+
 def cmd_campaign(ctx):
     a = ctx.args
     if a.action == "new":
@@ -236,6 +264,8 @@ def cmd_campaign(ctx):
             lines = [fill(a.args[0], " ".join(a.args[1:]))]
     elif a.action == "status":
         lines = status(a.level)
+    elif a.action == "boundaries":
+        lines = boundaries(a.line, a.veil, a.drop, a.none)
     else:
         if len(a.args) < 2 or a.args[0] != "add" or not a.via:
             raise CampaignCmdError('campaign ledger add "<what>" --via <skill>')
@@ -245,8 +275,8 @@ def cmd_campaign(ctx):
 
 
 def register(sub, g):
-    p = sub.add_parser("campaign", parents=[g], help="campaign new | fill | status | ledger")
-    p.add_argument("action", choices=["new", "fill", "status", "ledger"])
+    p = sub.add_parser("campaign", parents=[g], help="campaign new | fill | status | ledger | boundaries")
+    p.add_argument("action", choices=["new", "fill", "status", "ledger", "boundaries"])
     p.add_argument("args", nargs="*")
     p.add_argument("--area")
     p.add_argument("--set", action="extend", nargs="+", default=[])
@@ -256,4 +286,8 @@ def register(sub, g):
     p.add_argument("--default")
     p.add_argument("--level")
     p.add_argument("--via")
+    p.add_argument("--line", action="append", default=[], help="boundaries: never appears")
+    p.add_argument("--veil", action="append", default=[], help="boundaries: off screen only")
+    p.add_argument("--drop", action="append", default=[], help="boundaries: remove one")
+    p.add_argument("--none", action="store_true", help="boundaries: asked, the table has none")
     p.set_defaults(func=cmd_campaign)

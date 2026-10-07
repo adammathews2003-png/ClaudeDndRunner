@@ -69,7 +69,9 @@ class HitPoints(Base):
         self.assertEqual(self.ok("hp", "Kael", "-6"), ["[hp Kael Ashford 30→24/30]"])
         self.assertEqual(self.ok("hp", "Kael", "+40"), ["[hp Kael Ashford 24→30/30]"])
         self.assertEqual(self.ok("hp", "Kael", "=11"), ["[hp Kael Ashford 30→11/30]"])
-        self.assertEqual(self.ok("hp", "Kael", "-99"), ["[hp Kael Ashford 11→0/30]"])
+        # Phase 13: 88 damage past 0 is at least the HP maximum, so it kills (massive damage)
+        self.assertEqual(self.ok("hp", "Kael", "-99"), ["[hp Kael Ashford 11→0/30]",
+                                                        "[Kael is dead (massive damage: 88 past 0 ≥ HP max 30)]"])
         self.assertEqual(self.front("pcs/kael-ashford.md")["hp"], {"current": 0, "max": 30})
         text = self.path("pcs/kael-ashford.md").read_text(encoding="utf-8")
         self.assertIn("hp: {current: 0, max: 30}   # max HP per level (house rule)", text)
@@ -101,9 +103,11 @@ class HitPoints(Base):
                          before)
 
     def test_damage_at_zero_notes_death_save(self):
+        # Phase 13: the note became the write (death-saves: in the PC file)
         self.ok("hp", "Kael", "=0")
         self.assertEqual(self.ok("dmg", "Kael", "4"),
-                         ["[dmg Kael Ashford 4 · Kael Ashford 0→0/30 (at 0 HP: death save failure (2 on a crit))]"])
+                         ["[dmg Kael Ashford 4 · Kael Ashford 0→0/30]",
+                          "[Kael: damage at 0 HP — a death save failure · dying ✓0 ✗1]"])
 
     def test_srd_npc_without_hp_line(self):
         # Mara is an SRD commoner (4 HP) with no hp: line; the first change writes one
