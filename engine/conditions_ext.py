@@ -435,6 +435,8 @@ def after_hp(name, *, is_pc, op, cur, new, mx, taken, hp_lost=0, crit=False):
         lines += damage_line(name, taken, new)
     elif new == 0 and cur > 0:          # `hp X =0`: no save, but 0 HP still ends it
         lines += damage_line(name, cur, 0)
+    if op == "+" and new > cur:         # healing stops the crit die's bleed (Phase 16)
+        lines += _stop_bleeding(name)
     if not is_pc:
         return lines
     if _setting("lingering-injuries") == "on" and (crit or (cur > 0 and new == 0)):
@@ -474,6 +476,15 @@ def after_hp(name, *, is_pc, op, cur, new, mx, taken, hp_lost=0, crit=False):
     if cur == 0 and new > 0:
         lines += clear_dying(creature(c.name).doc)
     return lines
+
+
+def _stop_bleeding(name):
+    c = creature(name)
+    if "bleeding" not in [x.split()[0].lower() for x in _conds(c)]:
+        return []
+    import mutations
+    line, _ = mutations.cond(c.name, "-bleeding")
+    return [line]
 
 
 def _stable(name, roller):

@@ -37,9 +37,14 @@ and the generation runs in a forked context that returns a shape card.
    `chases` dmg | narrative; Phase 15: `inspiration` advantage | reroll | off, `downtime`
    off | light | full, `weather` off | on, `encumbrance` off | basic | variant, `renown`
    off | party | per-pc, `lingering-injuries` off | on, `upkeep` off | on — lifestyle,
-   materials and wages in coin; this table keeps bookkeeping off) keep their defaults
+   materials and wages in coin; this table keeps bookkeeping off; Phase 16: `carousing`
+   off | on, `crit-die` off | on, `crit-die-pcs` dying | dead) keep their defaults
    unless the seed touches them (a faction-heavy seed: `renown=party`; a wilderness
-   seed: `weather=on`). Lingering injuries need the campaign's own `tables/injuries.md`.
+   seed: `weather=on`; a rowdy comedy: `carousing=on`; "brutal crits": `crit-die=on`).
+   Lingering injuries need the campaign's own `tables/injuries.md`; `campaign new`
+   copies the engine's original starter `tables/carousing.md` and `tables/crit-die.md`
+   (a table the driver found elsewhere comes in with `table import <file> --as
+   carousing` and stays in the campaign).
 3. **Write the seed verbatim** to a scratch file (e.g. `<slug>-seed.md` in your scratch
    space, or pass the text you have), then:
    `python engine/gm.py campaign new <slug> --area "<starting area>" --set length="3-5 sessions" start-level=3 difficulty=hard shape=mystery tone=comedic … [--set "mechanics=time-loop"] --seed-file <seed file>`

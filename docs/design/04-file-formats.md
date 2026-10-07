@@ -394,7 +394,7 @@ its `notes`.
 | `renown` | `off \| party \| per-pc` | off | 15 |
 | `lingering-injuries` | `off \| on` | off | 15 |
 | `upkeep` | `off \| on` (coin for lifestyle, crafting materials, training fees, hireling wages) | off | 15 |
-| `carousing` | `on \| off` | on | 16 |
+| `carousing` | `on \| off` | off | 16 |
 | `crit-die` | `off \| on` | off | 16 |
 | `crit-die-pcs` | `dying \| dead` | dying | 16 |
 
@@ -406,7 +406,10 @@ campaign's `lines:`/`veils:`. Frontmatter: `die: d100` (default: inferred from t
 highest roll) and, for carousing, `cost: 1d6x10gp`. `carousing.md` and `crit-die.md`
 are copied from `engine/templates/tables/` by `campaign new` (original starter text).
 A table imported from elsewhere (`table import`) replaces the copy and stays in the
-campaign folder.
+campaign folder. A campaign without its own copy (the POC) rolls the engine's starter.
+`state/carousing.md` (GM-only, written by `carouse`) keeps the latest night per PC, `| pc
+| night | roll | result | applied |`, so `carouse --reroll` can take a row back. The crit
+die's bleed is the condition `bleeding 1d4` (a dice expression after the name).
 
 **Discord bridge (Phase 17)** — `<campaign>/discord.md`, read by `table.py` only:
 ```markdown

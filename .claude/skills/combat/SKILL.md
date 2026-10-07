@@ -56,7 +56,22 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
   `python engine/gm.py do "atk Kira Veskar --with dagger --d20 14; log \"…\""`
   (the tool rolls damage and applies it; a sneak attack / smite etc. is extra damage:
   `dmg Veskar 7`). It spends the action (Extra Attack counted); `--bonus` for a
-  bonus-action attack. Saves: `save Kael dex 14 --d20 9`.
+  bonus-action attack. Saves: `save Kael dex 14 --d20 9`. A player who rolled two dice
+  for advantage: `--d20 14,6`; one die on a roll that has advantage or disadvantage: pass
+  it, and the tool rolls the second in the open.
+- **The crit die** (`crit-die: on`, default off). Every crit, both ways, rolls the
+  campaign's `tables/crit-die.md` instead of just doubling: the line gains `· CRIT DIE
+  d10 → 6 dice x2; disarm`. The tool applies what it knows (double, triple or max+roll
+  damage, prone, `stunned` until the end of the target's next turn, `disarm`, `bleeding
+  1d4` that `combat next` rolls at the start of each of its turns, `kill`) and falls back
+  to double dice when a face can't apply (a disarm against a bite). **Narrate each face**:
+  the blade spinning away and clattering at their feet (picking it up is an object
+  interaction), the stagger, the blood. A `kill` on a monster is an instant, cinematic
+  death; on a PC it's 0 HP and dying (`crit-die-pcs: dying`, the default) or dead
+  (`dead`). A boss with Legendary Resistance left spends one to turn the kill into
+  triple damage (`[LR: …]`). A table with its own physical die: `atk … --crit-die 7`.
+  Healing or a DC 10 Medicine check (`cond Veskar -bleeding`) stops the bleeding. Never on
+  checks or saves.
 - **Other actions:** `turn use action` (Dash adds speed: `turn use dash`; Dodge, Disengage,
   Help, Hide, a spell), `turn use bonus`, `turn use object` (draw a second weapon, open a
   door, pick something up). `turn` alone prints what's left.

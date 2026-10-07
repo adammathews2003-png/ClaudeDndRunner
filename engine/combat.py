@@ -431,7 +431,7 @@ def morale_check(state=None):
     return out + hired
 
 
-def next_turn():
+def next_turn(roller=None):
     state = campaign.load_state()
     table = state.table("Combatants")
     if table is None:
@@ -484,6 +484,8 @@ def next_turn():
     if mount_note:
         lines.insert(2, mount_note)
     lines += ready.lapse(new_up) + reminders
+    import crit   # the crit die's bleed: 1d4 at the start of each of its turns (Phase 16)
+    lines += crit.bleed_line(new_up, roller or dice.Roller())
     dying = conditions_ext.dying_prompt(new_up)
     if dying:
         lines.insert(2, dying)
@@ -707,7 +709,7 @@ def cmd_combat(ctx):
     if a.action == "start":
         lines, data = start(a.init, a.add, a.surprised, a.frame, ctx.roller, a.opener)
     elif a.action == "next":
-        lines, data = next_turn()
+        lines, data = next_turn(ctx.roller)
     elif a.action == "end":
         lines, data = end(a.count, a.count_fled)
     else:

@@ -1022,13 +1022,16 @@ it on.
 
 House-flavor additions from the table, each behind a setting.
 
-**Carousing** (`carousing: on | off`, default on). Players can decide to carouse (a
+**Carousing** (`carousing: on | off`, default off: the table's standing preference
+keeps optional bookkeeping off until asked for; built 2026-10-07). Players can decide to carouse (a
 night of heavy drinking in a settlement with somewhere to do it) and let a d100 table
 decide what they got up to.
 1. **Who's in.** Each PC who joins rolls separately. One pause before it starts, in
    fiction: *"You'll wake up tomorrow with whatever you did tonight. Still in?"* The
    night costs coin (`cost:` in the table's frontmatter, default `1d6x10gp` per PC). A
-   PC who can't pay comes out of it in debt, recorded the same way as any other result.
+   PC who can't pay spends what they have and comes out of it in debt, recorded the same
+   way as any other result (a clock: the debt comes due in 7 days). The cost is coin the
+   PC chose to spend, so it is charged whatever `upkeep` says.
 2. **Roll behind the screen.** `gm.py carouse Kira,Kael` rolls each PC's d100 on the
    campaign's table and prints only GM-side lines. It also re-rolls automatically any
    row tagged with one of the campaign's content `lines:` (Phase 13). Rows tagged
@@ -1048,6 +1051,8 @@ decide what they got up to.
 6. **Same limits as Wacky Juice.** A result may not break the core scenario: it can't
    reveal secrets, kill or remove a key NPC, or skip a beat. If a row would, the GM
    re-rolls it (`carouse --reroll Kira`, logged as GM-only) without a word to the table.
+   The re-roll takes back what the tool applied for that row (coin, items, clocks; the
+   night's record is `state/carousing.md`), never the night's cost.
 
 *Where the table comes from:* `tables/carousing.md` in the campaign (`| roll | result |
 effect | tags |`, ranges like `01-03`). The engine ships an **original** starter table
@@ -1063,10 +1068,12 @@ default dying). This house rule replaces the normal critical hit. On a critical 
 target), `atk` rolls the crit die instead of just doubling the dice:
 - The die is the campaign's `tables/crit-die.md` (`| roll | result | effect |`). Its
   size is the number of rows (8 rows = d8, 10 rows = d10), so a physical die the table
-  owns can be typed in face by face. The engine ships an original starter d10: 1–3
-  double dice (RAW), 4 max damage + a roll, 5 triple dice, 6 disarm, 7 knocked prone,
-  8 stunned until the end of its next turn, 9 bleeding (1d4 at the start of each of
-  its turns until healed or a DC 10 Medicine check), 10 slain outright.
+  owns can be typed in face by face (`atk … --crit-die 7`). The engine ships an original
+  starter d10: 1–3 double dice (RAW), 4 max damage + a roll, 5 triple dice, 6 disarm, 7
+  knocked prone, 8 stunned until the end of its next turn, 9 bleeding (1d4 at the start
+  of each of its turns until healed or a DC 10 Medicine check), 10 slain outright. Faces
+  6–9 also deal double dice (their rows say `dice x2; disarm` and so on; a row with no
+  damage code deals `dice x2`), so no face is worse than a RAW crit.
 - The tool applies the codes it knows: `dice x2` (RAW), `dice x3`, `max+dice`, `prone`,
   `stunned 1t`, `disarm` (the weapon drops in its space; it's logged), `bleed 1d4`, and
   `kill`. It prints anything else for the GM to narrate. If an effect can't apply (a
@@ -1076,7 +1083,9 @@ target), `atk` rolls the crit die instead of just doubling the dice:
   (death saves as normal) under `crit-die-pcs: dying`; `dead` means dead.
 - **Bosses:** a creature with Legendary Resistance may spend one to turn a `kill` into
   `dice x3`. That's the only protection. A `kill` on anyone else stands, and the table
-  enjoys it.
+  enjoys it. A boss always takes that trade, so the tool makes it: while the creature has
+  Legendary Resistance left (a `legendary resistance` Resources row above 0, or untracked),
+  the kill becomes `dice x3` and the use is spent (or the line says to mark it).
 
 **Discord** (Phase 17) is about the table client, not the GM: see 06 → Table client →
 Discord bridge. The GM treats a line from Discord exactly like a typed line. The channel

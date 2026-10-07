@@ -116,6 +116,7 @@ class D20:
         self.natural, self.rolls, self.bonus, self.total = natural, rolls, bonus, total
         self.text = text
         self.reported = reported
+        self.note = ""   # how a reported roll was read (Phase 16 pre-rolls), printed with the outcome
 
     def as_dict(self):
         return {"natural": self.natural, "rolls": self.rolls, "bonus": self.bonus,
@@ -133,6 +134,49 @@ def reported(bonus, d20=None, total=None):
     if total is None:
         raise DiceError("reported roll needs --d20 or --total")
     return D20(None, [], bonus, total, f"total {total}", reported=True)
+
+
+def reported_pair(bonus, dice_given, mode, roller):
+    """A player's natural d20(s) under `mode` (02 → Dice → Pre-rolls, Phase 16): two dice
+    keep the higher (adv) or lower (dis), or the first when neither applies; one die under
+    adv/dis gets its second die rolled here, in the open (`d20 (14, tool 9)→14`)."""
+    given = list(dice_given)
+    for n in given:
+        if not 1 <= n <= 20:
+            raise DiceError(f"--d20 must be 1-20, got {n}")
+    if len(given) > 2:
+        raise DiceError("--d20 takes one die or two (14,6)")
+    if mode not in ("adv", "dis"):
+        r = reported(bonus, d20=given[0])
+        if len(given) == 2:
+            r.note = f"second die {given[1]} unused: no adv/dis"
+        return r
+    if len(given) == 1:
+        extra = roller.die(20)
+        a, b = given[0], extra
+        shown = f"{a}, tool {b}"
+    else:
+        a, b = given
+        shown = f"{a}, {b}"
+    kept = max(a, b) if mode == "adv" else min(a, b)
+    t = kept + bonus
+    r = D20(kept, [a, b], bonus, t, f"d20 ({shown})→{kept}{_sign(bonus)}={t}", reported=True)
+    if len(given) == 1:
+        r.note = f"{'advantage' if mode == 'adv' else 'disadvantage'}: second die rolled"
+    return r
+
+
+def multiply(expr, k):
+    """'2d6+3' x3 -> '6d6+3': every dice term's count times k (the crit die's `dice x3`)."""
+    out = []
+    for t in parse(expr):
+        sign = "-" if t.sign < 0 else "+"
+        if t.is_dice:
+            body = f"{t.n * k}d{t.m}" + (f"{t.keep}{t.k * k}" if t.keep else "")
+        else:
+            body = str(t.value)
+        out.append(body if not out and sign == "+" else sign + body)
+    return "".join(out)
 
 
 class Roller:

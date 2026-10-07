@@ -31,7 +31,8 @@ COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "sessio
                    "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
                    "brief", "juice", "tempo", "xp", "stub", "where", "trace", "odds", "spoil", "scaffold", "encounter", "loot", "loop", "campaign_cmd", "monster", "intro", "turn", "split",
                    "conditions_ext", "supplies", "social", "explore", "chase", "hazard", "hiding",
-                   "inspiration", "ready", "magic", "downtime", "allies", "weather", "renown", "injury")
+                   "inspiration", "ready", "magic", "downtime", "allies", "weather", "renown", "injury",
+                   "carouse", "randtable")
 
 
 class CommandError(Exception):

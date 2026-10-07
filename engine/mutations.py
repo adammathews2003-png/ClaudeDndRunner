@@ -198,9 +198,11 @@ def _conds_from_cell(cell):
     return [c.strip() for c in cell.split(",") if c.strip()]
 
 
-def cond(name, change, duration=None):
+def cond(name, change, duration=None, detail=None):
     """change '+prone' / '-prone'; duration '3r' (rounds), '10m' (minutes) or '1h'.
-    An incapacitating condition ends the creature's concentration (conditions_ext)."""
+    `detail` is a dice expression carried by the condition (`bleeding 1d4`, the crit
+    die's bleed, Phase 16). An incapacitating condition ends the creature's
+    concentration (conditions_ext)."""
     m = re.fullmatch(r"([+-])\s*([A-Za-z][\w-]*)", change.strip())
     if not m:
         raise MutationError(f"cond: want +name or -name, got {change!r}")
@@ -221,7 +223,7 @@ def cond(name, change, duration=None):
     before = list(conds)
     rest = [x for x in conds if x.split()[0].lower() != cname]
     if sign == "+":
-        rest.append(cname + (f" {duration.lower()}" if duration else ""))
+        rest.append(cname + (f" {detail.lower()}" if detail else "") + (f" {duration.lower()}" if duration else ""))
     elif len(rest) == len(conds):
         raise MutationError(f"{c.name} is not {cname}")
     if i >= 0:
@@ -231,7 +233,8 @@ def cond(name, change, duration=None):
         c.doc.set_front("conditions", rest)
         c.doc.save()
     shown = ", ".join(rest) if rest else "none"
-    body = f"cond {c.name} {sign}{cname}" + (f" {duration.lower()}" if duration else "") + f" · now {shown}"
+    body = (f"cond {c.name} {sign}{cname}" + (f" {detail.lower()}" if detail else "")
+            + (f" {duration.lower()}" if duration else "") + f" · now {shown}")
     journal.log_delta(body)
     after = []
     if sign == "+":
@@ -401,6 +404,9 @@ def cmd_cond(ctx):
     toks = " ".join(ctx.args.change).split()
     if not toks:
         raise MutationError("cond: want +name [Nr|Nm] or -name")
+    if len(toks) > 1 and re.fullmatch(r"\d*d\d+", toks[1], re.I):   # `+bleeding 1d4`
+        emit(ctx, cond(ctx.args.target, toks[0], toks[2] if len(toks) > 2 else None, detail=toks[1]))
+        return
     emit(ctx, cond(ctx.args.target, toks[0], toks[1] if len(toks) > 1 else None))
 
 

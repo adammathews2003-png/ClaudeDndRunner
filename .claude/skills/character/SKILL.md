@@ -38,6 +38,10 @@ win**; you never invent a value they didn't give; the tools compute everything e
    `world add "<place>" --near <id> [--within 3d] --source player:<pc> --note "…"`
    (the player's words are the constraints). Hooks you see in a backstory are woven in
    privately — never say so at the table.
+6. **A new player** (not just a new PC for someone who's played before): end the intake
+   with the short how-to-play talk, addressed to them, in your own table voice:
+   `python engine/gm.py intro --how-to-play --for <PC>` prints it (name prefix, rolling
+   ahead, ask anything). Skip it when they already know the table.
 
 ## Changes to an existing PC
 `python engine/gm.py pc edit <pc> --set … --item +"longbow" --item -"shortbow"` (same

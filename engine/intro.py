@@ -14,6 +14,16 @@ bracket lines:
   one plain-words mention that repeated tries with an NPC can get easier.
 `intro --why "<text>"` records the answer as that `Chosen:` line (the section is created
 after `## Premise` when missing) and logs it.
+
+How to play (02 → How to play; 06 → `intro`; Phase 16): at the first session, until it
+has been given, `intro` opens with `[HOW TO PLAY]` lines (before the title card) for the
+GM to say in table voice once the characters are settled: name prefixes, intent over
+outcome, rolling ahead (example from a present PC; left out under `dice-mode:
+gm-rolls-all`), asking anything, and the Discord line while `discord.md` has the bridge
+on. It is logged once per campaign as `[intro] how to play given`, so a second `intro`
+in session 1 doesn't repeat it. `intro --how-to-play [--for <PC>]` prints it on demand
+(`--for`: the short version for a new player, addressed to them). The first session's
+`[TELL THE TABLE]` lines also name carousing and the crit die while they're on.
 """
 import re
 
@@ -118,16 +128,111 @@ def record(text):
     return f"[intro: why you're here → {text}]"
 
 
+# ---------- how to play (Phase 16) ----------
+
+GIVEN = "[intro] how to play given"
+
+
+def _given():
+    """True once `[intro] how to play given` is in the session log or the history."""
+    root = campaign.root() / "sessions"
+    paths = [campaign.session_log_path()] + (sorted((root / "history").glob("*.md")) if root.is_dir() else [])
+    for p in paths:
+        try:
+            if GIVEN in p.read_text(encoding="utf-8"):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def _example_pc(want=None):
+    pcs = [d for d in campaign.pcs() if d.front.get("present") is not False]
+    if want:
+        c = campaign.resolve(want)
+        if not c.is_pc:
+            raise IntroError(f"intro --for: {c.name} is not a PC")
+        return c.name.split()[0]
+    return str(pcs[0].front.get("name")).split()[0] if pcs else "Kira"
+
+
+def _discord_on():
+    p = campaign.root() / "discord.md"
+    if not p.exists():
+        return False
+    return str(md.load(p).front.get("discord") or "off").strip().lower() in ("queue", "auto")
+
+
+def how_to_play(for_pc=None):
+    """The [HOW TO PLAY] lines (02 → How to play): the full talk, or the short one for a
+    new player (`for_pc`)."""
+    from lib import resolve
+    rolls = resolve.dice_mode(campaign.load_state().front) != "gm-rolls-all"
+    who = _example_pc(for_pc)
+    if for_pc:
+        out = [f"[HOW TO PLAY for {who}] (short, to the new player, in table voice) Start a line with "
+               f"\"{who}:\" when it's your character speaking or acting; no name is table talk. Say what "
+               "you try, not how it ends."]
+        if rolls:
+            out.append(f"[HOW TO PLAY for {who}] Roll ahead if you like: \"{who}: I search the desk, rolled "
+                       "16\". The die or the total is fine; I'll use the right skill. Ask me anything, any time.")
+        else:
+            out.append(f"[HOW TO PLAY for {who}] I roll the dice. Ask me anything, any time.")
+        if _discord_on():
+            out.append(f"[HOW TO PLAY for {who}] On Discord it's the same: start with your character's name.")
+        return out
+    out = ["[HOW TO PLAY] (say it in your own table voice once the characters are settled, before the "
+           "title card: six lines at most, one example each)",
+           f"[HOW TO PLAY] Speak as your character: start the line with their name, \"{who}: I check the "
+           "trapdoor.\" Your own name works too if you play one character. A line with no name is table "
+           "talk: questions for me, or chatter among yourselves.",
+           "[HOW TO PLAY] Say what you try, not how it ends: \"I try to pick the lock\", not \"I pick the lock "
+           "and grab the ledger.\" I'll tell you when something needs a roll."]
+    if rolls:
+        out.append(f"[HOW TO PLAY] Roll ahead to save time: \"{who}: I search the desk, rolled 16\" gets an "
+                   f"answer straight away; \"{who}: I search the desk\" works too, and I'll ask for the roll. "
+                   "The number on the die or the total, either is fine, and don't worry about naming the "
+                   "right skill. If you might have advantage, roll two dice and give both.")
+    out.append("[HOW TO PLAY] Ask anything: what your character sees, knows or remembers, and how a rule "
+               "works. Questions about your own character always get a straight answer.")
+    if _discord_on():
+        out.append("[HOW TO PLAY] On Discord it's the same: start with your character's name.")
+    return out
+
+
+def tell_the_table():
+    """The first session's [TELL THE TABLE] lines for settings that change play."""
+    out = []
+    import social
+    tell = social.intro_line()   # the social wall is mentioned once, plainly (Phase 14)
+    if tell:
+        out.append(tell)
+    s = campaign.settings()
+    if str(s.get("carousing", "off")).lower() == "on":
+        out.append("[TELL THE TABLE] carousing on: in a town you can spend a night carousing; you'll wake "
+                   "up with whatever you did (it costs coin, and the results are real)")
+    if str(s.get("crit-die", "off")).lower() == "on":
+        out.append("[TELL THE TABLE] crit die on: a critical hit rolls on a table instead of just doubling "
+                   "the dice, for monsters too, and its worst face can kill outright")
+    return out
+
+
+def _log_given():
+    if not _given():
+        journal.log_delta(GIVEN)
+
+
 def lines():
     n = sessions_played()
     first = n == 0
-    out = banner.card(title(), "Our tale begins" if first else "Our tale continues")
+    out = []
+    if first and not _given():   # the how-to-play talk, once per campaign (Phase 16)
+        out += how_to_play()
+        _log_given()
+    out += banner.card(title(), "Our tale begins" if first else "Our tale continues")
     out.append(f"[INTRO {'first' if first else 'resume'} · session {n + 1}]")
-    if first:   # the social wall is mentioned once, plainly, at the first session (Phase 14)
-        import social
-        tell = social.intro_line()
-        if tell:
-            out.append(tell)
+    if first:
+        out += tell_the_table()
     import split
     resume = split.resume_line()
     if resume:
@@ -152,6 +257,12 @@ def cmd_intro(ctx):
     if a.why:
         ctx.emit(record(" ".join(a.why)))
         return
+    if a.how_to_play or a.for_:
+        for line in how_to_play(a.for_):
+            ctx.emit(line)
+        if not a.for_:
+            _log_given()
+        return
     for line in lines():
         ctx.emit(line)
 
@@ -159,4 +270,7 @@ def cmd_intro(ctx):
 def register(sub, g):
     p = sub.add_parser("intro", parents=[g], help='the title card, premise and why-you\'re-here; --why "…" records it')
     p.add_argument("--why", nargs="+")
+    p.add_argument("--how-to-play", dest="how_to_play", action="store_true",
+                   help="the how-to-play talk on demand (Phase 16)")
+    p.add_argument("--for", dest="for_", help="with --how-to-play: the short version for a new player's PC")
     p.set_defaults(func=cmd_intro)

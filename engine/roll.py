@@ -28,6 +28,14 @@ Lines:
 The margin (`by N`, 06 → Margin) is |total − DC| or |A − B|; a tie shows `by 0`.
 `--secret` prefixes `SECRET` and logs the delta as `(GM)`.
 
+Phase 16 (02 → Dice → Pre-rolls): `--d20 14,6` reports two dice; with one die and
+advantage or disadvantage (asked for, or from exhaustion, a load, inspiration …) the
+second die is rolled here, in the open (`d20 (14, tool 9)→14`). `--rolled-as <skill>` on
+`check`/`save`/`contest` reads a reported total as that skill's: its bonus comes off and
+the checked skill's goes on (`Kira investigation (reported as perception total 17): d20
+12+3=15 …`). With `crit-die: on` every crit of `atk` rolls the crit die (crit.py;
+`--crit-die N` types in a physical die).
+
 Phase 14: `check PC skill --vs <npc> --ask none|free|minor|major …` is a social check
 (social.py: the DC from the NPC's attitude, leverage, flair, the wall; the number after
 the skill is then the player's total). `atk` from a creature with `hidden N` has
@@ -55,13 +63,59 @@ def _mode(args):
     return words[0] if words else None
 
 
-def _d20(roller, c, bonus, mode, d20, total, state, rules, label=""):
+def _dice(d20):
+    """--d20 as given: None, an int, or a tuple of one or two ints."""
+    if d20 is None:
+        return None
+    return tuple(d20) if isinstance(d20, (tuple, list)) else (d20,)
+
+
+def _rolled_as(c, rolled_as):
+    """(label, bonus) of the skill / ability / `<ability> save` a pre-roll was reported
+    as (02 → Dice → Pre-rolls), or None."""
+    if not rolled_as:
+        return None
+    key = creatures.skill_key(rolled_as)
+    save = re.fullmatch(r"(\w+)-save", key)
+    if save and save.group(1) in creatures.ABILITIES:
+        ab = creatures.ABILITIES[save.group(1)]
+        return f"{ab.upper()} save", c.save_bonus(ab)
+    if key not in creatures.ABILITIES and key not in creatures.SKILLS:
+        raise RollError(f"--rolled-as: unknown skill {rolled_as!r}")
+    return key, c.skill_bonus(key)
+
+
+def _d20(roller, c, bonus, mode, d20, total, state, rules, label="", reported_as=None):
     """The d20 for one side: reported for a PC (--d20/--total), else rolled by the GM
-    (NPCs always; PCs only under gm-rolls-all)."""
+    (NPCs always; PCs only under gm-rolls-all). A reported die under adv/dis gets its
+    second die rolled (dice.reported_pair); `reported_as` = (label, bonus) converts a
+    total reported for another skill (the result's `.asked` names it)."""
     if d20 is not None or total is not None:
         if not c.is_pc:
             raise RollError(f"--d20/--total are for the PC side; {c.name} is an NPC (the GM rolls)")
-        return dice.reported(bonus, d20=d20, total=total)
+        asked = ""
+        if reported_as is not None:
+            skill, old = reported_as
+            if d20 is None:
+                asked = f"reported as {skill} total {total}"
+                die = total - old
+                if 1 <= die <= 20:      # the die the player saw
+                    d20, total = (die,), None
+                else:
+                    total = die + bonus
+            else:
+                asked = f"reported as {skill}"
+        if d20 is not None:
+            try:
+                r = dice.reported_pair(bonus, _dice(d20), mode, roller)
+            except dice.DiceError as e:
+                raise RollError(str(e)) from None
+        else:
+            r = dice.reported(bonus, total=total)
+        r.asked = asked
+        return r
+    if reported_as is not None:
+        raise RollError("--rolled-as goes with the player's --total (or --d20)")
     if c.is_pc and resolve.dice_mode(state.front, rules) != "gm-rolls-all":
         raise RollError(f"{c.name}{label} rolls their own d20: pass --d20 N or --total N "
                         "(or set dice-mode: gm-rolls-all)")
@@ -204,7 +258,7 @@ def _flanked(state, a, t):
 # ---------- atk ----------
 
 def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, total=None,
-           apply=True, seed=None, roller=None, insp=False):
+           apply=True, seed=None, roller=None, insp=False, crit_face=None):
     """Python API: resolve one attack. Returns (lines, data). One delta per attack:
     the HP change is folded into the atk line (mutations.dmg(log=False))."""
     state = campaign.load_state()
@@ -257,7 +311,7 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     roll = _d20(roller, a, atk["hit"] + extra + exh_bonus, mode, d20, total, state, rules)
     outcome, note = resolve.attack(roll, ac, attacker_is_pc=a.is_pc, target_is_pc=t.is_pc,
                                    cover=cover, rules=rules)
-    note = ", ".join(x for x in mode_notes + [note] if x)
+    note = ", ".join(x for x in mode_notes + [roll.note, note] if x)
     eff = resolve.effective_ac(ac, cover)
     ac_txt = f"AC {eff if eff is not None else ac}"
     body = f"{head}: {roll.text} vs {ac_txt} — {_outcome(outcome, note)}"
@@ -271,7 +325,20 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     if outcome not in ("HIT", "CRIT"):
         journal.log_delta(f"atk {body}")
         return [f"[{body}]"] + extra_lines, data
-    if outcome == "CRIT":
+    import crit
+    plan = None
+    if outcome == "CRIT" and crit.enabled():   # Phase 16: the crit die replaces the crit
+        plan = crit.plan(t, roller, crit_face)
+        body += f" · {plan.label()}"
+        data["crit_die"] = {"die": plan.die, "roll": plan.n, "result": plan.row.result,
+                            "effect": plan.row.effect, "damage": plan.damage,
+                            "effects": [c for c, _ in plan.effects], "notes": plan.notes}
+        if plan.notes:
+            body += f" ({'; '.join(plan.notes)})"
+        if plan.kill:
+            return _crit_kill(t, body, data, plan, rules, apply, extra_lines)
+        amount, dtext = crit.damage(roller, atk["damage"], plan.damage, rules)
+    elif outcome == "CRIT":
         amount, dtext = resolve.crit_damage(roller, atk["damage"], rules)
     else:
         res = roller.roll(atk["damage"])
@@ -279,8 +346,8 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     dtype = atk["dtype"]
     body += f" · {amount}" + (f" {dtype}" if dtype else "")
     data.update({"damage": amount, "damage_type": dtype, "damage_roll": dtext})
-    crit = " crit" if outcome == "CRIT" else ""
-    roll_note = f" [{atk['damage']}{crit}: {dtext}]"
+    crit_word = (f" crit die {plan.damage}" if plan else " crit") if outcome == "CRIT" else ""
+    roll_note = f" [{atk['damage']}{crit_word}: {dtext}]"
     if not apply:
         journal.log_delta(f"atk {body}{roll_note} · not applied")
         return [f"[{body} · not applied]"] + extra_lines, data
@@ -290,13 +357,34 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     body += f" · {hp_data['tail']}"
     data["hp"] = hp_data
     journal.log_delta(f"atk {body}{roll_note}")
-    return [f"[{body}]"] + extra_lines + hp_data.get("after", []), data
+    after = []
+    if plan is not None:
+        after = crit.spend_lr(t, plan)
+        if hp_data.get("hp", 1) > 0 or not plan.effects:
+            after += crit.effects(t, plan)
+        else:
+            after.append(f"[crit die: {t.name} is down, so {', '.join(c for c, _ in plan.effects)} doesn't apply]")
+    return [f"[{body}]"] + extra_lines + hp_data.get("after", []) + after, data
+
+
+def _crit_kill(t, body, data, plan, rules, apply, extra_lines):
+    """The crit die's `kill` (no damage roll): HP to 0; a PC per `crit-die-pcs`."""
+    import crit
+    if not apply:
+        journal.log_delta(f"atk {body} · not applied")
+        return [f"[{body} · not applied]"] + extra_lines, data
+    tail, after, hp_data = crit.kill(t, rules)
+    body += f" · slain · {tail}"
+    data["hp"] = hp_data
+    journal.log_delta(f"atk {body}")
+    return [f"[{body}]"] + extra_lines + after, data
 
 
 def cmd_atk(ctx):
     a = ctx.args
     lines, data = attack(a.attacker, a.target, with_=a.with_, mode=_mode(a), cover=a.cover,
-                         d20=a.d20, total=a.total, apply=not a.no_apply, roller=ctx.roller, insp=a.insp)
+                         d20=a.d20, total=a.total, apply=not a.no_apply, roller=ctx.roller, insp=a.insp,
+                         crit_face=a.crit_die)
     if not data.get("out_of_reach"):
         import turn
         lines += turn.after_attack(data.get("attacker", a.attacker), bonus=a.bonus) or []
@@ -308,7 +396,7 @@ def cmd_atk(ctx):
 # ---------- save / check ----------
 
 def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None, cover=None,
-                 secret=False, seed=None, roller=None, insp=False):
+                 secret=False, seed=None, roller=None, insp=False, rolled_as=None):
     state = campaign.load_state()
     rules = resolve.active_keys()
     c = creatures.get(name, state)
@@ -319,14 +407,16 @@ def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None,
     mode, exh_bonus, exh_note = _exhaustion(c, "save", mode)
     bonus = c.save_bonus(ab) + exh_bonus
     mode, more = _situational(c, "save", mode, ability=ab, insp=insp)
-    roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
+    roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules,
+                reported_as=_rolled_as(c, rolled_as))
     outcome, note = resolve.save(roll, dc, saver_is_pc=c.is_pc, dc_from_pc=dc_from_pc,
                                  cover=cover, ability=ab, rules=rules)
-    note = ", ".join(x for x in [exh_note] + more + [note] if x)
+    note = ", ".join(x for x in [exh_note] + more + [roll.note, note] if x)
     shown = resolve.save_total(roll, cover, ab)
     rtext = roll.text if shown == roll.total else f"{roll.text} → {shown}"
     margin = None if note.endswith("total cover") else shown - dc
-    body = f"{c.name} {ab.upper()} save: {rtext} vs DC {dc} — {_outcome(outcome, note, margin)}"
+    asked = f" ({roll.asked})" if getattr(roll, "asked", "") else ""
+    body = f"{c.name} {ab.upper()} save{asked}: {rtext} vs DC {dc} — {_outcome(outcome, note, margin)}"
     _log(body, secret)
     import conditions_ext
     after = conditions_ext.after_save(c.name, ab, dc, outcome)
@@ -336,7 +426,7 @@ def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None,
 
 
 def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, secret=False,
-                  seed=None, roller=None, insp=False):
+                  seed=None, roller=None, insp=False, rolled_as=None):
     state = campaign.load_state()
     rules = resolve.active_keys()
     c = creatures.get(name, state)
@@ -349,11 +439,14 @@ def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, 
     if key == "perception":
         import weather
         more = more + [x for x in [weather.perception_note()] if x]
-    roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
+    roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules,
+                reported_as=_rolled_as(c, rolled_as))
     outcome, note = resolve.check(roll, dc, checker_is_pc=c.is_pc, vs_pc=vs_pc, rules=rules)
-    note = ", ".join(x for x in [exh_note] + more + [note] if x)
+    note = ", ".join(x for x in [exh_note] + more + [roll.note, note] if x)
     margin = roll.total - dc
-    body = f"{c.name} {creatures.skill_key(skill)}: {roll.text} vs DC {dc} — {_outcome(outcome, note, margin)}"
+    asked = f" ({roll.asked})" if getattr(roll, "asked", "") else ""
+    body = (f"{c.name} {creatures.skill_key(skill)}{asked}: {roll.text} vs DC {dc} — "
+            f"{_outcome(outcome, note, margin)}")
     _log(body, secret)
     return _wrap(body, secret), {"name": c.name, "skill": creatures.skill_key(skill), "dc": dc,
                                  "roll": roll.as_dict(), "outcome": outcome, "note": note,
@@ -363,7 +456,8 @@ def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, 
 def cmd_save(ctx):
     a = ctx.args
     line, data = saving_throw(a.target, a.ability, a.dc, mode=_mode(a), d20=a.d20, total=a.total,
-                              by=a.by, cover=a.cover, secret=a.secret, roller=ctx.roller, insp=a.insp)
+                              by=a.by, cover=a.cover, secret=a.secret, roller=ctx.roller, insp=a.insp,
+                              rolled_as=a.rolled_as)
     ctx.emit(line)
     for extra in data.get("after", []):
         ctx.emit(extra)
@@ -395,7 +489,7 @@ def cmd_check(ctx):
             a.target, a.skill, a.vs, a.ask or "none", leverage=a.leverage, flair=a.flair, pitch=a.pitch,
             appeal=a.appeal, grates=a.grates, why=a.why, goal=a.goal, core=a.core, dc=a.dc_base,
             d20=a.d20, total=a.total if number is None else number, mode=_mode(a), roller=ctx.roller,
-            insp=a.insp)
+            insp=a.insp, rolled_as=a.rolled_as)
         for line in lines:
             ctx.emit(line)
         ctx.result = data
@@ -403,7 +497,8 @@ def cmd_check(ctx):
     if number is None:
         raise RollError("check NAME SKILL DC: the DC is missing (or --ask … --vs <npc> for a social check)")
     line, data = ability_check(a.target, a.skill, number, mode=_mode(a), d20=a.d20, total=a.total,
-                               vs=a.vs, secret=a.secret, roller=ctx.roller, insp=a.insp)
+                               vs=a.vs, secret=a.secret, roller=ctx.roller, insp=a.insp,
+                               rolled_as=a.rolled_as)
     ctx.emit(line)
     ctx.result = data
 
@@ -429,7 +524,7 @@ def _opponents(state, a):
 
 
 def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, total=None,
-            d20b=None, totalb=None, secret=False, seed=None, roller=None):
+            d20b=None, totalb=None, secret=False, seed=None, roller=None, rolled_as=None):
     """`contest A skill B skill`, or `contest A skill passive [sense]` against every
     opponent's passive score (default perception). `--d20/--total` belong to the PC
     side (06 L118); PC vs PC takes `--d20b/--totalb` for B."""
@@ -442,8 +537,11 @@ def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, 
     if not passive and b_skill is None:
         raise RollError("contest: name the second skill (contest A skill B skill)")
     a_given = (d20, total) if (a.is_pc or passive or not b.is_pc) else (None, None)
+    given_a = a_given != (None, None)
     mode, a_exh, a_note = _exhaustion(a, "check", mode)
-    a_roll = _d20(roller, a, a.skill_bonus(a_skill) + a_exh, mode, *a_given, state, rules)
+    a_roll = _d20(roller, a, a.skill_bonus(a_skill) + a_exh, mode, *a_given, state, rules,
+                  reported_as=_rolled_as(a, rolled_as) if given_a else None)
+    a_note = ", ".join(x for x in (getattr(a_roll, "asked", ""), a_note, a_roll.note) if x)
     a_txt = f"{a.name} {creatures.skill_key(a_skill)} {a_roll.text}" + (f" ({a_note})" if a_note else "")
     if passive:
         sense = creatures.skill_key(b_skill or "perception")
@@ -473,8 +571,11 @@ def contest(a_name, a_skill, b_name=None, b_skill=None, *, mode=None, d20=None, 
         b_given = (d20b, totalb) if a.is_pc else (d20, total)
     else:
         b_given = (None, None)
+    b_as = rolled_as if (not given_a and b_given != (None, None)) else None   # --rolled-as follows --d20/--total
     b_mode, b_exh, b_note = _exhaustion(b, "check", None)
-    b_roll = _d20(roller, b, b.skill_bonus(b_skill) + b_exh, b_mode, *b_given, state, rules)
+    b_roll = _d20(roller, b, b.skill_bonus(b_skill) + b_exh, b_mode, *b_given, state, rules,
+                  reported_as=_rolled_as(b, b_as))
+    b_note = ", ".join(x for x in (getattr(b_roll, "asked", ""), b_note, b_roll.note) if x)
     win, note = resolve.contest(a_roll.total, b_roll.total, a_is_pc=a.is_pc, b_is_pc=b.is_pc,
                                 rules=rules)
     b_txt = f"{b.name} {creatures.skill_key(b_skill)} {b_roll.text}" + (f" ({b_note})" if b_note else "")
@@ -501,19 +602,33 @@ def cmd_contest(ctx):
     b_skill = rest[1] if len(rest) > 1 else None
     line, data = contest(a.a_name, a.a_skill, b_name, b_skill, mode=_mode(a), d20=a.d20,
                          total=a.total, d20b=a.d20b, totalb=a.totalb, secret=a.secret,
-                         roller=ctx.roller)
+                         roller=ctx.roller, rolled_as=a.rolled_as)
     ctx.emit(line)
     ctx.result = data
 
 
 # ---------- registration ----------
 
-def _pc_side(p, insp=False):
+def d20_arg(text):
+    """`14` or `14,6` (two dice for advantage/disadvantage, Phase 16)."""
+    parts = [x for x in re.split(r"[,\s]+", str(text).strip()) if x]
+    if not 1 <= len(parts) <= 2 or not all(re.fullmatch(r"\d+", x) for x in parts):
+        raise ValueError(text)
+    return tuple(int(x) for x in parts)
+
+
+d20_arg.__name__ = "d20"   # argparse's message: invalid d20 value
+
+
+def _pc_side(p, insp=False, rolled_as=False):
     x = p.add_mutually_exclusive_group()
-    x.add_argument("--d20", type=int, help="the player's natural d20 (tool adds the bonus)")
+    x.add_argument("--d20", type=d20_arg, help="the player's natural d20, or two (14,6) for adv/dis")
     x.add_argument("--total", type=int, help="the player's total")
     if insp:
         p.add_argument("--insp", action="store_true", help="spend inspiration on this d20 (Phase 15)")
+    if rolled_as:
+        p.add_argument("--rolled-as", dest="rolled_as",
+                       help="the skill the player rolled for (a pre-roll; its bonus comes off)")
 
 
 def register(sub, g):
@@ -530,6 +645,7 @@ def register(sub, g):
     p.add_argument("--cover", choices=["half", "three-quarters", "total"])
     p.add_argument("--no-apply", action="store_true", help="don't apply the damage")
     p.add_argument("--bonus", action="store_true", help="a bonus-action attack (off-hand, etc.)")
+    p.add_argument("--crit-die", dest="crit_die", type=int, help="the crit die's face, from a physical die")
     _pc_side(p, insp=True)
     p.set_defaults(func=cmd_atk)
 
@@ -539,7 +655,7 @@ def register(sub, g):
     p.add_argument("--by", help="whose DC it is (a PC's: an NPC tie fails, house rule)")
     p.add_argument("--cover", choices=["half", "three-quarters", "total"])
     p.add_argument("--secret", action="store_true")
-    _pc_side(p, insp=True)
+    _pc_side(p, insp=True, rolled_as=True)
     p.set_defaults(func=cmd_save)
 
     p = sub.add_parser("check", parents=[g], help="check NAME SKILL DC [adv|dis] [--secret] | "
@@ -560,7 +676,7 @@ def register(sub, g):
     p.add_argument("--goal", help="the goal it serves (counted toward the wall)")
     p.add_argument("--core", action="store_true", help="the ask would break the core scenario")
     p.add_argument("--dc", dest="dc_base", type=int, help="the starting DC (social-dcs: gm)")
-    _pc_side(p, insp=True)
+    _pc_side(p, insp=True, rolled_as=True)
     p.set_defaults(func=cmd_check, take_extra=True)
 
     p = sub.add_parser("contest", parents=[g], help="contest A SKILL B SKILL | contest A SKILL passive")
@@ -569,7 +685,7 @@ def register(sub, g):
     p.add_argument("--mode", dest="mode", action="append", choices=["adv", "dis"],
                    help="alias for a bare adv/dis")
     p.add_argument("--secret", action="store_true")
-    _pc_side(p)
-    p.add_argument("--d20b", type=int, help="PC vs PC: the second PC's natural d20")
+    _pc_side(p, rolled_as=True)
+    p.add_argument("--d20b", type=d20_arg, help="PC vs PC: the second PC's natural d20 (or two)")
     p.add_argument("--totalb", type=int, help="PC vs PC: the second PC's total")
     p.set_defaults(func=cmd_contest)

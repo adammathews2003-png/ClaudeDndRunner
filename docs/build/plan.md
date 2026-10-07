@@ -1524,3 +1524,96 @@ Line references in this plan predate the move; search for the quoted heading.
   switched off by hand prints and writes exactly what the defaults do, and with renown,
   injuries and basic encumbrance on but unused prints the same; no injury or downtime
   table ships with the engine — plus an LF PC file). Suite: 457 tests.
+
+## Phase 16 — completion notes (2026-10-07)
+
+- Items (all built): [x] (1) `--rolled-as <skill>` on `check`/`save`/`contest` (a skill,
+  an ability or `dex save`; social checks too) and `--d20 a,b` on every d20 command
+  (`dice.reported_pair`): one die under advantage/disadvantage from any source gets its
+  second die rolled publicly (`d20 (14, tool 9)→14`). This also fixes the known bug where
+  a check under exhaustion disadvantage used just the one reported die; [x] (2) settings
+  `carousing` (off), `crit-die` (off), `crit-die-pcs` (dying) in `campaign.SETTINGS`;
+  [x] (3) `lib/tables.py`: the shared random-table reader (`| roll | result | effect |
+  tags |`, ranges via `dice._range`, the reader `roll table:` and loot already use;
+  `die:` or the highest roll; the engine starter as fallback), `codes()` (`;`-split,
+  quotes kept), `matches()` (content boundaries) and `gaps_overlaps()`; the effect-code
+  appliers live with their commands (carouse.py, crit.py); [x] (4) `engine/randtable.py`:
+  `table import <file> --as <name> [--die d100]` with gap/overlap/past-the-die reports;
+  [x] (5) original starter tables `engine/templates/tables/carousing.md` (41 rows over
+  d100, all written for this repo) and `crit-die.md` (the d10 of 02), copied by
+  `campaign new` (never over an existing table); [x] (5b) `[HOW TO PLAY]` in `intro`
+  (first session, before the title card, once per campaign via the `[intro] how to play
+  given` log line), `intro --how-to-play [--for <PC>]`, `[TELL THE TABLE]` lines for
+  carousing and the crit die, the session-start step in `/gm` and the new-player hand-off
+  at the end of `/character`; [x] (6) `engine/carouse.py`: cost, tag-based re-rolls
+  against `lines:`, veils marked, the codes, `--reroll`, every delta `(GM)`
+  (`journal.gm_only()`); [x] (7) `engine/crit.py` called from `roll.attack()`: the codes
+  of 06, `crit-die-pcs`, Legendary Resistance, `--crit-die N`; the bleed tick in `combat
+  next`, healing stops it; [x] (8) skills `/gm` (pre-rolls, how to play, a "Table extras"
+  section: the pause, `carouse`, the morning reveal, filing, `--reroll`), `/combat` (the
+  crit die line and narrating each face, two-die `--d20`), `/character` (the new-player
+  hand-off), `/campaign-new` (the three settings, the starter tables, `table import`).
+- **Defaults and the bookkeeping preference (c01465e):** 02 and 04 had `carousing`
+  default **on**; it ships **off** like every other optional subsystem (02, 04 fixed). The
+  night's cost is charged whatever `upkeep` says: it's coin the player chose to spend,
+  the point of the feature, not upkeep; nothing new is counted while carousing is off.
+  `crit-die` was already off.
+- **Spec fixes (docs updated):**
+  - 06's pre-roll example (`(pre-roll 14, reported as perception 17) 14+5=19`) didn't
+    match its own arithmetic or the other lines; the line is `Kira investigation
+    (reported as perception total 17): d20 12+3=15 vs DC 15 — …` (06 fixed). A converted
+    total becomes the die it implies when that is 1–20, so adv/dis still works.
+  - Crit die faces 6–9: 02 listed them as bare effects while saying an inapplicable
+    effect "falls back to `dice x2`" and that the die replaces the RAW crit. Read that
+    way, a disarm would deal less than a RAW crit. The starter rows say `dice x2; disarm`
+    and so on, and a row with no damage code deals `dice x2`, so no face is worse than
+    RAW (02, 06 fixed).
+  - Legendary Resistance: 06 had the tool print `[LR available: kill → dice x3?]` "for
+    the GM to decide", which would leave the kill applied and need an `undo` and a new
+    roll (re-rolling the crit die too). A boss always takes that trade, so the tool makes
+    it: the kill becomes `dice x3`, a tracked `legendary resistance` Resources row is
+    spent (else the line says to mark it); an override is `hp Veskar =0` (02, 06 fixed).
+  - Carousing re-rolls: 02/06 didn't say what happens to effects already applied.
+    `--reroll` reverses the tool-applied codes of that PC's last row (kept in the new
+    GM-only `state/carousing.md`), never the cost (02, 04, 06 fixed).
+  - "A PC who can't pay comes out of it in debt": they pay what they have and the rest is
+    a debt clock 7 days out (02 fixed).
+  - Two-die `--d20` and the public second die apply to `atk` too (06 said only
+    `check/save/contest`; the exhaustion bug and inspiration's advantage are the same
+    rule).
+- Decisions where the spec was silent:
+  - `stunned 1t` is `stunned 1r` when the target still acts this round, `2r` when its turn
+    has passed (rounds tick at the round's end). `bleed 1d4` is the condition `bleeding
+    1d4` (`cond X +bleeding 1d4` works too); `combat next` rolls and applies it at the
+    start of the creature's turn; any healing, or `cond X -bleeding` after the DC 10
+    Medicine check, ends it. `disarm` writes `dropped <weapon> at (x,y,z)` in the row's
+    notes and a public log line; a first attack named like a natural weapon (bite, claw,
+    slam …) can't be dropped. Effects after damage are skipped when the target is down.
+  - A `kill` on a PC already at 0 HP under `dying` is a crit at 0 HP (two failures).
+    Under a `death-saves=off` table rule the PC drops to 1 HP, as with any damage.
+  - Content boundaries vs tags: any significant word shared by a `lines:`/`veils:` entry
+    and a row's tags counts ("harm to animals" ↔ `animals`; plurals folded; stop-words
+    like "harm", "to" ignored), so a line errs towards re-rolling a harmless row.
+  - Carousing effect codes: `coin` amounts are gp unless a coin is named; `item -random`
+    removes one whole pack entry; `clock +3d` is due 3 days from the carouse time; unknown
+    codes print as `[file for Kira: …]`; `no-rest` prints a reminder (the tool never
+    moves the clock). A campaign without `tables/carousing.md` rolls the engine starter.
+  - `intro`'s how-to-play example uses the first present PC's name; `discord.md` with
+    `discord: queue|auto` adds the Discord line (ready for Phase 17). `intro` now writes
+    one log line the first time (journaled, undoable); `--for` is never logged.
+  - `table import` writes `tables/<name>.md` whole (a replaced file keeps its newline
+    style), escaping `|`; the result text is kept as written.
+- Gaps left: the crit die judges "has a weapon" by the target's first attack's name only;
+  a dropped weapon isn't removed from a PC's Attacks or inventory (the note and the log
+  are the record; picking it up is an object interaction); `bleeding` ticks only in
+  combat; Legendary Resistance found in a custom NPC's prose without a Resources row is
+  assumed available; `carouse` doesn't check the location has somewhere to carouse (GM
+  judgment); `--reroll` reverses only codes the tool applied, not what the GM filed by
+  hand; no lint check for `tables/*.md` ranges (the importer reports them).
+- Existing tests: none changed (with no `adv`/`dis` and one `--d20` every earlier line is
+  identical; `crit-die: off` leaves `atk` byte-identical, checked against HEAD 7750524).
+- Verified by `engine/tests/test_phase16.py` (30 tests: every Verify bullet, undo of
+  `carouse`, `carouse --reroll`, `table import`, a crit-die `atk` and `intro`; the three
+  Guards: the engine's tables folder holds only its own original tables and `table
+  import` never writes there, every `carouse` log line is `(GM)`, the crit die never fires
+  on checks or saves; plus `crit-die: off` byte-identical). Suite: 487 tests.

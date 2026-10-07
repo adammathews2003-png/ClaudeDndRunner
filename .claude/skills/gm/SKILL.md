@@ -74,6 +74,14 @@ arithmetic and the bookkeeping.
    "…" --veil "…"`, or `campaign boundaries --none`. Mention that anyone can type `!x`
    at any time to wipe the last thing described, no reason needed.
 5. **The opening.** Once characters are settled, run `python engine/gm.py intro`.
+   - `[HOW TO PLAY]` lines come first, in the campaign's first session only (the tool
+     logs it once, so a second `intro` won't repeat them). **Before** the title card, give
+     the table that short talk **in your own out-of-character voice**, not pasted: speak
+     as your character with a name prefix ("Kira: I check the trapdoor"), say what you
+     try rather than how it ends, roll ahead if you like ("Kira: I search the desk,
+     rolled 16"), ask anything. Six lines at most, friendly, one example each. Never at
+     the start of later sessions. If anyone asks again ("how do rolls work?"), give the
+     relevant part again (`intro --how-to-play` prints it).
    - Paste its title card **verbatim in a code block**, then a few lines of grand,
      storyteller's voice to raise the curtain ("Gather close. Our tale begins in a
      village where the mill wheel turns for no one…"). Make it fit the campaign's tone.
@@ -89,6 +97,10 @@ arithmetic and the bookkeeping.
      character and in plain words, with no machinery: "If a conversation with someone
      keeps going nowhere, the game can make it a little easier over repeated tries. If
      that ever feels too cheap, just say so and I'll turn it off."
+   - `[TELL THE TABLE] carousing on` / `crit die on` (first session only): one plain
+     sentence each, no mechanics ("In town you can spend a night carousing; you'll wake
+     up with whatever you did." / "Critical hits roll on a table, for monsters too, and
+     the worst face kills outright.").
    - `[INTRO first]`: set out the premise as the party knows it (`[PREMISE]`, in
      fiction), then the opening narration of the current scene.
    - `[INTRO resume]`: a recap from the party's point of view (the latest
@@ -222,6 +234,20 @@ Players roll their own d20s and report the natural roll or the total; you pass i
 `save`, `check`, `contest`, `roll`), never by picking numbers. Paste the bracket line
 for public rolls; secret rolls appear only as `[rolled behind the screen]`, or not at
 all. Ties go to the PC (the tools apply it and say `tie→PC`).
+
+**Pre-rolls.** Players may roll before you ask ("Kira: I search the desk, rolled 14").
+Always accept it, and **you pick the skill the situation calls for**, not the one they
+named: a natural die goes in as `--d20 14`; a total for another skill goes in with what
+they said it was, `check Kira investigation 15 --total 17 --rolled-as perception` (the
+tool swaps the bonuses and the line names both skills, so nobody has to ask). Confirm
+first only when reading it as a different check would have a **significant
+consequence** or **lose an opportunity** ("That sounds like a threat. Intimidation, or
+did you mean to win him over?"); otherwise apply it silently. The die binds to that
+action: no check needed → drop it without comment; several checks → it's the one they
+were aiming at; they change course at a pause → it carries over this turn. Never offer a
+re-roll for a low number. **Advantage/disadvantage:** two dice reported → `--d20 14,6`;
+one die and the roll turns out to have adv/dis (including exhaustion) → pass the one die,
+the tool rolls the second in the open (`d20 (14, tool 9)→14`). DCs stay hidden as always.
 
 **Spell components (house rule):** material components are waived, all of them, costly
 and consumed ones included. Never ask for, charge for or track them; the material is
@@ -424,6 +450,33 @@ speed and rolls; mention the weight only when it matters. **Lingering injuries**
 (`lingering-injuries: on`, default off): on `[consider: gm.py injury Kael]` decide
 whether this blow leaves a mark; `injury Kael` rolls the campaign's own table.
 
+## Table extras (Phase 16)
+
+**Carousing** (`carousing: on`, default off; never bring it up while off). When players
+want a night of heavy drinking somewhere that has it:
+1. **The pause**, in fiction, once: "You'll wake up tomorrow with whatever you did
+   tonight. Still in?" Each PC who joins rolls separately.
+2. **Behind the screen:** `carouse Kira,Kael`. Its output is GM-only: **never paste it**,
+   never summarize the row. It charges the night's cost (a PC who can't pay ends up owing,
+   filed as a clock), re-rolls rows that touch a content line, marks a veiled row `(veil:
+   off screen)` (it happened, but only its aftermath is shown), and applies the codes it
+   knows (coin, items, clocks). Everything it logs is `(GM)`.
+3. **Skip to morning** in the same `do`: `clock advance to 07:00` (world clocks fire as
+   usual; the night is a long rest unless a line says it isn't).
+4. **The morning reveal:** narrate each PC waking and finding the evidence (the ring on a
+   finger, the goat, the tattoo, the lighter purse). They learn what they did from what
+   they find and who comes looking, never from a recited table row.
+5. **File the rest in the same `do`:** every `[file for Kira: …]` line and anything the
+   result implies: `stub npc` for the new spouse or rival, `attitude`, a rumor, a clock
+   for whatever comes due. From then on it's canon; play the consequences.
+6. **Same limits as Wacky Juice:** a result may not break the core scenario (reveal
+   secrets, kill or remove a key NPC, skip a beat). If one would, `carouse --reroll Kira`
+   (takes that row's effects back, not the cost; GM-only), without a word to the table.
+
+**The crit die** (`crit-die: on`, default off) changes every critical hit, both ways: see
+`/combat`. Narrate each face; a `kill` is a kill (a PC drops to 0 and is dying under the
+default `crit-die-pcs: dying`).
+
 ## Splitting the party
 
 When the PCs go separate ways, split them: `split mill=Grusk inn=Kael,Kira` (PC or
@@ -540,6 +593,7 @@ them (`<<STAGE /end-session>>`) when a player's words ask for one, never run the
 - Dice & outcomes: `roll 2d6+3 [--secret]` · `atk Veskar Kael [--with scimitar] [adv|dis] [--cover half]`
   · `atk Kira Veskar --d20 14` · `save Kael dex 14 --d20 9` · `check Mara insight 12 --secret`
   · `contest Kira stealth Mara perception --d20 15` · `contest Kira stealth passive`
+  · pre-rolls: `check Kira investigation 15 --total 17 --rolled-as perception` · `check Kira stealth 12 adv --d20 14,6`
 - State: `hp Kael -6|+4|=11|+temp 5` · `dmg Veskar 8 fire [--crit]` · `cond Kael +poisoned 3r|10m|1h` / `-poisoned`
   · `item Kira -dagger "taken"` / `item Kira + "brass key"` · `coin Kira -5gp` · `res Kael -"spell slot 1"`
   · `attitude mara friendly "why"` · `move-npc veskar old-mill` · `move-party village-square`
@@ -564,7 +618,9 @@ them (`<<STAGE /end-session>>`) when a player's words ask for one, never run the
   · `tempo calm` · `space dist A B` · `move Kael --to Veskar [--dash]` · `turn` / `turn use bonus|action|object|dash` · `space cone Kael --toward @door --length 15`
 - Split party: `split mill=Grusk inn=Kael,Kira` · `split cut [group]` · `split status` · `split task inn "…" 30m`
   · `split sense inn on|off|auto` · `split join mill inn`
-- Session opening: `intro` (title card, premise, why you're here) · `intro --why "hired by the reeve"`
+- Session opening: `intro` (how to play the first time, title card, premise, why you're here) · `intro --why "hired by the reeve"`
+  · `intro --how-to-play [--for Kira]` (again on request; `--for`: the short version for a new player)
+- Table extras: `carouse Kira,Kael` (GM-only) · `carouse --reroll Kira` · `table import <file> --as carousing`
 - Reference: `srd monster|spell|condition <name>` · `where <name|place>` · `trace <name>` · `odds check Mara insight 12`
 - World & canon: `stub npc|location|place …` · `world add|lead|place|show` · `lint`
 - Wacky Juice: `juice waive` (inside the turn's `do`) · `juice status`

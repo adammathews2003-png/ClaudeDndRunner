@@ -116,6 +116,7 @@ def new(slug, area=None, sets=(), seed_file=None, activate=False):
             if not src.exists():
                 raise CampaignCmdError(f"campaign new: no seed file {seed_file}")
             md.new(root / "campaign-seed.md", src.read_text(encoding="utf-8")).save()
+        lines += _starter_tables(root)
         if "time-loop" in vals["mechanics"]:
             st = campaign.load_state()
             for k, v in (("loop", 0), ("loop-baseline", "pending"), ("loop-start", "Day 1 06:00"),
@@ -135,6 +136,26 @@ def new(slug, area=None, sets=(), seed_file=None, activate=False):
                  f"{vals['difficulty']} {vals['shape']} · reveal {vals['reveal-policy']}"
                  + (f" · mechanics {', '.join(vals['mechanics'])}" if vals["mechanics"] else "") + "]")
     return lines
+
+
+STARTER_TABLES = ("carousing", "crit-die")   # original engine text (Phase 16)
+
+
+def _starter_tables(root):
+    """Copy the engine's starter random tables into the campaign's tables/ (never over a
+    table the campaign already has). The settings that use them stay off by default."""
+    src = Path(__file__).resolve().parent / "templates" / "tables"
+    copied = []
+    for name in STARTER_TABLES:
+        target = root / "tables" / f"{name}.md"
+        if target.exists() or not (src / f"{name}.md").exists():
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        text, nl, _ = md.read_text(src / f"{name}.md")
+        md.write_text(target, text.replace("\r\n", "\n"), "\n")
+        copied.append(f"tables/{name}.md")
+    return [f"[campaign new: starter tables {', '.join(copied)} (carousing and crit-die stay off until the table "
+            "turns them on)]"] if copied else []
 
 
 def _doc():

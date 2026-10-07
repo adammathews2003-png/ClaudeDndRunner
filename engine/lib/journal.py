@@ -25,6 +25,7 @@ _TURN = re.compile(r"^\[turn (\d+)\](.*)$")
 _PLACEHOLDER = re.compile(r"^\(no turns yet.*\)\s*$")
 
 _active = None  # the current Batch, if any
+_gm_only = 0    # > 0 inside gm_only(): every delta is a (GM) line (carousing, Phase 16)
 
 
 class JournalError(Exception):
@@ -254,9 +255,25 @@ def _append(doc, line):
     return len(doc.body) - 1
 
 
+class gm_only:
+    """`with journal.gm_only():` logs every delta inside as a `(GM)` line (carousing's
+    results stay behind the screen until the morning reveal, 02 → Phase 16)."""
+
+    def __enter__(self):
+        global _gm_only
+        _gm_only += 1
+        return self
+
+    def __exit__(self, *exc):
+        global _gm_only
+        _gm_only -= 1
+        return False
+
+
 def log_delta(text, gm=False):
     """Append `  - text` under the open turn block, opening `[turn N]` first when none
     is open. `(GM) ` prefixes GM-only lines. Returns N."""
+    gm = gm or _gm_only > 0
     doc = _load_log()
     idx, n, is_open = _scan(doc)
     if not is_open:

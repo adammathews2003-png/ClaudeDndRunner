@@ -580,7 +580,8 @@ asking anything. It reads `dice-mode` (`gm-rolls-all` drops the roll-ahead line)
 `[TELL THE TABLE]` lines follow. `intro --how-to-play [--for <PC>]` prints the same
 block on demand: for a new player at the end of intake (`--for` makes it the short
 version addressed to them) or when someone asks again. It's logged once per campaign
-as `[intro] how to play given`, so a second `/gm` in session 1 doesn't repeat it.
+as `[intro] how to play given` (the session log or a history file), so a second `/gm`
+in session 1 doesn't repeat it; `--for` doesn't count as the talk and isn't logged.
 
 ### `gm.py turn` / `gm.py move` — the turn budget and real movement
 The creature who's up has a budget, one line under `## Combat`:
@@ -1399,28 +1400,53 @@ gm.py pc card Kira                                  # a written PC: live numbers
 ### Phase 16 — table extras (02 → Dice → Pre-rolls; 02 → Table mechanics → Phase 16)
 
 - **Pre-rolls on `check`/`save`/`contest`:** `--total 17 --rolled-as perception` takes
-  off the named skill's bonus and puts on the bonus of the skill being checked. The line
-  shows both: `[Kira investigation (pre-roll 14, reported as perception 17) 14+5=19 vs
-  DC 15 — SUCCESS by 4]`. `--d20 14,6` gives two dice for advantage/disadvantage. With
-  one die and `adv`/`dis`, the tool rolls the second die publicly. A total whose skill
-  isn't stated is taken as reported.
-- **`gm.py carouse <pc,pc> [--table carousing] [--reroll <pc>]`:** rolls the night's
-  cost and one d100 per PC (GM-side output). A row tagged with a campaign `lines:` entry
-  is re-rolled automatically; a veiled one is marked `(veil: off screen)`. The tool
-  applies the effect codes (`coin`, `item +/-`, `item -random`, `clock +Nd "…"`) and
-  prints the rest. The clock goes to the next morning only through the GM's own
-  `clock advance` in the same batch. The log line is GM-only: `(GM) [carouse] Kira 47:
-  "…"`.
+  off the named skill's bonus and puts on the bonus of the skill being checked (when the
+  difference is a die face 1–20 it becomes that die, so advantage still works; otherwise
+  the total is shifted). `--rolled-as` takes a skill, an ability or `dex save`; on a
+  contest it follows `--d20/--total`. The line shows both: `[Kira investigation
+  (reported as perception total 17): d20 12+3=15 vs DC 15 — SUCCESS by 0 (tie→PC)]`.
+  `--d20 14,6` gives two dice for advantage/disadvantage on every d20 command, `atk`
+  included (two dice with neither: the first counts, `second die 6 unused`). With one die
+  and advantage or disadvantage from any source (asked for, exhaustion, a load,
+  inspiration), the tool rolls the second die publicly: `d20 (14, tool 9)→14+7=21 …
+  (advantage: second die rolled)`. A total whose skill isn't stated is taken as reported.
+- **`gm.py carouse <pc,pc> [--table carousing] | carouse --reroll <pc>`** (refused while
+  `carousing: off`, the default): rolls the night's cost and one d100 per PC (GM-side
+  output, never pasted). A row whose `tags` share a word with a campaign `lines:` entry
+  is re-rolled automatically (`re-rolled 9 (line: harm to animals)`: erring towards the
+  re-roll); one touching a `veils:` entry is marked `(veil: off screen)`. The tool
+  applies the effect codes (`coin ±2d6x10 [sp]`, `item +"…"`, `item -"…"`, `item -random`
+  — one whole pack entry, `clock +3d "…"` — a `## Clocks` bullet due that long from now,
+  `no-rest`) and prints the rest as `[file for Kira: …]`. A cost or loss beyond the purse
+  takes what there is and files the rest as a debt clock (7 days). Every delta it writes,
+  coin and items included, is a `(GM)` log line, and `(GM) [carouse] Kira 47: "…"` names
+  the row. The night per PC goes to `state/carousing.md`; `--reroll` reverses that row's
+  applied codes (never the cost), rolls a different row and logs GM-only. The clock goes
+  to the next morning only through the GM's own `clock advance` in the same batch.
 - **`gm.py table import <file> --as <name> [--die d100]`:** normalizes pasted
-  `01-05 text` or `1. text` lines into `tables/<name>.md` (`| roll | result | effect |
-  tags |`). It reports gaps and overlaps in the ranges and never guesses effect codes;
-  those are left blank for the driver to fill in.
+  `01-05 text`, `01–05. text`, `7: text`, `1. text`, `00 text` or `| 01-05 | text |` lines
+  into `tables/<name>.md` (`| roll | result | effect | tags |`; a line without a number
+  continues the one before). `die:` is `--die`, else the highest roll; `--as carousing`
+  adds `cost: 1d6x10gp`. It reports gaps, overlaps and rows past the die, and never
+  guesses effect codes or tags; those are left blank for the driver to fill in. The
+  shared reader is `lib/tables.py`.
 - **Crit die in `atk`:** with `crit-die: on`, any crit rolls the campaign's
-  `tables/crit-die.md` (die = number of rows) and applies the known codes (`dice x2`,
-  `dice x3`, `max+dice`, `prone`, `stunned 1t`, `disarm`, `bleed 1d4`, `kill`). The
-  output line gains `· CRIT DIE d10 → 6 disarm`. A `kill` on a PC follows `crit-die-pcs`.
-  A creature with Legendary Resistance left gets `[LR available: kill → dice x3?]` for
-  the GM to decide. An effect that can't apply falls back to `dice x2` and says so.
+  `tables/crit-die.md` (else the engine's starter; die = number of rows; `--crit-die N`
+  types in a physical die) and applies the known codes (`dice x2` — the `crit-damage`
+  table rule still applies —, `dice x3`, `max+dice`, `prone`, `stunned 1t` — `1r` when the
+  target still acts this round, `2r` when it already has —, `disarm` — a `dropped <weapon>
+  at (x,y,z)` note on its row and a public log line —, `bleed 1d4` — the condition
+  `bleeding 1d4`, rolled and applied by `combat next` at the start of each of its turns,
+  ended by healing or `cond X -bleeding` —, `kill` — HP to 0). A row with no damage code
+  and no `kill` deals `dice x2`. The output line gains `· CRIT DIE d10 → 6 dice x2;
+  disarm`. A `kill` on a PC follows `crit-die-pcs` (dying: 0 HP and dying, or two death
+  save failures when already down; dead: dead). A creature with Legendary Resistance
+  left spends one: the kill becomes `dice x3` and `[LR: Veskar spends a Legendary
+  Resistance: kill → dice x3]` follows (a tracked `legendary resistance` Resources row is
+  spent). An effect that can't apply (no weapon to drop: an attack named bite, claw …;
+  already prone or stunned) is dropped, the damage falls back to `dice x2`, and the line
+  says so. Codes the tool doesn't know print as `[crit die: … — narrate and file it]`.
+  With `crit-die: off` `atk` is unchanged. Checks and saves never roll it.
 
 ## Build order
 

@@ -130,7 +130,8 @@ def _npc(name):
 # ---------- the check ----------
 
 def check(pc, skill, npc, ask, *, leverage=0, flair=0, pitch=None, appeal=None, grates=False,
-          why=None, goal=None, core=False, dc=None, d20=None, total=None, mode=None, roller=None, insp=False):
+          why=None, goal=None, core=False, dc=None, d20=None, total=None, mode=None, roller=None, insp=False,
+          rolled_as=None):
     if core:
         raise SocialError("core scenario (no roll)", output=[f"[social] {CORE}"])
     ask = (ask or "").strip().lower()
@@ -208,7 +209,8 @@ def check(pc, skill, npc, ask, *, leverage=0, flair=0, pitch=None, appeal=None, 
         lines.append(f"  ask: {who.name.split()[0]} {sk} vs DC {final}" + (" with advantage" if adv else "")
                      + f" (then gm.py check {who.name.split()[0]} {sk} --vs {slug} --ask {ask} … <total>)")
         return lines, result
-    line, rd = roll.ability_check(pc, skill, final, mode=mode, d20=d20, total=total, roller=roller, insp=insp)
+    line, rd = roll.ability_check(pc, skill, final, mode=mode, d20=d20, total=total, roller=roller, insp=insp,
+                                  rolled_as=rolled_as)
     lines.append(line)
     margin = rd["margin"] if rd["outcome"] == "SUCCESS" else -rd["margin"]
     res = data.tier(margin, eff)
