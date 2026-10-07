@@ -43,6 +43,13 @@ used up.* `srd spell` prints materials as `material waived`.
 - A spell's material description is flavor the GM may narrate (the pinch of sulfur
   flaring), never a cost.
 
+## Ammunition, food and light
+**Ordinary ammunition is endless.** Arrows, bolts, bullets and darts for standard
+weapons are never counted or recovered. Only special ammunition (rare, harder-hitting
+rounds marked `special ammo <thing>` on the sheet) is spent per shot. Rations, water and
+torch burn time aren't tracked either. *Engine defaults: `ammo: special`, `supplies: off`,
+`track-light: off`; a campaign can switch any of them on.*
+
 ## Overrules
 The table can retcon events or add table rules with `/overrule` (honor-based: whoever
 runs the session uses it when they choose; see `docs/design/02` → Overrule). Temporary rules live in the campaign's

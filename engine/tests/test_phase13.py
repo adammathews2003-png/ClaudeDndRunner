@@ -35,6 +35,9 @@ class Base(CampaignCase):
     def setUp(self):
         super().setUp()
         give_custom_veskar(self)
+        # Both default to off; these tests exercise the tracking itself.
+        set_front_raw(self, "state/current.md", "track-light", "on")
+        set_front_raw(self, "state/current.md", "supplies", "loose")
 
     def ok(self, *argv):
         code, lines = run_main(list(argv))
@@ -84,6 +87,14 @@ class Base(CampaignCase):
         self.ok("undo")
         self.assertEqual(self.snapshot(), before, f"undo of {argv} left changes")
         return out
+
+
+class Defaults(CampaignCase):
+    def test_tracking_off_by_default(self):
+        from lib import campaign
+        self.assertEqual(campaign.SETTINGS["track-light"], "off")
+        self.assertEqual(campaign.SETTINGS["supplies"], "off")
+        self.assertEqual(campaign.SETTINGS["ammo"], "special")
 
 
 class Concentration(Base):
@@ -322,8 +333,8 @@ class Supplies(Base):
         for _ in range(n):
             self.ok("atk", "Kira", "Veskar", "--with", "shortbow", "--d20", "2")
 
-    def test_verify_strict(self):
-        set_front_raw(self, "state/current.md", "supplies", "strict")
+    def test_verify_all(self):
+        set_front_raw(self, "state/current.md", "ammo", "all")
         self.shoot(3)
         self.assertIn("quiver (17 arrows)", self.text("pcs/kira-thornwood.md"))
         self.assertIn("Ammo spent: Kira arrows 3", self.text("state/current.md"))
@@ -333,20 +344,25 @@ class Supplies(Base):
         self.ok("item", "Kira", "+1", "arrows")
         self.assertIn("quiver (18 arrows)", self.text("pcs/kira-thornwood.md"))
 
-    def test_strict_refuses_at_zero(self):
-        set_front_raw(self, "state/current.md", "supplies", "strict")
+    def test_tracked_refuses_at_zero(self):
+        set_front_raw(self, "state/current.md", "ammo", "all")
         self.ok("item", "Kira", "-20", "arrows")
         self.assertIn("quiver (0 arrows)", self.text("pcs/kira-thornwood.md"))
         self.assertIn("Kira has no arrows", self.fails("atk", "Kira", "Veskar", "--with", "shortbow", "--d20", "2"))
 
-    def test_loose_counts_but_spends_nothing(self):
+    def test_default_tracks_only_special_ammo(self):
         self.shoot(2)
         self.assertIn("quiver (20 arrows)", self.text("pcs/kira-thornwood.md"))
-        out = self.ok("combat", "end")
-        self.assertIn("[Ammo: Kira fired this fight (estimate and spend with gm.py item)]", out)
+        self.assertNotIn("Ammo spent", self.text("state/current.md"))
+        _edit(self.path("pcs/kira-thornwood.md"), lambda s: s.replace(
+            "| ammo arrows ", "| special ammo arrows "))
+        self.shoot(2)
+        self.assertIn("quiver (18 arrows)", self.text("pcs/kira-thornwood.md"))
+        self.assertIn("Ammo spent: Kira arrows 2", self.text("state/current.md"))
 
     def test_off_changes_nothing(self):
         set_front_raw(self, "state/current.md", "supplies", "off")
+        set_front_raw(self, "state/current.md", "ammo", "off")
         inv = self.text("pcs/kira-thornwood.md").split("## Inventory")[1]
         self.shoot(2)
         self.assertNotIn("Ammo", self.text("state/current.md"))
@@ -486,7 +502,7 @@ class Undo(Base):
         _edit(self.path("pcs/kira-thornwood.md"), lambda s: s.replace(
             "| 80/320 | 20 arrows                              |",
             "| 80/320 | ammo arrows                            |"))
-        set_front_raw(self, "state/current.md", "supplies", "strict")
+        set_front_raw(self, "state/current.md", "ammo", "all")
         self.fight()
         self.assert_undoes("atk", "Kira", "Veskar", "--with", "shortbow", "--d20", "2")
 

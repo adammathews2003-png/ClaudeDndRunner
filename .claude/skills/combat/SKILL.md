@@ -75,9 +75,9 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
   save Kael con 12)]`: ask the player for that d20 (`save Kael con 12 --d20 9`); the tool
   rolls an NPC's. A failed save, 0 HP, an incapacitating condition or the duration ends
   it and strips every target: narrate the glow fading. Don't track it yourself.
-- **Ammunition:** a shot with an `ammo arrows` attack is counted for you (`supplies:
-  strict` spends it and says `Kira has no arrows` when the quiver's empty: the attack
-  doesn't happen; offer the dagger).
+- **Ammunition:** ordinary arrows and bolts are endless; never count them. Only a
+  `special ammo <thing>` attack (or any ammo under `ammo: all`) is spent for you, and
+  `Kira has no <thing>` means the attack doesn't happen; offer another weapon.
 - **Advance:** `python engine/gm.py combat next` — who's up, where, who is within reach,
   and the new turn's budget. A surprised creature's turn passes with no move or action.
   Moves of the round go to the session log automatically.

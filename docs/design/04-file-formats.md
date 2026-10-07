@@ -376,8 +376,9 @@ its `notes`.
 | key | values | default | phase |
 |---|---|---|---|
 | `death-save-rolls` | `open \| secret` | open | 13 |
-| `track-light` | `on \| off` | on | 13 |
-| `supplies` | `strict \| loose \| off` | loose | 13 |
+| `track-light` | `on \| off` | off | 13 |
+| `supplies` | `strict \| loose \| off` (food and water) | off | 13 |
+| `ammo` | `all \| special \| off` | special | 13 |
 | `exhaustion` | `2014 \| 2024` | 2014 | 13 |
 | `travel-detail` | `summary \| activities` | summary | 14 |
 | `getting-lost` | `on \| off` | on | 14 |
@@ -603,7 +604,8 @@ attuned: [cloak of protection]    # 15; at most 3
 - **Ammunition and supplies** (13) stay ordinary `## Inventory` text with counts:
   `quiver (20 arrows)`, `rations (5 days)`, `waterskin (full|half|empty)`, `flask of
   oil (2)`, `torches (4)`. The Attacks row's `notes` names the ammunition it uses
-  (`ammo arrows`). A leading count works too (`2 flasks of oil`, `5 days rations`); a
+  (`ammo arrows`); `special ammo <thing>` marks ammunition worth tracking under the
+  default `ammo: special` (ordinary arrows and bolts are endless). A leading count works too (`2 flasks of oil`, `5 days rations`); a
   bare `waterskin` is full. `stable` carries the hours until the PC wakes (`stable 3h`).
   Spell effects from `conc` are conditions named by the spell's slug (`bless 10r`,
   `hold-person 1m`). A combatant without a file keeps its concentration targets in its

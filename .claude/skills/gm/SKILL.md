@@ -313,7 +313,9 @@ carrier. **Never** change the scene's `--light` for a torch: that's the ambient 
 guttering and the dark closing in, then ask what they do.
 
 **Supplies.** Ammunition, rations, water and oil are inventory counts, and the tools
-spend them (`supplies: strict | loose | off`). A day's food and water: `eat` (or `eat
+spend them, but all of it is off by default: ordinary ammo is endless (only `special
+ammo` rows are spent, setting `ammo`), and food and water count only under `supplies:
+strict | loose`. When it's off, never bring up rations or arrows. A day's food and water: `eat` (or `eat
 Kira --bought "3 sp"` at an inn); `rest long` eats for the party. `[TIME]`'s
 `Supplies: Grusk last ate Day 1 (…)` is hunger setting in: say so in the fiction
 (gnawing stomach, dizziness), and `Water:` lines mean the CON save they name. Running

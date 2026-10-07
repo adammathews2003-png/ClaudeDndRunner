@@ -169,8 +169,9 @@ SETTINGS = {
     "split-sense-ft": 300,
     "split-max-ahead": 30,
     "death-save-rolls": "open",     # open | secret (Phase 13)
-    "track-light": "on",            # on | off
-    "supplies": "loose",            # strict | loose | off
+    "track-light": "off",           # on | off (QoL tracking: off by default)
+    "supplies": "off",              # strict | loose | off: food and water (off by default)
+    "ammo": "special",              # all | special | off: only `special ammo` rows by default
     "exhaustion": "2014",           # 2014 | 2024
 }
 

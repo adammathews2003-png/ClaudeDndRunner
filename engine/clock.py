@@ -231,7 +231,7 @@ def _table_mechanics(old, new, w_old, w_new):
 
 
 def _setting_on(key):
-    return str(campaign.settings().get(key, "on")).strip().lower() != "off"
+    return str(campaign.settings().get(key, campaign.SETTINGS.get(key, "on"))).strip().lower() != "off"
 
 
 def clock_lines(state):

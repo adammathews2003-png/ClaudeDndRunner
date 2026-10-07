@@ -27,7 +27,8 @@ and the generation runs in a forked context that returns a shape card.
    Propose defaults ("I'll use medium difficulty — OK?"). No secrets, no plot ideas.
    Always include **content boundaries** in that message: "Anything you never want in
    this game (lines), or want kept off screen (veils)? 'None' is a fine answer." The
-   table settings (`supplies` strict | loose | off, `track-light` on | off,
+   table settings (`supplies` strict | loose | off, `ammo` all | special | off,
+   `track-light` on | off,
    `death-save-rolls` open | secret, `exhaustion` 2014 | 2024) keep their defaults unless
    the seed touches them.
 3. **Write the seed verbatim** to a scratch file (e.g. `<slug>-seed.md` in your scratch

@@ -6,13 +6,16 @@ Phase 13; plan.md Phase 13 items 4–5).
     eat [Kael …] [--bought "3 sp"]                         a day's food and water each
 
 Settings (04 → Table settings): `track-light: on|off` (off: `lit: [torch]`, nothing
-counted or spent), `supplies: strict|loose|off`:
-- strict: a ranged `atk` whose Attacks row notes say `ammo <thing>` spends one from the
-  inventory and refuses at 0; `rest long` eats for every PC; the clock checks food at
-  each dawn.
-- loose: no per-shot spending (the shots are still counted in the Combat block's
-  `Ammo spent:` line so `combat end` can name who fired); food and water count only away
-  from a site tagged `services` (rests and dawn checks there are skipped).
+counted or spent), `ammo: all|special|off` (house rule: ordinary arrows and bolts are
+tacitly endless):
+- special (default): only an Attacks row whose notes say `special ammo <thing>` spends
+  one per shot from the inventory (refusing at 0), counted in the Combat block's
+  `Ammo spent:` line so `combat end` offers half back; plain `ammo <thing>` is ignored.
+- all: every `ammo <thing>` row is spent that way. off: nothing is.
+`supplies: strict|loose|off` (food and water):
+- strict: `rest long` eats for every PC; the clock checks food at each dawn.
+- loose: food and water count only away from a site tagged `services` (rests and dawn
+  checks there are skipped).
 - off: nothing is counted.
 Hunger: 3 + CON modifier days (at least 1) without food, then one level of exhaustion
 per day. `fed:` is the last day the PC ate (04); a PC without `fed:` isn't tracked yet.
@@ -27,7 +30,7 @@ from lib.errors import ToolError
 import inventory
 import mutations
 
-_AMMO = re.compile(r"\bammo\s+([a-z][\w-]*)", re.I)
+_AMMO = re.compile(r"\b(special\s+)?ammo\s+([a-z][\w-]*)", re.I)
 _SPENT = "Ammo spent:"
 WATER = ("full", "half", "empty")
 
@@ -140,8 +143,12 @@ def tick_light(minutes, docs, old):
 # ---------- ammunition ----------
 
 def ammo_of(atk):
+    """The ammunition an attack spends under the `ammo` setting, or None."""
     m = _AMMO.search(atk.get("notes", "") or "")
-    return m.group(1).lower() if m else None
+    mode = _mode("ammo")
+    if m is None or mode == "off" or (mode != "all" and not m.group(1)):
+        return None
+    return m.group(2).lower()
 
 
 def _spent_line(state):
@@ -179,15 +186,14 @@ def _record_shot(name, thing):
 
 
 def spend_ammo(c, atk):
-    """roll.attack: a shot with an `ammo <thing>` attack. strict spends one (refusing at
-    0); strict and loose count it in the Combat block. -> a line or None."""
+    """roll.attack: a shot with tracked ammunition (`ammo_of`) spends one (refusing at 0)
+    and is counted in the Combat block. -> a line or None."""
     thing = ammo_of(atk)
-    mode = _mode("supplies")
-    if thing is None or mode == "off":
+    if thing is None:
         return None
     who = _first(c.name)
     line = None
-    if mode == "strict" and c.doc is not None and c.doc.section("Inventory") is not None:
+    if c.doc is not None and c.doc.section("Inventory") is not None:
         doc = md.load(c.doc.path)
         if not [h for h in inventory.counted(doc, thing) if h[3] > 0]:
             raise SuppliesError(f"{who} has no {thing}")
@@ -201,13 +207,9 @@ def spend_ammo(c, atk):
 
 def ammo_lines(state):
     """combat end: what the shooters spent and what a search recovers."""
-    mode = _mode("supplies")
     _, counts = _spent_line(state)
-    if not counts or mode == "off":
+    if not counts or _mode("ammo") == "off":
         return []
-    if mode == "loose":
-        names = list(dict.fromkeys(n for n, _ in counts))
-        return [f"[Ammo: {', '.join(names)} fired this fight (estimate and spend with gm.py item)]"]
     out = []
     for (n, thing), k in counts.items():
         back = k // 2

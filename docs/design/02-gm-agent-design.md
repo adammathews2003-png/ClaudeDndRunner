@@ -788,20 +788,23 @@ ft, dim 20 more), lantern 6 h per flask of oil (30/30), candle 1 h (5/5), *light
 1 h (20/20), *daylight* 1 h (60/60). The brief's Sight line uses the best light
 any member of the active group carries, so "do you have a light?" has an answer on
 the page. A torch going out is a beat: the clock output says so, and the GM
-narrates it. `track-light: off` keeps sources lit until put out, with nothing
+narrates it. `track-light: off` (the default) keeps sources lit until put out, with nothing
 counted down or used up.
 
 **Supplies.** Ammunition, rations, water and light fuel are inventory lines with
 counts (`quiver (20 arrows)`, `rations (5 days)`, `waterskin (full)`), and the tools
-spend them:
-- `supplies: strict`: every ranged `atk` spends one piece of ammunition; after the
-  fight `combat end` offers back half of what was spent (if the party searches).
-  Eating and drinking are a daily need: `rest long` spends one ration and one day of
-  water per PC, and the clock flags anyone who misses a day.
-- `supplies: loose` (default): ammunition is reckoned once at `combat end` (the GM
-  estimates), and food and water count only away from towns (travel of a day or
+can spend them. All of it is off by default (decided 2026-10-07: the capability is
+there, but this table doesn't count rations or arrows).
+- `ammo: special` (default): ordinary arrows, bolts and bullets are tacitly endless.
+  Only an Attacks row marked `special ammo <thing>` (rare, harder-hitting ammunition)
+  spends one per shot and refuses at 0; after the fight `combat end` offers back half
+  of what was spent (if the party searches). `ammo: all` treats every `ammo <thing>`
+  row that way; `ammo: off` counts nothing.
+- `supplies: strict`: eating and drinking are a daily need: `rest long` spends one
+  ration and one day of water per PC, and the clock flags anyone who misses a day.
+- `supplies: loose`: food and water count only away from towns (travel of a day or
   more, wilderness rests).
-- `supplies: off`: nothing is counted; running out happens only when the story wants.
+- `supplies: off` (default): nothing is counted; running out happens only when the story wants.
 Missing food: a PC can go 3 + CON modifier days (at least 1) without food; each day
 after that is one level of exhaustion. Missing water: less than half the day's need
 is a DC 15 CON save or one level of exhaustion (automatic with none at all).

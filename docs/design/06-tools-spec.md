@@ -1108,12 +1108,12 @@ gm.py item Kira +3 arrows                           # +N/-N: a counted entry (`q
   scene notices use it, and the Sight line names it: `Sight (dark · Kael's torch 40m:
   bright 20 ft, dim 40 ft): …`. `track-light: off` → `light` writes `lit: [torch]`
   with no time and spends nothing.
-- **Supplies.** `strict`: `atk` with an Attacks row whose notes say `ammo <thing>`
-  spends one from the inventory (`quiver (20 arrows)` → `(19 arrows)`) and adds to the
+- **Ammo** (`ammo: special`, the default): `atk` with an Attacks row whose notes say
+  `special ammo <thing>` (any `ammo <thing>` under `ammo: all`) spends one from the inventory (`quiver (20 arrows)` → `(19 arrows)`) and adds to the
   Combat block's `Ammo spent:`; it refuses at 0 (`Kira has no arrows`). `combat end`
   prints `Ammo: Kira spent 6 arrows; after a search, 3 can be recovered (gm.py item
-  Kira +3 arrows)`. `loose`: no per-shot spending; `combat end` prints `Ammo: Kira,
-  Grusk fired this fight (estimate and spend with gm.py item)`. Food and water:
+  Kira +3 arrows)`. Plain `ammo <thing>` under `special`, or `ammo: off`: nothing is
+  spent or printed. **Supplies** (food and water, `strict | loose | off`, default off):
   `eat` spends `rations` and a day of water (a waterskin goes full → half → empty;
   refilling is `item`), or coin with `--bought`, and sets `fed:` to today. `rest long`
   calls it for each PC (`loose`: only away from a settlement with an inn or market,

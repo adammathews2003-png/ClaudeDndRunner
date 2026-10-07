@@ -78,7 +78,7 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
             lines += supplies.eat(eaters, quiet_off=True)
         docs = [md.load(d.path) for d in docs]
         today = gametime.parse(campaign.load_state().front.get("in-game-datetime"))[0]
-        mode = str(campaign.settings().get("supplies", "loose")).lower()
+        mode = str(campaign.settings().get("supplies", "off")).lower()
         lines += _recover_exhaustion(docs, today, mode, supplies)
         docs = [md.load(d.path) for d in docs]
     for d in docs:
