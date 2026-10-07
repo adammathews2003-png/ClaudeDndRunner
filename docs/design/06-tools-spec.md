@@ -918,8 +918,10 @@ work the same way, so remote players can roll their own dice and say so.
 **Queue mode** (`queue`): Discord lines wait for the host.
 - Each arriving line is shown in the terminal as a numbered queue entry:
   `[Q2 sam] Kira: I check the trapdoor (rolled 15)`.
-- Lines the host types are **added to the queue too**. An **empty Enter** submits the
-  whole queue as one prompt, in arrival order. That is one turn with several actors,
+- Lines the host types **never queue** (decided 2026-10-07): each goes straight to the
+  GM (after the reply in progress, if any) and is echoed to the channel as a `> ` quote
+  (`/` and `!` lines aren't echoed). An **empty Enter** submits the whole Discord queue
+  as one prompt, in arrival order. That is one turn with several actors,
   which the turn loop already orders.
 - `:q` lists the queue. `:edit 2 <new text>` replaces an entry. `:drop 2` removes it.
   `:clear` empties it. `:send` is the same as an empty Enter.
@@ -932,7 +934,7 @@ work the same way, so remote players can roll their own dice and say so.
 - Lines are batched, not sent one at a time. While the GM is replying, new lines collect
   and go out as one prompt when the reply ends. When the GM is idle, the bridge waits
   `debounce` seconds (default 4, in `discord.md`) after the last line, so posts made
-  together become one turn. The host's typed lines go into the same batch.
+  together become one turn. The host's typed lines go straight to the GM, as in queue mode.
 
 **Both modes:**
 - `!x` (the X-card, Phase 13) from Discord skips the queue and goes at once.
@@ -964,8 +966,8 @@ section was silent:
   false` count. Discord users are matched by username (case-insensitive) or numeric id.
 - In a batch, consecutive ordinary lines join into one prompt; a slash or `!` line is a
   prompt of its own (a skill must start its prompt), in its place in the order.
-- Auto mode: the host's own typed line joins the batch and sends it at once (the host's
-  Enter is the deliberate submit); an empty Enter or `:send` also sends ⚑ lines.
+- Both modes: the host's own typed line goes straight to the GM and is echoed to the
+  channel; an empty Enter or `:send` sends the queue (and ⚑ lines).
 - The host's own `!x` also skips the queue.
 - `!x` from Discord gets ✅ when it is sent; no other receipt reaction (the terminal
   echo is the host's receipt; ✅ is the players').

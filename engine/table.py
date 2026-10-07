@@ -40,8 +40,10 @@ never campaign files.
 Discord (Phase 17, `--discord queue|auto` or `discord:` in `<campaign>/discord.md`):
 engine/discord_bridge.py. Remote players type in one channel and read there what this
 console shows (a second, public renderer that never sees GM-view output feeds it).
-Queue mode: Discord lines and the host's typed lines wait in a numbered queue; an empty
-Enter or `:send` submits it as one prompt (`:q`, `:edit n text`, `:drop n`, `:clear`).
+The host's typed lines always go straight to the GM (never queued) and are echoed to the
+channel as a `> ` quote (not `/` or `!` lines). Queue mode: Discord lines wait in a
+numbered queue; an empty Enter or `:send` submits it as one prompt (`:q`, `:edit n
+text`, `:drop n`, `:clear`).
 Auto mode: lines go in batches (while the GM replies, then after `debounce` seconds of
 quiet). `!x` jumps the queue; slash commands from Discord always wait for the host (⚑);
 `:discord queue|auto|off` switches. The bot token is read only from DND_DISCORD_TOKEN
@@ -790,12 +792,12 @@ class Table:
                 self.local_command(cmd, arg)
                 continue
             text = act[1]
+            if b.on and not line.lstrip().startswith(("/", "!")):
+                b.post(f"> {line.strip()}")      # the host's words reach the channel too
             if dbridge.XCARD.match(text):
                 outbox.appendleft(text)          # the X-card never waits
-            elif b.on:
-                b.host_line(line.strip(), prompt=text)
             else:
-                outbox.append(text)
+                outbox.append(text)              # the host's own lines never queue
         if task is not None:
             await task                           # let the GM finish the reply
         return await self.close()

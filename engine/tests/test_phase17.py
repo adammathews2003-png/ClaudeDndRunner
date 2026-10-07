@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import types
 import unittest
 from pathlib import Path
@@ -452,9 +453,15 @@ class Client(unittest.TestCase):
 
         def fake_input(prompt=""):
             try:
-                return next(lines)
+                line = next(lines)
             except StopIteration:
                 raise EOFError
+            if line == "n":                            # answer only once the prompt is up
+                for _ in range(500):
+                    if "Run /end-session?" in t.render.out.getvalue():
+                        break
+                    time.sleep(0.01)
+            return line
         b.on_message(msg(31, "I check the trapdoor"))
         with mock.patch.object(table, "input", fake_input, create=True):
             async def go():
@@ -462,11 +469,15 @@ class Client(unittest.TestCase):
                 return await t.run_bridged(first=["/gm"])
             self.assertEqual(asyncio.run(go()), 0)
         self.assertEqual(sent[0], "/gm")
-        self.assertIn("Kira: I check the trapdoor\nBren: I hold the lantern", sent)
+        # the host's line goes straight to the GM (never queued) and is echoed to the channel;
+        # the Discord line waits for the empty Enter
+        self.assertLess(sent.index("Bren: I hold the lantern"), sent.index("Kira: I check the trapdoor"))
+        self.assertIn("> I hold the lantern", b.io.posts)
+        self.assertNotIn("> !x", b.io.posts)
         self.assertIn("!x", sent)
         self.assertNotIn("/end-session", sent)         # the host said n
         out = t.render.out.getvalue()
-        self.assertIn("[Q2 host] Bren: I hold the lantern", out)
+        self.assertNotIn("host] Bren", out)
         self.assertIn("[no Q9]", out)
         self.assertIn("Run /end-session? [y/N]", out)
         self.assertIn("[not run]", out)
