@@ -1026,3 +1026,26 @@ engine repo's local identity. Tests run on frozen copies in `engine/tests/fixtur
 (`poc`, `loop-play`), so playing a campaign never moves them. The PC template moved to
 `engine/templates/pc.md`. `campaigns/dryrun` is a copy of the POC for Phase 10.
 Line references in this plan predate the move; search for the quoted heading.
+
+## Phase 12 — completion notes (2026-10-06)
+
+- `engine/split.py`: form / cut / status / sense / task / join. `current.md` stays the
+  active group's scene; a cut swaps the body and `SCENE_KEYS` (time, party-location,
+  scene, light) and leaves campaign-wide frontmatter in place. Parked scenes live in
+  `state/split/<group>.md`; deletions go through the journal hooks, so `undo` restores
+  a join.
+- `lib/campaign.py`: `split_info()`, `scene_pcs()` (the active group's PCs; used by
+  tempo actors → `combat start`, `scene enter` notices, the Sight line, `move-party`)
+  and settings `split-exchanges`, `split-combat-rounds`, `split-sense-ft`,
+  `split-max-ahead`.
+- `clock.advance`: world events on the earliest group clock, active PCs' conditions on
+  their own, tasks finished, the ahead warning.
+- Added during the build (now in 02/04/06): combat rounds are charged to the group's
+  clock (combat never moved time before), `Play on` when the others are far ahead,
+  and `split-max-ahead`. The exchange counter lives in `.gm/split-slice`, out of the
+  brief hash.
+- Sensing uses route distance; the design's "within sight range" clause is left to
+  `split sense <group> on` (no reliable straight-line distance across frames).
+- Verified by `engine/tests/test_split.py` (10 tests) and a hand run on a copy of
+  dryrun (split, travel, 7-round fight with the other group 4,375 ft away, task, join,
+  undo of the join).

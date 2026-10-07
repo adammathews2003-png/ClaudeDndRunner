@@ -652,29 +652,32 @@ and combat tool works unchanged. Each waiting group's scene is parked in
 ```markdown
 ---
 active: mill
-exchanges: 2                      # this slice so far (counted by the brief hook)
-rounds-at-slice-start: 0          # the Combat block's round when the slice began
+slice-round: 0                    # the combat round the active slice began in (0 = not in combat)
 ---
 
 # Split party
 
-| group | pcs         | location           | time          | tempo  | senses-other |
-|-------|-------------|--------------------|---------------|--------|--------------|
-| mill  | Grusk       | old-mill/main-floor | Day 1 21:10  | combat | no           |
-| inn   | Kael, Kira  | crossroads-inn/yard | Day 1 21:09  | calm   | no           |
+| group | pcs         | location            | time        | tempo  | sense |
+|-------|-------------|---------------------|-------------|--------|-------|
+| mill  | Grusk       | old-mill/main-floor | Day 1 21:10 | combat | auto  |
+| inn   | Kael, Kira  | crossroads-inn/yard | Day 1 21:09 | calm   | auto  |
 
 ## Long tasks
-- inn: search the stable loft (30 min) — Day 1 21:05 → 21:35
+- inn: search the stable loft (30m) — Day 1 21:05 → Day 1 21:35
 ```
 
-PC `location:` stays single-sourced in the PC file (as now); the `location` column is
-the group's scene, mirrored for the brief. A PC belongs to exactly one group.
-`senses-other` is set by `split` whenever a group's tempo becomes combat or its
-location changes, and may be forced by `split sense <group> on|off`.
+PC `location:` stays single-sourced in the PC file (as now). `location`, `time` and
+`tempo` are a snapshot refreshed on every `split` write; the brief reads the live
+values from the scenes. `pcs` holds full PC names; a PC belongs to exactly one group.
+`sense` is `auto` (worked out: same site, or route distance ≤ `split-sense-ft`, or a
+special sense's range) or forced `on`/`off` by `split sense <group>`. The exchange
+counter is hook scratch in `.gm/split-slice` (not canon, not undone).
 
 **Settings** (campaign.md frontmatter, else `state/current.md`; defaults shown):
 `split-exchanges: 3` (calm/tense slice cap), `split-combat-rounds: 6` (combat slice
-when nobody can sense the fight), `split-sense-ft: 300` (how far a fight carries).
+when nobody can sense the fight), `split-sense-ft: 300` (how far a fight carries),
+`split-max-ahead: 30` (minutes a group may run ahead of the others before a cut is
+due; 1 while any waiting group is fighting).
 
 ## Table rules — `state/table-rules.md` (player overrules)
 

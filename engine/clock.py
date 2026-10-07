@@ -26,6 +26,7 @@ from pathlib import Path
 
 from lib import campaign, gametime, geo, journal, md
 from lib.errors import ToolError
+import split
 
 _MOVE = re.compile(r"^\s*-\s*(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*→\s*(\S+)\s*(.*)$")
 _CLOCK = re.compile(r"^\s*-\s*(?:CLOCK\s+)?(Day\s+-?\d+\s+\d{1,2}:\d{2})\s*:\s*(.+)$", re.I)
@@ -171,9 +172,9 @@ def _npc_moves(old, new, state, on_stage):
     return lines, lint
 
 
-def _tick_conditions(minutes):
+def _tick_conditions(minutes, docs=None):
     expired = []
-    for doc in campaign.pcs() + campaign.npcs():
+    for doc in campaign.pcs() + campaign.npcs() if docs is None else docs:
         conds = [str(c) for c in (doc.front.get("conditions") or []) if str(c).strip()]
         kept, changed = [], False
         for c in conds:
@@ -233,23 +234,32 @@ def advance(spec, *, log_time=True):
         raise ClockError("clock advance goes forward; use `time -5m` to correct a mistake")
     new = gametime.add(old, spec)
     minutes = gametime.diff(old, new)
-    on_stage = on_stage_names(state)
+    on_stage = on_stage_names(state) | split.on_stage_elsewhere()
+    # while split, world events run on the earliest group clock (02 → Splitting the party)
+    w_old, w_new = split.world_window(old, new)
+    w_minutes = gametime.diff(w_old, w_new)
     state.set_front("in-game-datetime", gametime.fmt(new))
     state.save()
     if log_time:
         journal.log_delta(f"time {gametime.fmt(old)}→{gametime.fmt(new)}")
     lines = [f"[TIME] {gametime.fmt(old)} → {gametime.fmt(new)} (+{gametime.fmt_delta(minutes)})"]
-    moves, lint = _npc_moves(old, new, state, on_stage)
+    if (w_old, w_new) != (old, new):
+        lines.append(f"  World clock (earliest group): {gametime.fmt(w_old)} → {gametime.fmt(w_new)}")
+    moves, lint = _npc_moves(w_old, w_new, state, on_stage) if w_minutes > 0 else ([], [])
     if moves:
         lines.append("  Movements: " + " · ".join(moves))
-    expired = _tick_conditions(minutes)
+    if split.info() is None:
+        expired = _tick_conditions(minutes)
+    else:   # the active group's PCs on their own clock; everyone else on the world clock
+        expired = (_tick_conditions(minutes, campaign.scene_pcs(include_absent=True))
+                   + (_tick_conditions(w_minutes, campaign.npcs()) if w_minutes > 0 else []))
     if expired:
         lines.append("  Conditions expired: " + ", ".join(expired))
     fired, nxt = [], None
     for t, text, src in clock_lines(campaign.load_state()):
-        if gametime.diff(old, t) > 0 and gametime.diff(t, new) >= 0:
+        if gametime.diff(w_old, t) > 0 and gametime.diff(t, w_new) >= 0:
             fired.append((t, text, src))
-        elif gametime.diff(new, t) > 0 and nxt is None:
+        elif gametime.diff(w_new, t) > 0 and nxt is None:
             nxt = (t, text)
     for t, text, src in fired:
         lines.append(f"  CLOCK {gametime.fmt(t)} ({src}): {text}")
@@ -260,9 +270,12 @@ def advance(spec, *, log_time=True):
         short = re.sub(r"\s*\([^)]*\)\s*$", "", short)
         if len(short) > 60:
             short = short[:60].rsplit(" ", 1)[0] + "…"
-        tail += f" · next: {gametime.fmt(nxt[0])} {short} (in {gametime.fmt_delta(gametime.diff(new, nxt[0]))})"
+        tail += f" · next: {gametime.fmt(nxt[0])} {short} (in {gametime.fmt_delta(gametime.diff(w_new, nxt[0]))})"
     lines.append("  Clocks: " + tail)
     lines += lint
+    lines += split.tasks_done(new) + split.ahead_warning(new)
+    a_old, a_new = old, new
+    old, new = w_old, w_new   # restock and the time loop follow the world clock
     if new[0] > old[0]:   # merchants restock on day boundaries (07 → merchants)
         import loot
         kinds = {"daily"} | ({"weekly"} if any((d - 1) % 7 == 0 for d in range(old[0] + 1, new[0] + 1)) else set())
@@ -278,7 +291,7 @@ def advance(spec, *, log_time=True):
             end = None
         if end is not None and isinstance(st.front.get("loop"), int) and st.front["loop"] >= 1                 and gametime.diff(end, new) >= 0:
             lines += loop.reset("time")
-    return lines, {"from": gametime.fmt(old), "to": gametime.fmt(new), "minutes": minutes,
+    return lines, {"from": gametime.fmt(a_old), "to": gametime.fmt(a_new), "minutes": minutes,
                    "fired": [gametime.fmt(t) for t, _, _ in fired], "expired": expired}
 
 

@@ -237,6 +237,35 @@ spell only for a PC the line calls `blind without a light`, and only when it mat
 Once someone lights one, re-enter the scene with the new light (`scene enter … --light
 dim|bright --write`).
 
+## Splitting the party
+
+When the PCs go separate ways, split them: `split mill=Grusk inn=Kael,Kira` (PC or
+player names; every PC goes in a group, absent ones too). Each group then has its own
+scene and clock; `current.md` and the brief are the **active** group's, and the scene,
+travel, combat and time tools act on it alone.
+- **Slices.** The brief's `Slice:` line counts for you: up to 3 exchanges in a calm or
+  tense scene; 6 rounds in a fight nobody else can sense; **every round** when another
+  group can sense it (they hear the steel; narrate that at their next slice). Cut early
+  on a hook (a door opening, a roll about to land) and end each slice on an
+  affordance. When it says `Cut due`, finish the moment and run `split cut` (it picks
+  the group furthest behind in game time). `Play on` means the others are far ahead:
+  keep going.
+- **Time stays level.** Time warnings (`[split: … ahead …]`) mean cut first, or sum up
+  the other group's matching span in a few lines. While another group fights, keep the
+  calm group's slice to about a minute of game time. A long job ("we search the
+  archive") → `split task inn "search the archive" 30m`; their slices are progress and
+  interruptions until the tool says it's done. Beats and NPC schedules wait for the
+  group furthest behind; the tools handle that.
+- **Who knows what.** At the first cut only, one line of table voice ("Kira and Kael
+  don't know any of this yet"). Then just don't let characters act on what they
+  couldn't know. A waiting player's character action is held: "Hold that thought,
+  Kael, we'll be right with you." Table talk is fine.
+- **Reuniting.** Once the groups reach the same site, `split join <active> <other>`.
+  It levels the clocks and tells you whose gap to summarise; recap in character
+  what the others need to hear. A group arriving mid-fight rolls initiative.
+- `split status` shows every group; `split sense <group> on|off` overrides whether a
+  group can sense another's fight (a lit tower across a valley, a soundproof vault).
+
 ## Danger, loot and shops
 
 - **The danger stone** (or any "how dangerous is that?" sense): `danger <place>` or
@@ -327,6 +356,8 @@ them (`<<STAGE /end-session>>`) when a player's words ask for one, never run the
 - Scene & space: `scene enter <loc> [--light dim] --write [--summary "…"]` · `onstage mara --goal "…" --note "…"`
   · `tempo tense [--adj "Mara +5 watching"] [--pos "Mara @bar"]` · `pos Kael near Tobin` · `intent Mara "…"`
   · `tempo calm` · `space dist A B` · `move Kael --to Veskar [--dash]` · `turn` / `turn use bonus|action|object|dash` · `space cone Kael --toward @door --length 15`
+- Split party: `split mill=Grusk inn=Kael,Kira` · `split cut [group]` · `split status` · `split task inn "…" 30m`
+  · `split sense inn on|off|auto` · `split join mill inn`
 - Session opening: `intro` (title card, premise, why you're here) · `intro --why "hired by the reeve"`
 - Reference: `srd monster|spell|condition <name>` · `where <name|place>` · `trace <name>` · `odds check Mara insight 12`
 - World & canon: `stub npc|location|place …` · `world add|lead|place|show` · `lint`

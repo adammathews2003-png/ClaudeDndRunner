@@ -328,7 +328,7 @@ def move_party(where):
     state = campaign.load_state()
     old = str(state.front.get("party-location") or "")
     names = []
-    for doc in campaign.pcs():
+    for doc in campaign.scene_pcs(include_absent=True):   # while split: the active group only
         doc.set_front("location", target)
         doc.save()
         names.append(str(doc.front.get("name") or ""))

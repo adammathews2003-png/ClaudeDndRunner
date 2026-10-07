@@ -388,6 +388,9 @@ def end(count=(), count_fled=False):
         raise CombatError("combat end: not in combat")
     lines = []
     foes = []
+    import split
+    sp = split.load()
+    played = split.rounds_played(sp, state) if sp else 0
     for r in table.rows:
         name = norm_name(r["name"])
         ref = r.get("ref", "").strip()
@@ -423,6 +426,11 @@ def end(count=(), count_fled=False):
     state.save()
     lines += rules.end_scope("combat")
     journal.log_delta("combat end")
+    if sp:
+        lines += split.charge_combat(played)
+        sp = split.load()
+        sp["slice-round"] = 0
+        split._save(sp)
     from lib import lint
     lines += lint.summary(lint.run())
     data = {}

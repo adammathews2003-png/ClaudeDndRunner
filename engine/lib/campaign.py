@@ -108,6 +108,38 @@ def npcs():
     return _docs("npcs")
 
 
+# ---------- split party (02 → Splitting the party; 04 → Split party) ----------
+
+def split_path():
+    """`<campaign>/state/split.md` (exists only while the party is split)."""
+    return root() / "state" / "split.md"
+
+
+def split_info():
+    """(active group, {group: [PC names]}) while split, else None."""
+    p = split_path()
+    if not p.exists():
+        return None
+    doc = md.load(p)
+    t = doc.table("Split party")
+    groups = {}
+    for r in (t.rows if t else []):
+        groups[r.get("group", "")] = [n.strip() for n in r.get("pcs", "").split(",") if n.strip()]
+    return str(doc.front.get("active") or ""), groups
+
+
+def scene_pcs(include_absent=False):
+    """PC docs in the active scene: every PC, or only the active group's while split.
+    Absent (autopilot) PCs are left out unless `include_absent`."""
+    docs = [d for d in pcs() if include_absent or d.front.get("present") is not False]
+    info = split_info()
+    if info is None:
+        return docs
+    active, groups = info
+    names = {n.lower() for n in groups.get(active, [])}
+    return [d for d in docs if str(d.front.get("name") or "").lower() in names]
+
+
 def locations():
     """Loaded Docs for `locations/*.md`."""
     return _docs("locations")
@@ -131,6 +163,10 @@ SETTINGS = {
     "wacky-juice": "on",
     "wacky-juice-value": 5,
     "wacky-juice-cooldown": 3,
+    "split-exchanges": 3,
+    "split-combat-rounds": 6,
+    "split-sense-ft": 300,
+    "split-max-ahead": 30,
 }
 
 

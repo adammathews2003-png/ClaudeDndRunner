@@ -564,6 +564,10 @@ the GM's reply. A group's turn at the table is a **slice**.
   watched the docks: three carts, one of them twice").
 - **World clocks and NPC schedules** fire against the **earliest** group clock, so
   nothing happens "ahead" of a group that hasn't lived through it yet.
+- **Combat counts as time.** While split, a fight's rounds (6 s each, rounded up to
+  the minute) go on that group's clock when the GM cuts away or the fight ends.
+- If every other group is already far ahead, the fighting (or talking) group **plays
+  on** past its cap until it catches up; the brief says so.
 
 **What the waiting group knows.** Players see everything; characters don't. At the
 first cut, one line of table voice ("Kira and Kael don't know any of this yet").

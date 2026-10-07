@@ -188,7 +188,7 @@ def sight_line(state):
     if light == "bright":
         return None
     bits = [sight.describe(d, light, _short(d.front.get("name") or "?"))
-            for d in campaign.pcs() if d.front.get("present") is not False]
+            for d in campaign.scene_pcs()]
     return f"Sight ({light}): " + (" · ".join(bits) if bits else "—")
 
 
@@ -272,7 +272,12 @@ def build(state=None):
     if sl:
         lines.append(sl)
     lines += [rules_line(rows), watch_line(state),
-              "Combat: " + (combat_status(state) or "—"), log_line()]
+              "Combat: " + (combat_status(state) or "—")]
+    import split
+    split_line, slice_line = split.brief_lines(state)
+    if split_line:
+        lines += [split_line, slice_line]
+    lines.append(log_line())
     return lines
 
 
@@ -328,11 +333,15 @@ def heartbeat(state, since_turn):
     ids = [r.get("id") for r in _rule_rows()]
     if ids:
         bits.append(" ".join(ids))
+    import split
+    sb = split.heartbeat_bit(state)
+    if sb:
+        bits.append(sb)
     return " · ".join(bits)
 
 
 def digest(lines):
-    keep = [line for line in lines if not line.startswith("Log:")]
+    keep = [line for line in lines if not line.startswith(("Log:", "Slice:"))]  # change every prompt
     return hashlib.sha256("\n".join(keep).encode("utf-8")).hexdigest()[:16]
 
 
@@ -402,6 +411,8 @@ def hook(ctx, long):
         _clear_hash()
         return build(state) + long_extra(state)
     prompt = str(data.get("prompt") or "")
+    import split
+    split.count_prompt(prompt)
     lines = build(state)
     h = digest(lines)
     st = _load_hash()

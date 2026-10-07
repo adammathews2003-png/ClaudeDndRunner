@@ -112,8 +112,7 @@ def people(site, area, now):
             here.append(doc)
         elif loc.split("/")[0].lower() == site.lower():
             elsewhere.append(doc)
-    pcs = [d for d in campaign.pcs() if d.front.get("present") is not False]
-    return here, elsewhere, pcs
+    return here, elsewhere, campaign.scene_pcs()
 
 
 def movement_now(doc, now):

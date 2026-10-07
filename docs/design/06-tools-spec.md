@@ -396,30 +396,43 @@ gm.py split join <group> <group>   # merge when they meet (same site required)
   the named PCs in each, and records the active one. Groups then move with the
   ordinary tools (`scene enter`, `travel`, `move-party`), which act on `current.md`, so
   a group must be active to move. `move-party` moves only the active group's PCs.
-- **Counting.** The brief hook adds 1 to `exchanges` for each player prompt (not `/`
-  or `!` lines); `combat next` rounds are read from the Combat block. `split cut`
-  resets both. Nothing cuts automatically: the brief says when a cut is due and the
-  GM picks the moment.
+- **Counting.** The brief hook adds 1 to the exchange counter (`.gm/split-slice`) for
+  each player prompt (not `/` or `!` lines); combat rounds are read from the Combat
+  block against `slice-round`. `split cut` resets both. Nothing cuts automatically:
+  the brief says when a cut is due and the GM picks the moment.
 - **Choosing the next group:** `split cut` with no group picks the one with the
-  earliest clock (ties → the one that waited longest). It refuses a group more than
-  one slice ahead of the earliest unless named explicitly with `--force`.
-- **Sensing:** same site → yes; otherwise `geo` distance between the groups' locations
-  ≤ `split-sense-ft`, or ≤ a PC's sight range when the other group's light makes it
-  visible, or ≤ any special sense in `senses:`. Unknown distance → no, with a
-  `[split: distance unknown, sense off; override with split sense]` note.
-- **Clocks:** `clock`/`time` advance the active group's `in-game-datetime`. World
-  CLOCK beats and NPC schedules fire only when the **earliest** group clock reaches
-  them. A `time` that would put the active group more than one slice ahead of the
-  earliest warns `[split: mill would be 40m ahead of inn — cut first or summarise]`.
+  earliest clock (ties → the next in table order). It refuses a group more than
+  `split-max-ahead` ahead of the earliest unless `--force`.
+- **Sensing:** same site → yes; otherwise the route distance between the groups'
+  locations (`geo.find_route`, in feet) ≤ `split-sense-ft`, or ≤ a special sense
+  (blindsight, tremorsense, truesight) in a PC's `senses:`. No route → no. Long
+  sightlines (a lit tower across a valley) are the GM's call: `split sense <group> on`.
+- **Clocks:** `clock`/`time` advance the active group's `in-game-datetime` and tick its
+  PCs' conditions. World CLOCK beats, NPC schedules, NPC conditions, restock and the
+  time loop run on the **earliest** group clock (`World clock (earliest group): …`
+  line). NPCs on stage in any group's scene are never moved by schedule. Past
+  `split-max-ahead` (1 minute while a waiting group fights) it warns
+  `[split: mill is now 40m ahead of inn — cut first or summarise their matching span]`.
+- **Combat time.** Combat doesn't move the clock; while split, the rounds the active
+  group fought this slice (6 s each, rounded up to the minute) are charged to its
+  clock when the GM cuts away (`split cut`) or the fight ends (`combat end`).
+- **Long tasks** finish when the active group's clock passes their end
+  (`Long task done: …` in the `[TIME]` output) and leave the list.
 - **join** requires both groups at the same site; the result's clock is the later of
   the two (the earlier group's gap is printed for the GM to summarise), On stage and
   Watch for are unioned, and an active combat on either side becomes the merged
   Combat block (the newcomers roll initiative and enter at the next round).
-- **Brief while split:** the header shows the active group; one line per waiting group
-  and the slice counter, e.g.
-  `Split: ▶ mill (Grusk) exchange 2/3 · inn (Kael, Kira) crossroads-inn/yard Day 1 21:09 calm — 1m behind`
-  and, when one is due, `Cut due: inn is behind` or `Cut every round: inn can hear the fight`.
-  Absent (autopilot) PCs travel with whichever group they were put in.
+- **Active scene only.** `scene enter`, `tempo`, `combat start`, the brief's Sight line
+  and `move-party` see only the active group's PCs (`campaign.scene_pcs()`). Absent
+  (autopilot) PCs travel with whichever group they were put in.
+- **Brief while split:** two lines after `Combat:`:
+  `Split: ▶ mill (Grusk) · inn (Kael, Kira) crossroads-inn/yard Day 1 21:09 calm, 1m behind`
+  and `Slice: exchange 2/3` (or `round 3 of 6`, or `round 2 of 1 (every round: inn can
+  sense the fight)`) with a cue when one applies: `Cut due: 3 exchanges` · `Cut due: 6
+  rounds played` · `Cut every round: inn can sense the fight` · `Cut due: inn is 35m
+  behind` · `Play on: inn is 35m ahead (no cut until this group catches up)`. The
+  `Slice:` line changes every prompt, so it's left out of the brief hash (like `Log:`);
+  the heartbeat carries `mill exchange 2/3 · CUT DUE`.
 
 ### `gm.py monster new "<name>" --from "<base>" | list [--all] | show <name>`
 Custom monsters (07 → Custom monsters; 04 → Custom-bestiary file), one `custom-bestiary/` per

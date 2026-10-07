@@ -75,6 +75,11 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
 - Paste public roll lines; describe enemy HP in fiction only ("bloodied", "staggering").
 - A PC at 0 HP makes death saves (d20, 10+ succeeds; three of either; nat 20 = up with
   1 HP; damage while down = a failure). Most monsters just die at 0.
+- **Split party:** only the active group fights; the others are in their own scenes.
+  Watch the brief's `Slice:` line at each round's end: `Cut every round` (another group
+  can sense the fight) → `split cut` after this round; `Cut due: 6 rounds played` →
+  cut at this round's end. Close the round on a tense beat. The tools charge the
+  rounds to the group's clock (6 s each) when you cut away or the fight ends.
 
 ## End
 1. When it's over (dead, fled, surrendered): `python engine/gm.py combat end [--count "Bandit"] [--count-fled]`

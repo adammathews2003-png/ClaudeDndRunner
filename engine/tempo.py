@@ -149,9 +149,7 @@ def actors(state):
             out.append(Actor(m.name, f"srd:{sm.group(1).strip().lower()}", False, None, sm.group(1).strip(), goal))
         else:
             out.append(Actor(m.name, "", False, None, None, goal))
-    for doc in campaign.pcs():
-        if doc.front.get("present") is False:
-            continue
+    for doc in campaign.scene_pcs():
         slug = Path(doc.path).stem
         name = short_pc(doc)
         c = creatures.get(str(doc.front.get("name")), state)
