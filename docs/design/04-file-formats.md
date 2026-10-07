@@ -429,7 +429,8 @@ debounce: 4             # auto mode: seconds of quiet before a batch is sent
 ```
 `player` matches PC `player:` values. `discord user` is the Discord username (not the
 display name; case-insensitive, a leading `@` is ignored) or the numeric user id. The
-`--discord` flag overrides `discord:` for one run. The bot token is never stored here; it comes from
+`--discord` flag overrides `discord:` for one run. A row added while the table runs counts
+from that user's next message (the map is re-read for an unknown user). The bot token is never stored here; it comes from
 the `DND_DISCORD_TOKEN` environment variable, else the host's git-ignored
 `.local/discord-token` (first line that isn't blank or `#`; 06 → Discord bridge).
 

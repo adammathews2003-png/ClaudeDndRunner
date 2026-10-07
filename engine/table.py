@@ -644,7 +644,7 @@ class Table:
             self.render.notice(f"[discord: no channel id in {where} — the table runs without Discord]")
             return None
         if not self.token:
-            self.render.notice(f"[discord: the {dbridge.TOKEN_ENV} environment variable isn't set — "
+            self.render.notice(f"[discord: no bot token ({dbridge.TOKEN_ENV} or .local/discord-token) — "
                                "the table runs without Discord]")
             return None
         if self.io_factory is dbridge.DiscordPyIO and not dbridge.library_available():
@@ -653,7 +653,8 @@ class Table:
             return None
         cfg.mode = mode
         b = dbridge.Bridge(cfg, notice=self.render.notice, wake=self._wake, interpret=self._interpret,
-                           pcs=lambda: dbridge.player_pcs(self.camp), token=self.token, log=self._log_line)
+                           pcs=lambda: dbridge.player_pcs(self.camp), token=self.token, log=self._log_line,
+                           users=lambda: getattr(dbridge.load_config(self.camp), "users", None))
         b.io = self.io_factory(self.token, b)
         return b
 

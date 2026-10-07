@@ -274,6 +274,17 @@ class Both(unittest.TestCase):
         b.on_message(msg(6, "hi", author="someone", author_id=99887766))   # mapped by id
         self.assertEqual(b.entries[0].prompt, "(Bo, table talk) hi")
 
+    def test_a_row_added_mid_session_counts_at_once(self):
+        b, notices = make("queue")
+        rows = {}
+        b.users = lambda: dict(b.cfg.users, **rows)       # discord.md, re-read
+        b.on_message(msg(1, "let me in", author="pal"))
+        self.assertEqual(b.entries, [])
+        rows["pal"] = "Sam"                               # the host adds `| pal | Sam |`
+        b.on_message(msg(2, "I open the box", author="pal"))
+        self.assertIn("[discord: @pal joins as Sam]", notices)
+        self.assertEqual(b.entries[-1].prompt, "Kira: I open the box")   # Sam's one PC
+
 
 class Output(unittest.TestCase):
     def pipe(self, mode="queue"):
@@ -545,7 +556,7 @@ class Guards(unittest.TestCase):
         t = table.Table(args(camp), token="")
         t.render = table.Renderer(out=io.StringIO(), color=False)
         self.assertIsNone(t.bridge_setup("queue"))
-        self.assertIn("DND_DISCORD_TOKEN environment variable isn't set", t.render.out.getvalue())
+        self.assertIn("no bot token (DND_DISCORD_TOKEN or .local/discord-token)", t.render.out.getvalue())
         t.token = TOKEN
         with mock.patch.object(db, "library_available", lambda: False):
             self.assertIsNone(t.bridge_setup("queue"))

@@ -304,10 +304,11 @@ class Bridge:
     `notice(text)` prints on the host's terminal; `wake()` tells the table's loop to look
     again (a line arrived, a batch may be due); `interpret(text)` turns a host line into
     its prompt (table.InputState: `:as`, unknown slash commands); `pcs()` gives
-    {player: [PC]} for speaker resolution; `clock()` is monotonic seconds."""
+    {player: [PC]} for speaker resolution; `clock()` is monotonic seconds; `users()`
+    re-reads the player map from discord.md (a row added mid-session counts at once)."""
 
     def __init__(self, cfg, io=None, notice=print, wake=None, interpret=None, pcs=None,
-                 clock=time.monotonic, token="", log=None):
+                 clock=time.monotonic, token="", log=None, users=None):
         self.cfg = cfg
         self.mode = cfg.mode if cfg.mode in MODES else "off"
         self.io = io
@@ -318,6 +319,7 @@ class Bridge:
         self.clock = clock
         self.token = token
         self.log = log or (lambda text: None)
+        self.users = users
         self.entries = []
         self.urgent = []            # (prompt, msg_id): X-cards, sent before anything else
         self.ignored = set()
@@ -381,10 +383,21 @@ class Bridge:
             self.log(f"discord message error: {type(e).__name__}: {redact(e, self.token)}")
             return None
 
+    def _player(self, m):
+        return self.cfg.users.get((m.author or "").lower()) or self.cfg.users.get(str(m.author_id))
+
     def _on_message(self, m):
         if not self.on or m.bot or m.dm or m.channel_id != self.cfg.channel:
             return None
-        player = self.cfg.users.get((m.author or "").lower()) or self.cfg.users.get(str(m.author_id))
+        player = self._player(m)
+        if not player and self.users is not None:
+            fresh = self.users()        # discord.md may have gained a row since the start
+            if fresh:
+                self.cfg.users = fresh
+                player = self._player(m)
+                if player and m.author in self.ignored:
+                    self.ignored.discard(m.author)
+                    self._say(f"[discord: @{m.author} joins as {player}]")
         if not player:
             if m.author not in self.ignored:
                 self.ignored.add(m.author)
