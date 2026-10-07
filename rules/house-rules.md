@@ -31,6 +31,18 @@ saves, initiative (rolled or passive). Concretely:
 - **Initiative tie** (PC vs. NPC) → PC goes first.
 - PC vs. PC ties: no house rule — re-roll or let the players decide.
 
+## Spell components
+**Material components are ignored, all of them**, including ones with a gold cost and
+ones the spell consumes (Revivify's diamond, Identify's pearl, Glyph of Warding's incense).
+Nobody gathers, buys, carries or spends them, and no focus or component pouch is needed.
+*Overrides RAW (2014), where costly components must be supplied and consumed ones are
+used up.* `srd spell` prints materials as `material waived`.
+- **Verbal and somatic components still count**, as in RAW: a gagged or magically
+  silenced caster can't cast spells with V, a caster needs a free hand for S, and
+  Subtle Spell still matters.
+- A spell's material description is flavor the GM may narrate (the pinch of sulfur
+  flaring), never a cost.
+
 ## Overrules
 The table can retcon events or add table rules with `/overrule` (honor-based: whoever
 runs the session uses it when they choose; see `docs/design/02` → Overrule). Temporary rules live in the campaign's

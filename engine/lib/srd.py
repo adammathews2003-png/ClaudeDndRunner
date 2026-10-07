@@ -224,7 +224,8 @@ def spell(name):
     r = find("Spells", name)
     lvl = "cantrip" if r.get("level") == 0 else f"level {r.get('level')}"
     school = r.get("school", {}).get("name", "")
-    comps = ", ".join(r.get("components", [])) + (f" ({r['material']})" if r.get("material") else "")
+    # House rule: material components are waived (rules/house-rules.md → Spell components).
+    comps = ", ".join(r.get("components", [])) + (f" (material waived: {r['material']})" if r.get("material") else "")
     head = (f"[SRD {r['name']}] {lvl} {school.lower()} · {r.get('casting_time')} · range {r.get('range')} · "
             f"{comps} · {r.get('duration')}" + (" (concentration)" if r.get("concentration") else "")
             + (" · ritual" if r.get("ritual") else ""))
