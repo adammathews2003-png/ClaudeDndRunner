@@ -452,8 +452,12 @@ whether this blow leaves a mark; `injury Kael` rolls the campaign's own table.
 
 ## Table extras (Phase 16)
 
-**Carousing** (`carousing: on`, default off; never bring it up while off). When players
-want a night of heavy drinking somewhere that has it:
+**Carousing** (`carousing: on`, the default; never bring it up while off). **The offer:**
+when the party is in a tavern at night and has ordered drinks (any number), run `carouse
+--offer`. On a first visit it says so: offer it once, in the fiction, as an option (a dice
+game starting up, a rowdy table waving them over, "the night's young"), then let it go.
+`already offered` means don't raise it again there; it stays an unspoken option the
+players can take up any night. When players want a night of heavy drinking:
 1. **The pause**, in fiction, once: "You'll wake up tomorrow with whatever you did
    tonight. Still in?" Each PC who joins rolls separately.
 2. **Behind the screen:** `carouse Kira,Kael`. Its output is GM-only: **never paste it**,

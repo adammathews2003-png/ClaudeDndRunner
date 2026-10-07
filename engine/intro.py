@@ -23,7 +23,8 @@ gm-rolls-all`), asking anything, and the Discord line while `discord.md` has the
 on. It is logged once per campaign as `[intro] how to play given`, so a second `intro`
 in session 1 doesn't repeat it. `intro --how-to-play [--for <PC>]` prints it on demand
 (`--for`: the short version for a new player, addressed to them). The first session's
-`[TELL THE TABLE]` lines also name carousing and the crit die while they're on.
+`[TELL THE TABLE]` lines also name the crit die while it's on (carousing is offered in the
+fiction instead, once per tavern: `carouse --offer`).
 """
 import re
 
@@ -208,9 +209,6 @@ def tell_the_table():
     if tell:
         out.append(tell)
     s = campaign.settings()
-    if str(s.get("carousing", "off")).lower() == "on":
-        out.append("[TELL THE TABLE] carousing on: in a town you can spend a night carousing; you'll wake "
-                   "up with whatever you did (it costs coin, and the results are real)")
     if str(s.get("crit-die", "off")).lower() == "on":
         out.append("[TELL THE TABLE] crit die on: a critical hit rolls on a table instead of just doubling "
                    "the dice, for monsters too, and its worst face can kill outright")

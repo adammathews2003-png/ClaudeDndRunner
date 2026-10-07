@@ -38,11 +38,11 @@ and the generation runs in a forked context that returns a shape card.
    off | light | full, `weather` off | on, `encumbrance` off | basic | variant, `renown`
    off | party | per-pc, `lingering-injuries` off | on, `upkeep` off | on — lifestyle,
    materials and wages in coin; this table keeps bookkeeping off; Phase 16: `carousing`
-   off | on, `crit-die` off | on, `crit-die-pcs` dying | dead) keep their defaults
+   on | off (default on), `crit-die` off | on, `crit-die-pcs` dying | dead) keep their defaults
    unless the seed touches them (a faction-heavy seed: `renown=party`; a wilderness
-   seed: `weather=on`; a rowdy comedy: `carousing=on`; "brutal crits": `crit-die=on`).
+   seed: `weather=on`; a grim or tavern-free seed: `carousing=off`; "brutal crits": `crit-die=on`).
    Lingering injuries need the campaign's own `tables/injuries.md`; `campaign new`
-   copies the engine's original starter `tables/carousing.md` and `tables/crit-die.md`
+   copies the engine's `tables/carousing.md` (credited, combined) and `tables/crit-die.md`
    (a table the driver found elsewhere comes in with `table import <file> --as
    carousing` and stays in the campaign).
 3. **Write the seed verbatim** to a scratch file (e.g. `<slug>-seed.md` in your scratch

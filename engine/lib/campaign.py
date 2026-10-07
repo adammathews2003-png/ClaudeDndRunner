@@ -187,7 +187,7 @@ SETTINGS = {
     "renown": "off",                # off | party | per-pc
     "lingering-injuries": "off",    # off | on
     "upkeep": "off",                # off | on: lifestyle costs, crafting materials, hireling wages
-    "carousing": "off",             # off | on: `carouse` and its d100 table (Phase 16)
+    "carousing": "on",              # on | off: `carouse`, offered once per tavern (Phase 16)
     "crit-die": "off",              # off | on: the critical hit die replaces the crit
     "crit-die-pcs": "dying",        # dying | dead: what the crit die's `kill` does to a PC
 }

@@ -2,7 +2,10 @@
 of carousing on a d100 table (docs/design/02 → Table mechanics → Phase 16 → Carousing; 06 →
 Phase 16 — table extras; 04 → Random tables; plan.md Phase 16 item 6).
 
-Only while `carousing: on` (default off). Everything is behind the screen: the output is
+Only while `carousing: on` (default on since 2026-10-07). It is offered in the fiction, once
+per tavern: after the party orders drinks in a tavern at night, `carouse --offer` says whether
+this site has had the offer yet and records it (`offered:` in state/carousing.md); after that
+it stays an unspoken option the players may take up any night. Everything is behind the screen: the output is
 for the GM (never pasted) and every delta, the coin and items included, is a `(GM)` log
 line until the morning reveal. For each PC:
 1. the night's cost (`cost:` in the table's frontmatter, default `1d6x10gp`); a PC who
@@ -392,9 +395,29 @@ def reroll(name, table_name="carousing", roller=None):
     return out
 
 
+def offer():
+    """`carouse --offer`: first offer at this site (record it), or already offered."""
+    if not enabled():
+        raise CarouseError("carousing: off (campaign setting `carousing: on` turns it on)")
+    site = str(campaign.load_state().front.get("party-location") or "").split("/")[0].lstrip("@")
+    if not site:
+        raise CarouseError("carouse --offer: the party has no location")
+    doc = _state_doc()
+    offered = [str(x) for x in (doc.front.get("offered") or [])]
+    if site in offered:
+        return [f"[carousing: already offered at {site}. Don't raise it again; it's still theirs to take any night]"]
+    doc.set_front("offered", offered + [site])
+    doc.save()
+    journal.log_delta(f"[carouse] offered at {site}", gm=True)
+    return [f"[carousing: first time at {site}. Offer it once, in the fiction (a round of dice, a rowdy "
+            "table, \"the night's young\"), then let it be]"]
+
+
 def cmd_carouse(ctx):
     a = ctx.args
-    if a.reroll:
+    if a.offer:
+        lines = offer()
+    elif a.reroll:
         lines = reroll(a.reroll, a.table, ctx.roller)
     else:
         names = [x.strip() for x in ",".join(a.pcs).split(",") if x.strip()]
@@ -410,4 +433,6 @@ def register(sub, g):
     p.add_argument("pcs", nargs="*")
     p.add_argument("--table", default="carousing")
     p.add_argument("--reroll", help="take back this PC's last row and roll again (GM-only)")
+    p.add_argument("--offer", action="store_true",
+                   help="drinks ordered at night in a tavern: first offer here? (records it; once per tavern)")
     p.set_defaults(func=cmd_carouse)

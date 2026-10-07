@@ -103,7 +103,7 @@ class Base(CampaignCase):
 class Defaults(CampaignCase):
     def test_settings(self):
         s = campaign.SETTINGS
-        self.assertEqual((s["carousing"], s["crit-die"], s["crit-die-pcs"]), ("off", "off", "dying"))
+        self.assertEqual((s["carousing"], s["crit-die"], s["crit-die-pcs"]), ("on", "off", "dying"))
 
 
 # ---------- (1) pre-rolls ----------
@@ -206,7 +206,7 @@ class HowToPlay(Base):
         self.setting("carousing", "on")
         self.setting("crit-die", "on")
         out = self.ok("intro")
-        self.assertTrue(any(x.startswith("[TELL THE TABLE] carousing on") for x in out))
+        self.assertFalse(any("carousing" in x for x in out))           # offered in the fiction instead
         self.assertTrue(any(x.startswith("[TELL THE TABLE] crit die on") for x in out))
         (self.camp / "sessions" / "history").mkdir(exist_ok=True)
         (self.camp / "sessions" / "history" / "session-01.md").write_text("# s1\n", encoding="utf-8")
@@ -337,6 +337,16 @@ class Carousing(Base):
         self.assertIn("carousing: off", self.fails("carouse", "Kira"))
         self.setting("carousing", "on")
         self.assertIn("is not a PC", self.fails("carouse", "Mara"))
+
+    def test_offer_once_per_tavern(self):
+        self.assert_undoes("carouse", "--offer")
+        out = self.ok("carouse", "--offer")
+        self.assertTrue(out[0].startswith("[carousing: first time at crossroads-inn"), out)
+        self.assertTrue(self.ok("carouse", "--offer")[0].startswith("[carousing: already offered at crossroads-inn"))
+        self.assertEqual(md.load(self.path("state/carousing.md")).front["offered"], ["crossroads-inn"])
+        self.assertTrue(any(x.startswith("  - (GM) [carouse] offered at crossroads-inn") for x in self.log_lines()))
+        self.setting("carousing", "off")
+        self.assertIn("carousing: off", self.fails("carouse", "--offer"))
 
     def test_starter_table_fallback(self):
         self.path("tables/carousing.md").unlink()

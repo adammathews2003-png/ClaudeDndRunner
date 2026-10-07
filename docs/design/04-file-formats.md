@@ -394,7 +394,7 @@ its `notes`.
 | `renown` | `off \| party \| per-pc` | off | 15 |
 | `lingering-injuries` | `off \| on` | off | 15 |
 | `upkeep` | `off \| on` (coin for lifestyle, crafting materials, training fees, hireling wages) | off | 15 |
-| `carousing` | `on \| off` | off | 16 |
+| `carousing` | `on \| off` | on | 16 |
 | `crit-die` | `off \| on` | off | 16 |
 | `crit-die-pcs` | `dying \| dead` | dying | 16 |
 
@@ -411,7 +411,8 @@ are copied from `engine/templates/tables/` by `campaign new` (crit-die: original
 original one, rolled d100 then d4 for the slot).
 A table imported from elsewhere (`table import`) replaces the copy and stays in the
 campaign folder. A campaign without its own copy (the POC) rolls the engine's starter.
-`state/carousing.md` (GM-only, written by `carouse`) keeps the latest night per PC, `| pc
+`state/carousing.md` (GM-only, written by `carouse`) has `offered: [site, …]` in its
+frontmatter (taverns where `carouse --offer` has made the one offer) and keeps the latest night per PC, `| pc
 | night | roll | result | applied |`, so `carouse --reroll` can take a row back. The crit
 die's bleed is the condition `bleeding 1d4` (a dice expression after the name).
 

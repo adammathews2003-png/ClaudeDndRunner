@@ -1022,10 +1022,13 @@ it on.
 
 House-flavor additions from the table, each behind a setting.
 
-**Carousing** (`carousing: on | off`, default off: the table's standing preference
-keeps optional bookkeeping off until asked for; built 2026-10-07). Players can decide to carouse (a
-night of heavy drinking in a settlement with somewhere to do it) and let a d100 table
-decide what they got up to.
+**Carousing** (`carousing: on | off`, default on; built 2026-10-07). Players can decide
+to carouse (a night of heavy drinking in a settlement with somewhere to do it) and let a
+d100 table decide what they got up to. It is always simply optional, and offered in the
+fiction, never announced as a rule: when the party is in a tavern at night and has
+ordered drinks (any number), the GM offers it once for that tavern (`carouse --offer`
+records the site and says whether it's the first time). After that it is an unspoken
+option the players may take up any night; the GM doesn't raise it there again.
 1. **Who's in.** Each PC who joins rolls separately. One pause before it starts, in
    fiction: *"You'll wake up tomorrow with whatever you did tonight. Still in?"* The
    night costs coin (`cost:` in the table's frontmatter, default `1d6x10gp` per PC). A
