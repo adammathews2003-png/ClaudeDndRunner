@@ -526,6 +526,59 @@ Lifecycle: `combat start` → `atk`/`dmg`/`cond`/`space move` per turn → `comb
 `combat end`. Keep POC combat simple (few combatants, basic actions) before layering in
 complexity.
 
+## Splitting the party
+
+**Decided (2026-10-06).** When the PCs go separate ways, each **group** gets its own
+scene (location, light, tempo, On stage, combat) and its own game clock, and the GM
+**cuts** between them so every group keeps moving and nobody waits long. The waiting
+players are still at the same console, watching.
+
+**The unit is the exchange:** one round of input from the active group's players plus
+the GM's reply. A group's turn at the table is a **slice**.
+- **Calm or tense slice:** at most `split-exchanges` (default 3). It's a cap, not a
+  quota. Cut early on a hook: a door opening, a roll about to land, an NPC's "you
+  shouldn't be here". End every slice on an affordance the players will come back to.
+- **Combat slice, other groups can't sense the fight:** `split-combat-rounds` (default
+  6 rounds = 1 minute) before cutting away.
+- **Combat slice, another group can sense it** (sight, hearing, smell, any sense in
+  range): cut **every round**. The fight is part of their scene now: they hear the
+  steel, see the torchlight, and may come running.
+- **Can sense** (`split` works it out, the GM may override): the groups share a site,
+  or they're within `split-sense-ft` (default 300 ft, combat carries) of each other, or
+  one can see the other within its sight range in the current light. Special senses in
+  a PC's `senses:` (blindsight, a keen nose) extend it when their range reaches.
+  Noticing is narrated to the sensing group at their next slice, without a check
+  unless the fight is quiet (an assassination, a whispered struggle: passive
+  Perception vs. the attacker's Stealth).
+
+**Keep game time level.** This rule outranks alternation:
+- Each group has its own clock. **The group furthest behind in game time goes next.**
+- A slice may not run a group more than about one slice of the other's time ahead.
+  While a group is in combat, the calm group's slice covers **about one minute** of
+  game time, the same as six rounds.
+- **Long tasks span slices.** "We search the archive" (30 min) starts in one slice and
+  finishes when that group's clock reaches it. Until then their slices are progress,
+  interruptions, and what they find along the way.
+- **Big skips** (a long rest, travel) by one group wait until the others catch up, or
+  the GM summarises the others' matching span in a few lines ("while they slept, you
+  watched the docks: three carts, one of them twice").
+- **World clocks and NPC schedules** fire against the **earliest** group clock, so
+  nothing happens "ahead" of a group that hasn't lived through it yet.
+
+**What the waiting group knows.** Players see everything; characters don't. At the
+first cut, one line of table voice ("Kira and Kael don't know any of this yet").
+Afterwards the GM simply doesn't let characters act on what they couldn't know.
+Contact between groups needs a means in the fiction: shouting distance, a *Sending*,
+a signal arranged beforehand. Messages travel at fiction speed.
+
+**Reuniting.** When groups reach the same place, the GM merges them (`split join`):
+clocks level to the latest one (the earlier group's gap is summarised), scenes merge,
+and a quick in-character recap covers anything the others need to hear.
+
+**Out-of-turn table talk** from a waiting player is fine. Character actions from a
+waiting group are held for their next slice ("Hold that thought, Kael: we'll be with
+you shortly").
+
 ## Spatial model (theater of the mind, backed by coordinates)
 
 Players describe intent in fiction ("I rush the archer on the landing"); the GM keeps

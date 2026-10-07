@@ -640,6 +640,42 @@ which `combat next` / `clock` count down. `notes` may carry `reach 10`, `climb s
 `fly speed`. HP `0/x` renders as a lowercase (down) glyph on the map. Temporary HP is
 written after the HP as `9/11 (+5 temp)` (a group: `7/11 ea`).
 
+### Split party — `state/split.md` and parked scenes (02 → Splitting the party)
+
+Exists only while the party is split; `split join` of the last two groups deletes it.
+`state/current.md` always holds the **active** group's scene, so every scene, tempo
+and combat tool works unchanged. Each waiting group's scene is parked in
+`state/split/<group>.md`, the same format as `current.md` (its own
+`in-game-datetime`, `party-location`, `scene`, `light`, On stage, Tempo, Combat).
+`split cut` swaps them. Written only by `gm.py split`.
+
+```markdown
+---
+active: mill
+exchanges: 2                      # this slice so far (counted by the brief hook)
+rounds-at-slice-start: 0          # the Combat block's round when the slice began
+---
+
+# Split party
+
+| group | pcs         | location           | time          | tempo  | senses-other |
+|-------|-------------|--------------------|---------------|--------|--------------|
+| mill  | Grusk       | old-mill/main-floor | Day 1 21:10  | combat | no           |
+| inn   | Kael, Kira  | crossroads-inn/yard | Day 1 21:09  | calm   | no           |
+
+## Long tasks
+- inn: search the stable loft (30 min) — Day 1 21:05 → 21:35
+```
+
+PC `location:` stays single-sourced in the PC file (as now); the `location` column is
+the group's scene, mirrored for the brief. A PC belongs to exactly one group.
+`senses-other` is set by `split` whenever a group's tempo becomes combat or its
+location changes, and may be forced by `split sense <group> on|off`.
+
+**Settings** (campaign.md frontmatter, else `state/current.md`; defaults shown):
+`split-exchanges: 3` (calm/tense slice cap), `split-combat-rounds: 6` (combat slice
+when nobody can sense the fight), `split-sense-ft: 300` (how far a fight carries).
+
 ## Table rules — `state/table-rules.md` (player overrules)
 
 Written only by `gm.py rule` when someone invokes `/overrule` (02; honor-based). Read

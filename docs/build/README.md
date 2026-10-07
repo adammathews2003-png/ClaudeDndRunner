@@ -30,6 +30,7 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 9 | 2b | GM skills in `.claude/skills/` | [x] 2026-10-05 |
 | 11 | 2c | `campaign`, `encounter`, `danger`, `loop` tools; `/campaign` authoring skills; time-loop rules sheet (`docs/design/07`) | [x] 2026-10-05 |
 | 10 | Phase 3 | Verification sweep + dry-run readiness | [ ] |
+| 12 | 2d | `split` (splitting the party: groups, slices, per-group clocks, sensing, join) + `/gm` guidance (02 → Splitting the party) | [ ] |
 
 Tick a phase here when its verification checklist in `plan.md` passes. Phases 1→7 are
-sequential; 8 can wait indefinitely; 9 needs 1–7; 11 needs 7 and 9; 10 needs 9 and 11.
+sequential; 8 can wait indefinitely; 9 needs 1–7; 11 needs 7 and 9; 10 needs 9 and 11; 12 needs 9.

@@ -719,6 +719,36 @@ on a toy seed returns only a shape card in the parent context (grep the transcri
 **Guards:** no secret text in any skill's returned report; `loop` never writes under
 `pcs/`; thresholds come from the data table, never from the model.
 
+## Phase 12 — Splitting the party (2d)
+
+**Goal:** the party can split into groups that each keep their own scene and game
+clock, with the GM cutting between them by slice (02 → Splitting the party).
+
+**Read first:** 02 → Splitting the party; 04 → Split party; 06 → `gm.py split`;
+06 → `gm.py brief` + hooks (the exchange counter rides the hook); `engine/clock.py`
+and `engine/scene.py` (both act on `current.md`, which stays the active group's).
+
+**Build:** (1) `engine/split.py` with form / cut / status / sense / task / join, parking
+scenes in `state/split/<group>.md` and keeping `state/split.md`; (2) the brief hook
+counts exchanges while split, and `brief` adds the `Split:` line and the `Cut due` /
+`Cut every round` cue; (3) `clock`/`time` advance only the active group, fire world
+CLOCK beats and NPC schedules on the earliest group clock, and warn past one slice
+ahead; `move-party` moves only the active group's PCs; (4) sensing on `geo` distance,
+`split-sense-ft`, sight ranges via `lib/sight.py`, and `senses:`; (5) settings
+`split-exchanges`, `split-combat-rounds`, `split-sense-ft`; (6) `/gm` skill section on
+splitting (when to cut, holding a waiting group's actions, the one-line knowledge
+reminder, summarising skips) and the `combat` skill's per-round cut when sensed.
+
+**Verify:** split dryrun into `mill=Grusk` and `inn=Kael,Kira`; three prompts → brief
+says `Cut due`; `split cut` picks the group with the earlier clock; `time +40m` on one
+group warns; a CLOCK beat between the two group times doesn't fire until the earlier
+group reaches it; combat at the mill with the inn 2 miles away → `Cut due` after 6
+rounds; with both groups at old-mill → `Cut every round`; `split join` at one site
+levels clocks and prints the gap; `undo` reverses each split command.
+
+**Guards:** `current.md` is always a complete, valid scene; no PC in two groups;
+`split` never moves a PC the GM didn't name; nothing cuts without the GM.
+
 ## Phase 10 — Verification sweep and dry-run readiness (README Phase 3)
 
 1. **Anti-pattern grep** over `engine/` and `.claude/` for everything in 0.8; all empty.
