@@ -18,6 +18,7 @@ import discord_bridge as db
 import table
 
 TOKEN = "MTIz.fake-token-for-tests.abcdefXYZ"
+db.TOKEN_FILE = Path(tempfile.gettempdir()) / "gm-no-such-dir" / "discord-token"   # never the host's real token
 CHAN = 123456789012345678
 
 DISCORD_MD = ("---\ndiscord: queue          # off | queue | auto\nchannel: 123456789012345678\n"
@@ -477,11 +478,15 @@ class Client(unittest.TestCase):
 
 
 class Guards(unittest.TestCase):
-    def test_token_only_from_the_environment_and_removed(self):
+    def test_token_from_the_environment_or_the_local_file(self):
         env = {db.TOKEN_ENV: f" {TOKEN} "}
         self.assertEqual(db.take_token(env), TOKEN)
         self.assertNotIn(db.TOKEN_ENV, env)       # the GM's session never inherits it
         self.assertEqual(db.take_token({}), "")
+        f = Path(tempfile.mkdtemp(prefix="gm-tok-")) / "discord-token"
+        f.write_text("# paste the bot token on the next line\n\n  other-token  \n", encoding="utf-8")
+        self.assertEqual(db.take_token({}, f), "other-token")
+        self.assertEqual(db.take_token({db.TOKEN_ENV: TOKEN}, f), TOKEN)  # the variable wins
         with mock.patch.dict(os.environ, {db.TOKEN_ENV: TOKEN}):
             t = table.Table(args(camp_dir()))
             self.assertEqual(t.token, TOKEN)

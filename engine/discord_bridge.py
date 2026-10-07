@@ -11,9 +11,10 @@ interface (`run()`, `post(text)`, `react(message_id, emoji)`, `close()`, `ready`
 tests drive the bridge with a fake. `DiscordPyIO` is the only code that imports
 `discord` (the optional `discord.py` package), and only when the bridge starts.
 
-Guards: the bot token comes only from the `DND_DISCORD_TOKEN` environment variable
-(`take_token()` removes it from the environment so the GM's session never inherits
-it); it is never written anywhere, and `redact()` scrubs it from any error text the
+Guards: the bot token comes from the `DND_DISCORD_TOKEN` environment variable, else the
+git-ignored `.local/discord-token` file the host keeps by hand (`take_token()` removes the
+variable from the environment so the GM's session never inherits it, and the project
+settings deny the GM reads of `.local/`); the engine never writes it anywhere, and `redact()` scrubs it from any error text the
 client prints or logs. Discord text reaches the GM as an ordinary player prompt (the
 same PreToolUse gate). Only what the public renderer shows is posted (never GM-view
 output, never client notices except `[the table is open]` / `[the table is closed]`).
@@ -27,6 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 TOKEN_ENV = "DND_DISCORD_TOKEN"
+TOKEN_FILE = Path(__file__).resolve().parents[1] / ".local" / "discord-token"   # git-ignored
 MODES = ("off", "queue", "auto")
 LIMIT = 2000                       # Discord's message length limit
 DEBOUNCE = 4.0
@@ -45,11 +47,20 @@ class BridgeFatal(Exception):
 
 # ---------- token ----------
 
-def take_token(env=None):
-    """The bot token from DND_DISCORD_TOKEN, removed from the environment so child
-    processes (the GM's Claude Code session) never see it. '' when unset."""
+def take_token(env=None, path=None):
+    """The bot token from DND_DISCORD_TOKEN (removed from the environment so child
+    processes, the GM's Claude Code session, never see it), else the first line of the
+    git-ignored `.local/discord-token` that isn't blank or a `#` comment. '' when neither."""
     env = os.environ if env is None else env
-    return (env.pop(TOKEN_ENV, "") or "").strip()
+    token = (env.pop(TOKEN_ENV, "") or "").strip()
+    if token:
+        return token
+    p = TOKEN_FILE if path is None else Path(path)
+    try:
+        lines = p.read_text(encoding="utf-8-sig").splitlines()
+    except OSError:
+        return ""
+    return next((x.strip() for x in lines if x.strip() and not x.strip().startswith("#")), "")
 
 
 def redact(text, token):

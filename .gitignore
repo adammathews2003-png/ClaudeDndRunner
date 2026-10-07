@@ -14,3 +14,6 @@ __pycache__/
 # the engine repo keeps only campaigns/README.md. campaigns/.active is a local choice.
 campaigns/*/
 campaigns/.active
+
+# Local, per-machine files (secrets such as .local/discord-token); never committed
+.local/

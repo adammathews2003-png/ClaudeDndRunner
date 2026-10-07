@@ -430,7 +430,8 @@ debounce: 4             # auto mode: seconds of quiet before a batch is sent
 `player` matches PC `player:` values. `discord user` is the Discord username (not the
 display name; case-insensitive, a leading `@` is ignored) or the numeric user id. The
 `--discord` flag overrides `discord:` for one run. The bot token is never stored here; it comes from
-the `DND_DISCORD_TOKEN` environment variable (06 → Discord bridge).
+the `DND_DISCORD_TOKEN` environment variable, else the host's git-ignored
+`.local/discord-token` (first line that isn't blank or `#`; 06 → Discord bridge).
 
 **Content boundaries** (Phase 13, campaign.md; a campaign without one, like the POC,
 keeps them in `current.md`, as with every setting):

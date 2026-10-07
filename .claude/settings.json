@@ -9,6 +9,14 @@
       "PowerShell(python engine/space.py:*)",
       "PowerShell(py engine/gm.py:*)",
       "PowerShell(py engine/space.py:*)"
+    ],
+    "deny": [
+      "Read(./.local/**)",
+      "Edit(./.local/**)",
+      "Bash(cat .local/*)",
+      "Bash(*.local/discord-token*)",
+      "PowerShell(*.local*discord-token*)",
+      "Grep(./.local/**)"
     ]
   },
   "hooks": {

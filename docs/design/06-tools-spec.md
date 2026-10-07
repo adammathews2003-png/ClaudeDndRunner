@@ -894,8 +894,9 @@ python engine/table.py --campaign poc --discord queue|auto
 ```
 
 **Setup.** Uses `discord.py`, an optional pip install that is imported only when the
-bridge is on. The bot token comes from the `DND_DISCORD_TOKEN` environment variable and
-is never written to a file or a log. `<campaign>/discord.md` (04) holds the mode,
+bridge is on. The bot token comes from the `DND_DISCORD_TOKEN` environment variable, else
+`.local/discord-token` (git-ignored, written by the host by hand; the project settings
+deny the GM session reads of `.local/`). The engine never writes it to a file or a log. `<campaign>/discord.md` (04) holds the mode,
 the channel id and the player map (`| discord user | player |`). The bot listens only to
 that one channel, never to DMs. A message from a user who isn't in the map is ignored,
 and the terminal says so once per user (`[discord: ignoring @sam (not on the map)]`).
@@ -980,8 +981,9 @@ section was silent:
 4. Discord → User Settings → Advanced → Developer Mode; right-click the channel → Copy
    Channel ID. Write `<campaign>/discord.md` (04) with the channel and each player's
    Discord username (or right-click → Copy User ID).
-5. Set the token in the shell that starts the table, never in a file:
-   PowerShell `$env:DND_DISCORD_TOKEN = "…"`, bash `export DND_DISCORD_TOKEN=…`.
+5. Paste the token into `.local/discord-token` (git-ignored, never committed), or set it
+   in the shell that starts the table: PowerShell `$env:DND_DISCORD_TOKEN = "…"`, bash
+   `export DND_DISCORD_TOKEN=…` (the variable wins).
 6. `python engine/table.py --campaign <name> --discord queue`. Players type plain
    text in the channel; a `/…` line they type is sent as an ordinary message (the bot
    registers no Discord slash commands), which the bridge flags ⚑ for the host.
