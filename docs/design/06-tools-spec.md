@@ -870,6 +870,70 @@ user plugins and MCP servers don't load; auto-memory did, so the client sets
 lives in files written each turn; the session resumes by id and the SessionStart hook
 re-injects the long brief.
 
+### Discord bridge (Phase 17; decided 2026-10-07)
+
+Remote players join through a Discord channel: they type there and read the narration
+there. The person running `table.py` stays the host, and the bridge runs inside the
+client (no separate service).
+
+```
+python engine/table.py --campaign poc --discord queue|auto
+```
+
+**Setup.** Uses `discord.py`, an optional pip install that is imported only when the
+bridge is on. The bot token comes from the `DND_DISCORD_TOKEN` environment variable and
+is never written to a file or a log. `<campaign>/discord.md` (04) holds the mode,
+the channel id and the player map (`| discord user | player |`). The bot listens only to
+that one channel, never to DMs. A message from a user who isn't in the map is ignored,
+and the terminal says so once per user (`[discord: ignoring @sam (not on the map)]`).
+
+**Output.** Everything the console shows is also posted to the channel: narration,
+pasted bracket lines, and the player-view map in a code block. GM-view output never is.
+Posts go out paragraph by paragraph as each one finishes, split under Discord's
+2000-character limit. Spoiler banners become Discord spoiler text (the
+`── SPOILERS · major ──` header line, then the answer inside `|| ||`), so each reader
+chooses whether to reveal it. Client notices stay on the terminal, except `[the table
+is open]` / `[the table is closed]`. Staged-command prompts (`Run /end-session? [y/N]`)
+stay on the terminal too: the host decides.
+
+**Input.** A Discord line is a player line, with the same conventions as the console.
+`Kira: …` speaks for Kira. An unprefixed line from someone whose `player:` matches
+exactly one PC speaks for that PC; otherwise it's table talk. Pre-rolls (02 → Dice)
+work the same way, so remote players can roll their own dice and say so.
+
+**Queue mode** (`queue`): Discord lines wait for the host.
+- Each arriving line is shown in the terminal as a numbered queue entry:
+  `[Q2 sam] Kira: I check the trapdoor (rolled 15)`.
+- Lines the host types are **added to the queue too**. An **empty Enter** submits the
+  whole queue as one prompt, in arrival order. That is one turn with several actors,
+  which the turn loop already orders.
+- `:q` lists the queue. `:edit 2 <new text>` replaces an entry. `:drop 2` removes it.
+  `:clear` empties it. `:send` is the same as an empty Enter.
+- Discord feedback: when the queue is sent, the bot reacts ✅ to each submitted message.
+  It reacts 🗑 to a dropped one and ✏️ to one the host edited.
+- A message edited on Discord before it's sent updates its queue entry (shown as
+  `(edited)`). A message deleted there is dropped.
+
+**Auto mode** (`auto`): Discord lines are sent without the host's review.
+- Lines are batched, not sent one at a time. While the GM is replying, new lines collect
+  and go out as one prompt when the reply ends. When the GM is idle, the bridge waits
+  `debounce` seconds (default 4, in `discord.md`) after the last line, so posts made
+  together become one turn. The host's typed lines go into the same batch.
+
+**Both modes:**
+- `!x` (the X-card, Phase 13) from Discord skips the queue and goes at once.
+- Slash commands from Discord (`/overrule`, `/spoilers`, `/end-session`, any `/…`)
+  **always queue for the host**, even in auto mode, marked `⚑`. The host submits or
+  drops them. `:` client commands typed on Discord are ignored.
+- `:discord queue|auto|off` at the terminal switches mode mid-session.
+- Discord text gets no extra permissions: it reaches the GM as player speech and goes
+  through the same PreToolUse gate as everything else.
+- If the connection drops: `[discord: disconnected — retrying]`, then reconnect with
+  backoff. The terminal keeps working throughout.
+
+**Out of scope for v1:** private per-player messages (a split group's scene sent only
+to its own players), voice, and dice-roller bots (players report their rolls as text).
+
 **Deliberately out of scope for v1:** rich markdown rendering (plain text + light
 ANSI: narration normal, bracket lines dim; `rich` can be added later), a public
 transcript file, voice/GUI.
@@ -1228,6 +1292,32 @@ gm.py injury Kael                                   # lingering-injuries: on
   campaign's `tables/injuries.md` and writes the result to `## Features & abilities`
   as `(injury)` with its cure.
 
+### Phase 16 — table extras (02 → Dice → Pre-rolls; 02 → Table mechanics → Phase 16)
+
+- **Pre-rolls on `check`/`save`/`contest`:** `--total 17 --rolled-as perception` takes
+  off the named skill's bonus and puts on the bonus of the skill being checked. The line
+  shows both: `[Kira investigation (pre-roll 14, reported as perception 17) 14+5=19 vs
+  DC 15 — SUCCESS by 4]`. `--d20 14,6` gives two dice for advantage/disadvantage. With
+  one die and `adv`/`dis`, the tool rolls the second die publicly. A total whose skill
+  isn't stated is taken as reported.
+- **`gm.py carouse <pc,pc> [--table carousing] [--reroll <pc>]`:** rolls the night's
+  cost and one d100 per PC (GM-side output). A row tagged with a campaign `lines:` entry
+  is re-rolled automatically; a veiled one is marked `(veil: off screen)`. The tool
+  applies the effect codes (`coin`, `item +/-`, `item -random`, `clock +Nd "…"`) and
+  prints the rest. The clock goes to the next morning only through the GM's own
+  `clock advance` in the same batch. The log line is GM-only: `(GM) [carouse] Kira 47:
+  "…"`.
+- **`gm.py table import <file> --as <name> [--die d100]`:** normalizes pasted
+  `01-05 text` or `1. text` lines into `tables/<name>.md` (`| roll | result | effect |
+  tags |`). It reports gaps and overlaps in the ranges and never guesses effect codes;
+  those are left blank for the driver to fill in.
+- **Crit die in `atk`:** with `crit-die: on`, any crit rolls the campaign's
+  `tables/crit-die.md` (die = number of rows) and applies the known codes (`dice x2`,
+  `dice x3`, `max+dice`, `prone`, `stunned 1t`, `disarm`, `bleed 1d4`, `kill`). The
+  output line gains `· CRIT DIE d10 → 6 disarm`. A `kill` on a PC follows `crit-die-pcs`.
+  A creature with Legendary Resistance left gets `[LR available: kill → dice x3?]` for
+  the GM to decide. An effect that can't apply falls back to `dice x2` and says so.
+
 ## Build order
 
 | Step | Contents | Why first |
@@ -1246,6 +1336,8 @@ gm.py injury Kael                                   # lingering-injuries: on
 | 2e | `conc`, `deathsave`/`stabilize`, `light` + `lib/light.py`, `eat` + supply spending, `exhaust`, `campaign boundaries` + `!x` (Phase 13) | the state an AI GM most often loses or gets wrong, each plugging into existing tools (`dmg`, `combat next`, `clock`, `rest`, the brief) |
 | 2f | travel activities + `order`, social DCs, morale, `chase`, `trap`, `hazard`, `hide`/`seek` (Phase 14) | more design per item; morale and travel first (the current scenario meets both) |
 | 2g | `inspire`, `ready`, magic items, `downtime`, companions, `weather`, encumbrance, `renown`, mounts, injuries (Phase 15) | toggles and rarer situations; build on demand, in any order |
+| 2h | pre-rolls (`--rolled-as`, two-die `--d20`), `carouse`, `table import`, crit die in `atk` (Phase 16) | table-requested extras; pre-rolls need nothing new and can go first |
+| 2i | `table.py` Discord bridge: queue/auto modes, posting, player map (Phase 17) | remote players; needs only the Phase 5 client |
 
 Each step ships with seeded tests in `engine/tests/` against a fixture copy of `campaigns/poc/`.
 POC content files are migrated to the new formats (04) in step 2a.1.

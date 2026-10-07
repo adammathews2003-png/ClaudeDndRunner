@@ -349,6 +349,36 @@ the model, so outcomes are honest. Player-reported rolls go into the same comman
 (`[Veskar → Kael: 13+5=18 vs AC 15 — HIT · 7 slashing]`), except for secret rolls.
 `dice-mode: gm-rolls-all` in `current.md` switches to the GM rolling everything.
 
+### Pre-rolls (decided 2026-10-07; tool support in Phase 16)
+
+Players may roll **before** the GM asks, to save a round trip: *"Kira: I search the
+desk (rolled 14)"*. The GM always accepts it.
+- **The situation picks the skill, not the player.** The GM applies the die to the
+  check the action actually calls for, even if the player named another ("Perception
+  14" while going through a desk is an Investigation check). The pasted bracket line
+  names the skill that was used, so nobody has to ask. A natural d20 is the easy report.
+  A total is converted by the tool (`--total 17 --rolled-as perception` takes off
+  Perception and puts on the right skill).
+- **Confirm only when the choice matters.** Ask once, before applying, only if reading
+  the roll as a different check would have a **significant consequence** or **lose an
+  opportunity**. Examples: "Persuasion 18" for words that read as a threat (Intimidation
+  sours the NPC: "That sounds like a threat. Intimidation, or did you mean to win him
+  over?"), or a die that could be either the Insight read on the merchant or the
+  Perception that spots the cutpurse (whichever is chosen, the other is lost). Otherwise
+  apply it silently.
+- **A pre-roll binds to its action.** If no check is needed, the step just happens and
+  the die is dropped without comment; it isn't saved for later. If the action needs
+  several checks, the pre-roll is the one the player was aiming at, and the rest are
+  asked for as usual. If the player changes course at a pause (Reading a declaration),
+  the die carries over to whatever they do instead this turn. Seeing a low number is
+  never a reason for a re-roll.
+- **Advantage and disadvantage.** A player who expects either may report two dice
+  ("14 and 6"). When one die is reported and the roll turns out to have advantage or
+  disadvantage, the tool rolls the second die publicly. No extra round trip.
+- **Nothing else changes.** DCs stay hidden, foreseen/blind still applies to what's
+  *said* before the roll, and a pre-roll on a check the GM would have rolled secretly
+  is used as is. The players just know their number.
+
 ## Behind the screen (what narration may never contain)
 
 The person at the keyboard is a player. The table client hides the machinery, but the
@@ -922,8 +952,8 @@ it on.
   activity with progress tracked (crafting at 5 gp of value per day, training 250
   days at 1 gp a day, research, recuperating, working a profession), a lifestyle cost
   per day, and the clock moved by the days spent (with the world firing as usual).
-  `full` adds campaign-supplied activity tables (carousing, crime, pit fights) with
-  their complications.
+  `full` adds campaign-supplied activity tables (crime, pit fights; carousing is its
+  own setting, Phase 16) with their complications.
 - **Allied creatures:** familiars, animal companions, summons, mounts and hirelings
   are combatants on the party's side with a controller. Each acts on the turn the rules
   give it (its own initiative, or the controller's turn) and `combat next` names the
@@ -945,6 +975,70 @@ it on.
   and speed rows for carts and boats, which `travel --by` already names), and
   lingering injuries (`lingering-injuries: off | on`, from a campaign table, on a crit
   or a drop to 0 HP).
+
+### Phase 16: table extras (decided 2026-10-07)
+
+House-flavor additions from the table, each behind a setting.
+
+**Carousing** (`carousing: on | off`, default on). Players can decide to carouse (a
+night of heavy drinking in a settlement with somewhere to do it) and let a d100 table
+decide what they got up to.
+1. **Who's in.** Each PC who joins rolls separately. One pause before it starts, in
+   fiction: *"You'll wake up tomorrow with whatever you did tonight. Still in?"* The
+   night costs coin (`cost:` in the table's frontmatter, default `1d6x10gp` per PC). A
+   PC who can't pay comes out of it in debt, recorded the same way as any other result.
+2. **Roll behind the screen.** `gm.py carouse Kira,Kael` rolls each PC's d100 on the
+   campaign's table and prints only GM-side lines. It also re-rolls automatically any
+   row tagged with one of the campaign's content `lines:` (Phase 13). Rows tagged
+   with a veil stay but happen off screen.
+3. **Skip to morning.** The clock jumps to the next morning (`clock advance to 07:00`
+   in the same batch, with world clocks firing as usual). The night counts as a long
+   rest unless the row says otherwise. A split party treats it as a big skip.
+4. **The morning reveal.** Narrate each PC waking up and discovering the evidence (the
+   ring on a finger, the goat, the tattoo, the empty purse). Don't summarize the table
+   row. What they did is learned through what they find and who comes looking.
+5. **The consequences are real.** File every result in the same `do`: coin, items,
+   `stub npc` for the new spouse or the rival, attitude changes, a rumor, and a clock
+   for anything that comes due ("Day 6: the debt collector arrives"). Rows can carry
+   effect codes the tool applies itself (`coin -2d6x10`, `item +"a dented crown"`,
+   `item -random`, `clock +3d "…"`). The GM files everything else with ordinary
+   commands. From then on the consequences are canon and get dealt with in play.
+6. **Same limits as Wacky Juice.** A result may not break the core scenario: it can't
+   reveal secrets, kill or remove a key NPC, or skip a beat. If a row would, the GM
+   re-rolls it (`carouse --reroll Kira`, logged as GM-only) without a word to the table.
+
+*Where the table comes from:* `tables/carousing.md` in the campaign (`| roll | result |
+effect | tags |`, ranges like `01-03`). The engine ships an **original** starter table
+(`engine/templates/tables/carousing.md`) that `campaign new` copies in. A table found
+elsewhere is brought in with `gm.py table import <file> --as carousing`. The importer
+reads pasted `01–05 text` lines and normalizes them into the table format. An imported
+table stays in the campaign folder, never in the engine repo (the rights belong to its
+author).
+
+**Critical hit die** (`crit-die: off | on`, default off; `crit-die-pcs: dying | dead`,
+default dying). This house rule replaces the normal critical hit. On a critical hit
+(any crit, including a 19–20 overrule and the automatic crits against a paralyzed
+target), `atk` rolls the crit die instead of just doubling the dice:
+- The die is the campaign's `tables/crit-die.md` (`| roll | result | effect |`). Its
+  size is the number of rows (8 rows = d8, 10 rows = d10), so a physical die the table
+  owns can be typed in face by face. The engine ships an original starter d10: 1–3
+  double dice (RAW), 4 max damage + a roll, 5 triple dice, 6 disarm, 7 knocked prone,
+  8 stunned until the end of its next turn, 9 bleeding (1d4 at the start of each of
+  its turns until healed or a DC 10 Medicine check), 10 slain outright.
+- The tool applies the codes it knows: `dice x2` (RAW), `dice x3`, `max+dice`, `prone`,
+  `stunned 1t`, `disarm` (the weapon drops in its space; it's logged), `bleed 1d4`, and
+  `kill`. It prints anything else for the GM to narrate. If an effect can't apply (a
+  disarm against a wolf), it falls back to `dice x2`.
+- **It works in both directions.** Monsters roll the crit die against PCs too. That's
+  the chaos the table asked for. A `kill` against a PC drops them to 0 HP and dying
+  (death saves as normal) under `crit-die-pcs: dying`; `dead` means dead.
+- **Bosses:** a creature with Legendary Resistance may spend one to turn a `kill` into
+  `dice x3`. That's the only protection. A `kill` on anyone else stands, and the table
+  enjoys it.
+
+**Discord** (Phase 17) is about the table client, not the GM: see 06 → Table client →
+Discord bridge. The GM treats a line from Discord exactly like a typed line. The channel
+counts as a shared screen, so everything in *Behind the screen* applies to it.
 
 ## Spatial model (theater of the mind, backed by coordinates)
 

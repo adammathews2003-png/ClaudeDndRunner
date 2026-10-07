@@ -893,6 +893,76 @@ horse on Kael's initiative.
 (regression-test the default settings against the Phase 1–12 suite); non-SRD tables
 (carousing, injuries) are campaign-supplied, never shipped as rules text.
 
+## Phase 16 — Table extras (2h)
+
+**Goal:** pre-rolls applied to the right check, carousing with a d100 table and real
+consequences, and the optional critical hit die (02 → Dice → Pre-rolls; 02 → Table
+mechanics → Phase 16).
+
+**Read first:** 02 → Dice → Pre-rolls, 02 → Table mechanics → Phase 16, 02 → Wacky Juice
+(the same limits apply to carousing); 04 → Table settings, Random tables; 06 → Table
+mechanics → Phase 16; `engine/lib/resolve.py`, `engine/loot.py` (table parsing to
+reuse), `engine/campaign_cmd.py` (copying templates).
+
+**Build** (tick each in the completion notes): (1) `--rolled-as <skill>` on
+`check/save/contest` and `--d20 a,b`, with the second die rolled publicly when one is
+given and the roll has adv/dis; (2) settings `carousing`, `crit-die`, `crit-die-pcs`; (3)
+the shared random-table reader (`| roll | result | effect | tags |`, ranges, `die:`
+inference) and the effect-code applier, reusing `loot`'s parser where it fits; (4)
+`table import` with gap/overlap reports; (5) an **original** starter
+`engine/templates/tables/carousing.md` (100 results across d100 ranges, about 40 rows,
+silly and weird, each with consequences that can be filed) and `crit-die.md` (the
+starter d10 in 02), copied by `campaign new`; (6) `carouse` with cost, tag-based
+re-rolls against `lines:`/`veils:`, `--reroll`, and GM-only log lines; (7) crit die in
+`atk` with the codes in 06, `crit-die-pcs`, and the Legendary Resistance note; (8)
+skills: `/gm` (pre-rolls, carousing: the pause, morning reveal, filing consequences),
+`/combat` (the crit die line and narrating each effect).
+
+**Verify:** seeded tests: `check Kira investigation 15 --total 17 --rolled-as perception`
+uses Kira's Investigation bonus and prints both skills; `--d20 14` with `adv` rolls one
+more die and keeps the higher; `table import` of a pasted list with a gap reports it;
+`carouse Kira,Kael --seed N` charges the cost, applies a `coin` and an `item` code, and
+re-rolls a row tagged with a campaign line; `atk` with `crit-die: on` on a natural 20 at
+seed N gives `disarm` and logs the dropped weapon; a `kill` against a PC leaves them at 0
+HP and dying under the default; `crit-die: off` leaves `atk` byte-identical to before.
+
+**Guards:** no third-party table text in the engine repo, ever (starter tables are
+original writing); carousing is GM-side until the morning reveal, so `carouse` output is
+never pasted; the crit die never fires on ability checks or saves.
+
+## Phase 17 — Discord bridge (2i)
+
+**Goal:** remote players type and read in a Discord channel through `table.py`, with the
+host reviewing a queue (queue mode) or lines going straight through in batches (auto
+mode) (06 → Table client → Discord bridge).
+
+**Read first:** 06 → Table client (the whole section, including Discord bridge); 04 →
+Discord bridge; `engine/table.py` (`InputState`, `send`, `confirm_staged`, the render
+path); the current `discord.py` docs for intents (message content is a privileged
+intent), reactions, and running the client inside an existing asyncio loop.
+
+**Build:** (1) optional import of `discord.py` behind `--discord` / `discord.md`, with a
+clear notice when it isn't installed; (2) a `Bridge` that posts what the renderer shows
+(paragraph chunks under 2000 characters, spoiler banners as `|| ||`, the map in a code
+block) and never GM-view output; (3) inbound: channel filter, player map, speaker
+resolution, ignored-user notice; (4) the queue: numbered display, typed lines join it,
+empty Enter or `:send`, `:q`, `:edit`, `:drop`, `:clear`, reactions, and edits/deletes
+on Discord mirrored; (5) auto mode: batching while the GM replies plus the debounce;
+(6) `!x` jumps the queue; slash commands always queue with `⚑`; (7) `:discord
+queue|auto|off`; reconnect with backoff; token only from the environment; (8)
+`engine/tests/CLIENT-CHECKS.md` gains the Discord checks.
+
+**Verify:** unit tests with a fake Discord client (no network): queue ordering, edit,
+drop, submit as one prompt; auto batching with the debounce, using an injected clock;
+`!x` bypasses the queue; `/overrule` from Discord queues in auto mode; unmapped users
+are ignored; a 4,500-character reply posts as three chunks; a spoiler banner posts
+inside `|| ||`; `--gm-view` output never reaches the fake channel. Then one live check
+in a private test server.
+
+**Guards:** the token never appears in a file, log or error message; the bridge adds
+no permissions (Discord text is a player prompt); if the bridge fails, the terminal
+table keeps running.
+
 ## Phase 10 — Verification sweep and dry-run readiness (README Phase 3)
 
 1. **Anti-pattern grep** over `engine/` and `.claude/` for everything in 0.8; all empty.

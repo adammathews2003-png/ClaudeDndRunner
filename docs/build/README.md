@@ -34,7 +34,11 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 13 | 2e | Table bookkeeping: `conc`, dying/`deathsave`, carried light sources, supplies, exhaustion, content boundaries + `!x` (02 → Table mechanics) | [ ] |
 | 14 | 2f | Exploration and pressure: travel activities + getting lost, social DCs, morale, chases, traps and hazards, hiding as a state | [ ] |
 | 15 | 2g | Optional subsystems: inspiration, readied actions, magic items, downtime, companions, weather, encumbrance, renown, mounts, injuries | [ ] |
+| 16 | 2h | Table extras: pre-rolls, carousing (`carouse`, `table import`, starter table), critical hit die | [ ] |
+| 17 | 2i | Discord bridge in `table.py`: queue and auto modes, channel output, player map | [ ] |
 
 Tick a phase here when its verification checklist in `plan.md` passes. Phases 1→7 are
 sequential; 8 can wait indefinitely; 9 needs 1–7; 11 needs 7 and 9; 10 needs 9 and 11; 12 needs 9; 13 needs 12; 14 needs 13 (exhaustion, light); 15 needs 13 and
-the social DCs from 14 for renown, otherwise its items stand alone.
+the social DCs from 14 for renown, otherwise its items stand alone. 16 needs 13 (death
+saves for the crit die's `kill`, `lines:` for carousing), except its pre-roll item, which
+needs nothing and can be built any time. 17 needs only 5.

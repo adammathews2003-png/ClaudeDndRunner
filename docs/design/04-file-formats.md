@@ -391,6 +391,33 @@ its `notes`.
 | `encumbrance` | `off \| basic \| variant` | off | 15 |
 | `renown` | `off \| party \| per-pc` | off | 15 |
 | `lingering-injuries` | `off \| on` | off | 15 |
+| `carousing` | `on \| off` | on | 16 |
+| `crit-die` | `off \| on` | off | 16 |
+| `crit-die-pcs` | `dying \| dead` | dying | 16 |
+
+**Random tables (Phase 16)** live in `<campaign>/tables/<name>.md`, the same folder as
+loot and stock tables. Header: `| roll | result | effect | tags |`. `roll` is a number or
+a range (`01-03`, `7`). `effect` holds zero or more `;`-separated codes the tool applies
+(02 → Phase 16; anything else is narrated). `tags` is a comma list matched against the
+campaign's `lines:`/`veils:`. Frontmatter: `die: d100` (default: inferred from the
+highest roll) and, for carousing, `cost: 1d6x10gp`. `carousing.md` and `crit-die.md`
+are copied from `engine/templates/tables/` by `campaign new` (original starter text).
+A table imported from elsewhere (`table import`) replaces the copy and stays in the
+campaign folder.
+
+**Discord bridge (Phase 17)** — `<campaign>/discord.md`, read by `table.py` only:
+```markdown
+---
+discord: queue          # off | queue | auto
+channel: 123456789012345678
+debounce: 4             # auto mode: seconds of quiet before a batch is sent
+---
+| discord user | player |
+|--------------|--------|
+| sam_the_bard | Sam    |
+```
+`player` matches PC `player:` values. The bot token is never stored here; it comes from
+the `DND_DISCORD_TOKEN` environment variable (06 → Discord bridge).
 
 **Content boundaries** (Phase 13, campaign.md only, never `current.md`):
 `lines: [harm to children, sexual violence]` (never appears) and `veils: [torture]`
