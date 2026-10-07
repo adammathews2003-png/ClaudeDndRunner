@@ -45,7 +45,7 @@ channel as a `> ` quote (not `/` or `!` lines). Queue mode: Discord lines wait i
 numbered queue; an empty Enter or `:send` submits it as one prompt (`:q`, `:edit n
 text`, `:drop n`, `:clear`).
 Auto mode: lines go in batches (while the GM replies, then after `debounce` seconds of
-quiet). `!x` jumps the queue; slash commands from Discord always wait for the host (⚑);
+quiet). `!x` jumps the queue; slash commands from Discord wait for the host (⚑) in queue mode only;
 `:discord queue|auto|off` switches. The bot token is read only from DND_DISCORD_TOKEN
 (and removed from the environment); a missing token, package or channel prints one
 notice and the table runs as before.

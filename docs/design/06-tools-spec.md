@@ -939,8 +939,9 @@ work the same way, so remote players can roll their own dice and say so.
 **Both modes:**
 - `!x` (the X-card, Phase 13) from Discord skips the queue and goes at once.
 - Slash commands from Discord (`/overrule`, `/spoilers`, `/end-session`, any `/…`)
-  **always queue for the host**, even in auto mode, marked `⚑`. The host submits or
-  drops them. `:` client commands typed on Discord are ignored.
+  wait for the host in **queue mode**, marked `⚑`; the host submits or drops them. In
+  **auto mode** they go like any other line, each as its own prompt (decided 2026-10-07:
+  auto holds nothing back; switching to auto releases any ⚑ lines). `:` client commands typed on Discord are ignored.
 - `:discord queue|auto|off` at the terminal switches mode mid-session.
 - Discord text gets no extra permissions: it reaches the GM as player speech and goes
   through the same PreToolUse gate as everything else.

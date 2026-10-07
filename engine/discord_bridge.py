@@ -369,7 +369,8 @@ class Bridge:
 
     def _resolve_discord(self, text, player):
         if text.startswith("/"):
-            return self.interpret(text), True, True
+            # a slash command waits for the host (⚑) only in queue mode; auto sends it
+            return self.interpret(text), self.mode != "auto", True
         if text.startswith("!"):
             return text, False, True
         return speaker_line(text, player, self.pcs()), False, False
@@ -505,7 +506,9 @@ class Bridge:
             self._queue_out("post", CLOSED_POST)
             self.posts = Posts()
         if mode == "auto":
-            self.last_at = self.clock() if any(not e.flagged for e in self.entries) else None
+            for e in self.entries:
+                e.flagged = False       # auto holds nothing back, slash commands included
+            self.last_at = self.clock() if self.entries else None
         self.wake()
         extra = f" — {len(self.entries)} queued (:q, :send)" if self.entries else ""
         return f"[discord: {mode}]{extra}"

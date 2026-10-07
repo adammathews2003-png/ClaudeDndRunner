@@ -215,26 +215,29 @@ class Auto(unittest.TestCase):
         self.assertTrue(b.due())
         self.assertEqual(b.take(everything=False), ["Kira: I dodge\nBren: I shove him"])
 
-    def test_slash_from_discord_queues_in_auto_mode(self):
+    def test_slash_from_discord_goes_in_auto_mode(self):
+        """Auto mode holds nothing back: a slash command is sent like any line, as its own
+        prompt (decided 2026-10-07; it waits with ⚑ only in queue mode)."""
         clock = Clock()
         b, notices = make("auto", clock=clock, interpret=lambda t: t)
-        b.on_message(msg(1, "/overrule the guard can't have seen me"))
-        clock.t += 60
-        self.assertFalse(b.due())                 # flagged lines never go by themselves
-        self.assertIsNone(b.wait_time())
-        self.assertIn("[Q1 sam_the_bard ⚑] /overrule the guard can't have seen me", notices)
-        b.on_message(msg(2, "I hide"))
+        b.on_message(msg(1, "I hide"))
+        b.on_message(msg(2, "/end-session"))
+        self.assertFalse(b.entries[1].flagged)
+        self.assertNotIn("⚑", " ".join(notices))
         clock.t += 5
-        self.assertEqual(b.take(everything=False), ["Kira: I hide"])
-        self.assertEqual(b.listing(), ["[Q1 sam_the_bard ⚑] /overrule the guard can't have seen me"])
-        self.assertEqual(b.take(everything=True), ["/overrule the guard can't have seen me"])
+        self.assertTrue(b.due())
+        self.assertEqual(b.take(everything=False), ["Kira: I hide", "/end-session"])
+        q, _ = make("queue", interpret=lambda t: t)
+        q.on_message(msg(3, "/end-session"))
+        self.assertTrue(q.entries[0].flagged)
+        q.set_mode("auto")                        # switching to auto releases held lines
+        self.assertFalse(q.entries[0].flagged)
 
     def test_unknown_slash_is_interpreted_like_the_console(self):
         inp = table.InputState(known={"overrule"})
         b, _ = make("auto", interpret=lambda t: inp.handle(t)[1])
         b.on_message(msg(1, "/rest long"))
         self.assertIn("a player typed `/rest long`", b.entries[0].prompt)
-        self.assertTrue(b.entries[0].flagged)
 
     def test_mode_switch(self):
         b, _ = make("queue")
