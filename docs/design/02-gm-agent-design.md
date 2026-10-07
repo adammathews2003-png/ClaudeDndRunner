@@ -333,7 +333,12 @@ nearest equivalent, the rule stated openly, or the time it would take.
   would feel the urgency (a missing man, a cart due at dawn), that is the one pause, said
   in fiction ("A week? Whatever happened to Harl won't wait a week."). Then honor the
   choice and run the clock. Never talk about "the story" having no time for it.
-- **Controlling another PC.** It isn't the GM's call. That player decides.
+- **Another PC in the line** (decided 2026-10-07: permissive). A line belongs to its
+  speaker's character (the Discord bridge defaults an unnamed line to the player's one
+  PC), and naming another PC doing something is fine: one message may direct several
+  characters. A PC of the same player, a pregen or an absent player's PC just does it.
+  A PC of another player who's at the table does it too, unless that player objects,
+  which reverses it at once. The final say over a PC stays with its player.
 
 **Turning a plan into checks.**
 1. **Split it into its uncertain steps** and roll only those. Use 1–3 checks; more turns

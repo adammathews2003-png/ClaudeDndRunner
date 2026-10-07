@@ -217,7 +217,11 @@ answer is **"roll for it"**.
     clocks firing meanwhile are the world moving. If the character would feel the
     urgency, that's the one pause, in fiction ("Harl won't wait a week"); then honor the
     choice. Never say "the story" can't spare the time.
-  - *Controlling another PC* → that player's call.
+  - *Another PC in the line* ("Kael holds the rope while I climb") → permissive: the
+    line belongs to its speaker's character, and naming another PC doing something is
+    fine. A PC of the same player, a pregen or an absent player's PC just does it. A PC
+    of another player who's here does it too, unless that player objects, which reverses
+    it at once.
 - **Turn the plan into 1–3 checks**, one per uncertain step; trivial steps just happen.
   Reward the cleverness itself: advantage, a lower DC band, an auto-succeeded step, or
   a free Help. Prep from earlier scenes counts. A strong success eases the next step;
