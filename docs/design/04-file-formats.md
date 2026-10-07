@@ -333,6 +333,11 @@ POC) reads the same keys from `state/current.md` frontmatter, with the same defa
 tracked total, raised to at least the threshold of their current level; switching to
 `milestone` keeps the total and stops auto-levelling.
 
+**Setting** (frontmatter): `setting: "<one line>"`, what the world has: tech level,
+how common magic is, anything unusual (07 → Setting). Empty = standard D&D fantasy. The
+brief's `Setting:` line carries it (06), and the GM judges *Not in the setting* against it (02 → Kinds of
+"no").
+
 **Wacky Juice** (frontmatter, defaults shown; 02 → Wacky Juice): `wacky-juice: on`
 (`on | off`), `wacky-juice-value: 5` (percent chance per eligible player prompt, 0–100),
 `wacky-juice-cooldown: 3` (player prompts). As with advancement, a campaign without

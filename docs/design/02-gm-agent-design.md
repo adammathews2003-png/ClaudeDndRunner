@@ -178,6 +178,45 @@ open on the desk; Mara has her back turned"). Never narrate the players' own cho
 - **Secret rolls:** for checks where asking would itself be a spoiler (e.g., noticing a
   pickpocket), the GM rolls silently and narrates only outcomes (see *Behind the screen*).
 
+## Reading a declaration ("I do X")
+
+**Decided (2026-10-07).** A player's "I do X" states **intent and approach**, not an
+outcome. "I pick the lock, grab the ledger and slip out" says what they want and how
+they mean to get it. The world still gets its say.
+
+- **Resolve until the world gets a vote, then stop.** Narrate the declared chain up to
+  the first point where something other than the player decides. That is an uncertain
+  step (a check), an NPC who would react, or a reveal that could change the player's
+  mind (the ledger isn't on the desk; someone is asleep in the chair). Hand the scene
+  back there. Never narrate the character through to the outcome the player declared.
+- **Fill in the implied steps, and charge what they cost.** Crossing the room, opening
+  the drawer and finding the right page are trivial, so they just happen (Player plans →
+  *Turning a plan into checks*). They still cost something: **time** (`time +…` in the
+  same `do`; NPC schedules keep moving, and a split party's slice counts it),
+  **position**, **noise or exposure**, and **resources** (a slot, the only rope).
+  Mention the cost in passing in the narration.
+- **Tense tempo and combat cut the chain to one turn.** A declared sequence becomes
+  whatever fits in movement + action (+ bonus action): "You reach the desk *[that's your
+  move]* and the lock is your action. The ledger waits for your next turn." The rest is
+  kept as stated intent and is not resolved yet.
+- **Pause before committing only when a hidden step changes the stakes.** Ask **once,
+  before rolling**, only when both of these are true:
+  - an implied step carries a risk the player probably didn't count (danger, noise, a
+    running clock, leaving someone alone, provoking an attack);
+  - the character would see that risk.
+  > *"Searching the whole archive is about an hour, and the bell rang a while ago.
+  > Still go?"*
+
+  A cost that is only time, with nothing pressing, is never asked about. It just passes
+  and gets mentioned (the GM names the elapsed time when the scene ends, so players can
+  still object). If the character wouldn't see the risk, don't warn them; it lands as a
+  blind consequence.
+- **Vague intent.** For "I deal with the guard", ask "How?" only when the plausible
+  approaches would use different checks or carry different risks. If the character and
+  the moment make one reading obvious, take it. The GM never chooses a PC's approach
+  when the choice matters (Failure & tone guardrails).
+- **One clarifying beat at most**, whether it's a pause or a "How?". Then resolve.
+
 ## Player plans: answer with a roll, not a no
 
 Creativity is rewarded. When a player proposes a plan, however odd, the GM's default
@@ -194,16 +233,46 @@ Even then:
   this story." Don't explain why; the reason is behind the screen. The players'
   `/overrule` still applies, and the GM doesn't mention it.
 
-**Not refusals:**
-- *Hard asks of NPCs* start from a long-shot DC the pitch can bring down (Table
-  mechanics → Social stakes: leverage, flair and the stuck-table stages).
-- *The character lacks an ability or resource* (no spell slot, no rope). State the fact
+**Kinds of "no" (decided 2026-10-07).** Most answers that sound like "no" are really
+something else, and each kind has its own response. Breaking the core scenario (above)
+is the only true refusal. Every other kind ends with **a way forward**: a route, the
+nearest equivalent, the rule stated openly, or the time it would take.
+
+- **Not here.** The target isn't in this scene ("I ask Garrick", and Garrick is at the
+  mill). Say what the character perceives. If they'd know where the target is, offer
+  the route and its cost: "He's at the mill, twenty minutes' walk. Head there?" A yes
+  becomes a scene move or `travel`. The brief's *On stage* line says who is here.
+- **Not here yet.** It plausibly exists ("I find a blacksmith" in a market town). The
+  world is open (The open world): if the place would have it, it exists. `stub` it and
+  answer as for *Not here*. Unknown is never empty.
+- **Not in the setting.** A pistol, a telegraph, germ theory. Answer in fiction with the
+  nearest thing the world does have. Judge it from the campaign's `setting:` line (04 →
+  Campaign file) and its `weirdness`: "No one's heard of such a thing. The closest is
+  alchemist's fire, and the apothecary might stock it." When it's clearly a table joke,
+  treat it as table talk: enjoy it and resolve nothing.
+- **Not in the rules.** A 40 ft standing jump, or Fireball from a level-1 bard. This is
+  different from a long shot: no roll exists for it (jump distance comes from Strength,
+  not a check, and a spell the character doesn't have can't be cast). State the rule
   openly, since rules questions about PCs are always answered, and offer the nearest
   version they *can* attempt.
-- *Long shots* get a DC, not a no: Very hard 25, Nearly impossible 30. A natural 20 on
-  an ability check isn't an automatic success, so a 30 can stay out of reach for a
-  given character. If it is out of reach, say so when the attempt is foreseen (below).
-- *Controlling another PC* isn't the GM's call. That player decides.
+- **Lacking an ability or resource.** No spell slot, no rope. Handle it the same way:
+  state the fact and offer the nearest attempt.
+- **Long shot.** It gets a DC, not a no: Very hard 25, Nearly impossible 30. A natural
+  20 on an ability check isn't an automatic success, so a 30 can stay out of reach for
+  a given character. If it's out of reach, say so when the attempt is foreseen (below).
+- **Hard ask of an NPC.** It starts from a long-shot DC the pitch can bring down (Table
+  mechanics → Social stakes: leverage, flair and the stuck-table stages).
+- **Not something the character knows.** The player acts on table knowledge, such as
+  ambushing a secret meeting nobody in the fiction has mentioned. Allow it: play is
+  honor-based, and the GM doesn't challenge it or ask where the idea came from. But the
+  world is not rearranged to reward or punish the guess. What's behind the screen stays
+  as written, so a right guess can land and a wrong one finds nothing. Never confirm or
+  deny anything out of character.
+- **Not now.** A time skip ("I spend a week in the archives"). Treat it as downtime or a
+  montage: advance the clock, roll 1–2 checks for the stretch (`downtime` setting,
+  Phase 15), and let the world move in the meantime. A split party follows *big skips
+  wait* (Splitting the party).
+- **Controlling another PC.** It isn't the GM's call. That player decides.
 
 **Turning a plan into checks.**
 1. **Split it into its uncertain steps** and roll only those. Use 1–3 checks; more turns
@@ -986,7 +1055,8 @@ leaves the rest open. Places get filled in from three directions, all recorded w
 
 - Fail forward: a failed check changes the situation, it doesn't dead-end it.
 - "No" is rare: a player's plan gets checks, not a refusal, unless it would break the
-  core scenario (Player plans above).
+  core scenario. Everything else that sounds like a no comes with a way forward (Player
+  plans → Kinds of "no").
 - The GM never controls PC dialog or decisions; it may narrate involuntary consequences.
 - Rulings over rules: when a rule lookup would stall the scene, make a sensible ruling,
   note it in the session log, reconcile later.

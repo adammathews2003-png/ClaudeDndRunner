@@ -271,6 +271,9 @@ def build(state=None):
     sl = sight_line(state)
     if sl:
         lines.append(sl)
+    setting = str(settings.get("setting") or "").strip()
+    if setting:
+        lines.append("Setting: " + setting)
     lines += [rules_line(rows), watch_line(state),
               "Combat: " + (combat_status(state) or "—")]
     import split

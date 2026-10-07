@@ -32,6 +32,7 @@ shape: macguffin            # journey | boss | macguffin | mystery | sandbox | h
 secondary: [mystery, sandbox]
 tone: comedic
 weirdness: 3                # 1 grounded … 5 surreal: how strange the world is allowed to be
+setting: "medieval tech, no gunpowder; magic known but rare and costly"  # one line: what the world has (02 → Kinds of "no")
 jokes: 3                    # 1 dry … 5 constant: how often a scene goes for a laugh
 references: light           # none | light (≈1 in 4 named NPCs) | heavy
 sidekick: either            # none | orphan | animal | either: an optional helper (below)
@@ -55,6 +56,12 @@ situations and loot go for a laugh). Both are read by the generator per scene: a
 in three scenes has a deliberate bit; at 5, every scene does and the world stops
 apologising. The driver's seed words set the starting values; a critique like "more
 weirdness" moves the dial, not individual jokes.
+
+**Setting** is one line on what the world *has*: its tech level, how common magic is,
+and anything unusual the seed promises ("airships, but no gunpowder"). The GM judges
+*Not in the setting* against it at the table (02 → Kinds of "no"). It's extracted from
+the seed. When the seed doesn't say, `/campaign-new` proposes a line along with its other
+defaults and doesn't ask a separate question. Empty means standard D&D fantasy.
 
 **Sidekick** (`sidekick:` not `none`): the generator places one obvious-to-adopt helper
 near the opening, an orphan or an animal (or one of each when `either`, with the party

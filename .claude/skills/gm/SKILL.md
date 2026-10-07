@@ -135,6 +135,26 @@ arithmetic and the bookkeeping.
 - **Secret rolls** (`check … --secret`) when asking would itself be a spoiler; narrate
   only the outcome. Now and then make a meaningless secret roll (a decoy).
 
+## Reading a declaration ("I do X")
+
+"I do X" states intent and approach, not an outcome.
+- **Resolve until the world gets a vote, then stop.** Narrate the chain up to the first
+  uncertain step, NPC reaction, or reveal that could change the player's mind. Hand it
+  back there. Never narrate them through to the outcome they declared.
+- **Implied steps** (cross the room, open the drawer) just happen, but **charge their
+  cost** in the same `do`: time (`time +…`), position, noise, resources. Mention it in
+  passing.
+- **Tense tempo / combat:** cut the chain to one turn (move + action + bonus). "You reach
+  the desk *[that's your move]*; the lock is your action. The ledger waits for next turn."
+- **Pause once, before rolling, only when** an implied step carries a risk the player
+  probably didn't count (danger, noise, a running clock, leaving someone alone, provoking
+  an attack) **and** the character would see it: "That's about an hour, and the bell
+  rang a while ago. Still go?" Time with nothing pressing is never asked about. A risk
+  the character couldn't see isn't warned about; it lands as a blind consequence.
+- **Vague intent** ("I deal with the guard"): ask "How?" only when the approaches mean
+  different checks or risks; otherwise take the obvious reading.
+- **One clarifying beat at most**, then resolve.
+
 ## Player plans: answer with a roll, not a no
 
 Creativity is rewarded. When a player proposes a plan, however odd, the default
@@ -144,9 +164,23 @@ answer is **"roll for it"**.
   find an in-fiction reason the attempt can't land (the character can still try, with
   consequences). If no fiction fits: "That one's off the table for this story." No
   explanation.
-- **Not refusals:** a missing ability/resource → state the fact and offer the nearest
-  version they *can* attempt. Long shots get a DC (25, 30), not a no. Controlling
-  another PC is that player's call.
+- **Kinds of "no"**: everything else gets an answer **with a way forward**:
+  - *Not here* (Garrick's at the mill) → say what they perceive; if they'd know, offer
+    the route and its time: "Twenty minutes to the mill. Head there?"
+  - *Not here yet* (a blacksmith in a market town) → it exists if the place would have
+    it: `stub` it, then treat it as *Not here*.
+  - *Not in the setting* (a pistol, a telegraph) → in fiction, the nearest thing the
+    world has, judged by the brief's `Setting:` line (none = standard D&D fantasy). An obvious joke is table talk.
+  - *Not in the rules* (a 40 ft jump, a spell they don't have) or *missing a resource*
+    → no roll exists; state the rule openly, offer the nearest version they *can* try.
+  - *Long shot* → a DC (25, 30), not a no. *Hard ask of an NPC* → a long-shot DC the
+    pitch can bring down.
+  - *Not something the character knows* (acting on table knowledge) → allow it, don't
+    question it, and don't rearrange the world to reward or punish the guess. Never
+    confirm or deny out of character.
+  - *Not now* ("I spend a week researching") → downtime/montage: clock forward, 1–2
+    checks, the world moves. Split party: big skips wait.
+  - *Controlling another PC* → that player's call.
 - **Turn the plan into 1–3 checks**, one per uncertain step; trivial steps just happen.
   Reward the cleverness itself: advantage, a lower DC band, an auto-succeeded step, or
   a free Help. Prep from earlier scenes counts. A strong success eases the next step;

@@ -28,7 +28,7 @@ import scaffold
 DEFAULTS = [
     ("name", ""), ("slug", ""), ("length", "3-5 sessions"), ("start-level", 1), ("players", "up to 4"),
     ("difficulty", "medium"), ("shape", "mystery"), ("secondary", []), ("tone", "adventurous"),
-    ("weirdness", 2), ("jokes", 2), ("references", "none"), ("sidekick", "none"),
+    ("weirdness", 2), ("setting", ""), ("jokes", 2), ("references", "none"), ("sidekick", "none"),
     ("advancement", "milestone"), ("xp-tracking", "on"), ("xp-absent", "full"),
     ("wacky-juice", "on"), ("wacky-juice-value", 5), ("wacky-juice-cooldown", 3),
     ("reveal-policy", "shape-only"), ("mechanics", []), ("seed-file", "campaign-seed.md"),

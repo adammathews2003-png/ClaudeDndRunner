@@ -17,7 +17,9 @@ and the generation runs in a forked context that returns a shape card.
    are promises, like world constraints: a "fishing town" stays a fishing town.
    `length`, `start-level`, `players`, `difficulty` (easy | medium | hard | deadly — a word,
    never a CR), `shape` (journey | boss | macguffin | mystery | sandbox | heist | siege) and
-   `secondary`, `tone`, `weirdness` 1–5, `jokes` 1–5, `references` (none | light | heavy),
+   `secondary`, `tone`, `weirdness` 1–5, `setting` (one line on what the world has: tech,
+   how common magic is; propose one with the defaults if the seed doesn't say),
+   `jokes` 1–5, `references` (none | light | heavy),
    `sidekick` (none | orphan | animal | either), `advancement` (milestone | xp),
    `reveal-policy` (shape-only | fill-in | outline | full | paired), `mechanics`
    (`time-loop` or none), the starting area's name, and a folder slug.

@@ -35,6 +35,11 @@ class Brief(CampaignCase):
         text = "\n".join(run_main(["brief"])[1])
         self.assertIn("Sight (dim): Kael dim (sight Perception at disadv.) · Kira sees normally to 60 ft (darkvision)", text)
 
+    def test_setting_line(self):
+        self.assertFalse(any(l.startswith("Setting") for l in run_main(["brief"])[1]))  # empty: no line
+        set_front_raw(self, "state/current.md", "setting", "airships; no gunpowder")
+        self.assertIn("Setting: airships; no gunpowder", run_main(["brief"])[1])
+
     def test_shapes(self):
         code, lines = run_main(["brief"])
         self.assertEqual(code, 0)

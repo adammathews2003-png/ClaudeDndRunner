@@ -156,6 +156,7 @@ def load_state():
 # Wacky Juice). Read from campaign.md frontmatter, else current.md's (the POC has no
 # campaign.md), else the default.
 SETTINGS = {
+    "setting": "",
     "advancement": "milestone",
     "xp-tracking": "on",
     "xp-absent": "full",

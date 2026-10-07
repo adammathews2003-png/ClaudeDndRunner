@@ -243,11 +243,14 @@ On stage: Mara (wary) goal: keep evening calm · Tobin (friendly) goal: tell car
 Order: Mara 17 · Kael 13 · Veskar 12 · Tobin 5
 Party: Kael 9/11 AC15 · Kira 30/30 AC14 [poisoned 8m]
 Sight (dark): Kael blind without a light · Kira sees to 60 ft (darkvision: grey, no colour; sight Perception at disadv.)
+Setting: medieval tech, no gunpowder; magic known but rare and costly
 Rules: R1 potions=bonus (campaign) · R3 crit 19–20 (combat)
 Watch: Harl asked of Mara → beat 1 · mill → beat 3   Next clock: Day 3 04:00 (Red Ledger cart) in 1d 8h
 Combat: — 
 Log: turn 14 open (2 deltas)
 ```
+The `Setting:` line is the campaign's `setting:` (04 → Campaign file), printed only when
+it isn't empty. The GM judges *Not in the setting* against it (02 → Kinds of "no").
 Hooks in the project `.claude/settings.json`:
 - **`UserPromptSubmit`** → `gm.py brief --hook`: attaches context to each player
   message, so the GM never needs to Read `current.md` on a normal turn. Prints nothing
