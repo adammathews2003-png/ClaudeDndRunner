@@ -217,6 +217,25 @@ they mean to get it. The world still gets its say.
   when the choice matters (Failure & tone guardrails).
 - **One clarifying beat at most**, whether it's a pause or a "How?". Then resolve.
 
+**How long things take** (outside combat; in combat, the action economy decides). These
+defaults keep the "Still go?" numbers and the clock consistent. Adjust for the place (a
+cluttered study takes longer) and for clever methods (a plan that narrows the search
+cuts the time). A retry after a failure costs the same time again.
+
+| activity | time |
+|---|---|
+| open a door or drawer, grab something in reach, read a note | moments (no `time`) |
+| pick a lock, disarm a simple trap, search one spot (a desk, a body) | 1 minute |
+| search a room thoroughly, skim a ledger or book for one thing | 10 minutes |
+| a conversation that's a scene of its own | about 10 minutes |
+| cast a spell as a ritual | the casting time + 10 minutes |
+| buy ordinary gear in a town | 30 minutes |
+| search a building or an archive section, ask around a village | 1 hour |
+| ask around a town for rumors, research one question in a library | 1–4 hours |
+| short rest / long rest | 1 hour / 8 hours (`rest`) |
+| deep research, crafting, recovery, a week of anything | days: *Not now* (Kinds of "no") |
+| getting somewhere | `travel` / movement computes it |
+
 ## Player plans: answer with a roll, not a no
 
 Creativity is rewarded. When a player proposes a plan, however odd, the GM's default
@@ -243,8 +262,14 @@ nearest equivalent, the rule stated openly, or the time it would take.
   the route and its cost: "He's at the mill, twenty minutes' walk. Head there?" A yes
   becomes a scene move or `travel`. The brief's *On stage* line says who is here.
 - **Not here yet.** It plausibly exists ("I find a blacksmith" in a market town). The
-  world is open (The open world): if the place would have it, it exists. `stub` it and
-  answer as for *Not here*. Unknown is never empty.
+  world is open (The open world): if the place would have it, it exists. **First check
+  it isn't already named** (the scene's Description or its Nearby list). If it is, use
+  that one. If not: when the party is going there now, `stub location "Brann's Smithy"
+  --in thornbury` creates a file the party can enter. When it's only being mentioned,
+  `stub place` adds a world row and nothing else. People there are stubbed with
+  `--location <that location's slug>`. A row made by `stub place` isn't a location, so
+  use its area. Without `--location`, a stubbed NPC lands in the party's current scene.
+  Then answer as for *Not here*. Unknown is never empty.
 - **Not in the setting.** A pistol, a telegraph, germ theory. Answer in fiction with the
   nearest thing the world does have. Judge it from the campaign's `setting:` line (04 →
   Campaign file) and its `weirdness`: "No one's heard of such a thing. The closest is
@@ -271,7 +296,11 @@ nearest equivalent, the rule stated openly, or the time it would take.
 - **Not now.** A time skip ("I spend a week in the archives"). Treat it as downtime or a
   montage: advance the clock, roll 1–2 checks for the stretch (`downtime` setting,
   Phase 15), and let the world move in the meantime. A split party follows *big skips
-  wait* (Splitting the party).
+  wait* (Splitting the party). **Length is never a reason to refuse.** Scenario clocks
+  firing during the skip are the world moving, not the story breaking. If the character
+  would feel the urgency (a missing man, a cart due at dawn), that is the one pause, said
+  in fiction ("A week? Whatever happened to Harl won't wait a week."). Then honor the
+  choice and run the clock. Never talk about "the story" having no time for it.
 - **Controlling another PC.** It isn't the GM's call. That player decides.
 
 **Turning a plan into checks.**

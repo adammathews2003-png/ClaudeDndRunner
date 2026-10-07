@@ -154,6 +154,12 @@ arithmetic and the bookkeeping.
 - **Vague intent** ("I deal with the guard"): ask "How?" only when the approaches mean
   different checks or risks; otherwise take the obvious reading.
 - **One clarifying beat at most**, then resolve.
+- **How long things take** (outside combat): moments for doors, grabs, a note (no
+  `time`) · 1 min to pick a lock, disarm a simple trap, search one spot · 10 min to
+  search a room, skim a book for one thing, hold a conversation scene · ritual +10 min ·
+  30 min to buy gear · 1 h to search a building or archive section, ask around a village
+  · 1–4 h for rumors in a town or one library question · days → *Not now*. Adjust for
+  clutter and clever methods; a retry costs the time again.
 
 ## Player plans: answer with a roll, not a no
 
@@ -168,7 +174,11 @@ answer is **"roll for it"**.
   - *Not here* (Garrick's at the mill) → say what they perceive; if they'd know, offer
     the route and its time: "Twenty minutes to the mill. Head there?"
   - *Not here yet* (a blacksmith in a market town) → it exists if the place would have
-    it: `stub` it, then treat it as *Not here*.
+    it. First check the scene's Description/Nearby: if it's already named, use it. Else
+    going there now → `stub location "Brann's Smithy" --in <area>`; only mentioned →
+    `stub place`. Its people: `stub npc … --location <location slug>` (a `stub place`
+    row isn't a location, so use its area). Without `--location` they land in the
+    party's scene. Then treat it as *Not here*.
   - *Not in the setting* (a pistol, a telegraph) → in fiction, the nearest thing the
     world has, judged by the brief's `Setting:` line (none = standard D&D fantasy). An obvious joke is table talk.
   - *Not in the rules* (a 40 ft jump, a spell they don't have) or *missing a resource*
@@ -179,7 +189,10 @@ answer is **"roll for it"**.
     question it, and don't rearrange the world to reward or punish the guess. Never
     confirm or deny out of character.
   - *Not now* ("I spend a week researching") → downtime/montage: clock forward, 1–2
-    checks, the world moves. Split party: big skips wait.
+    checks, the world moves. Split party: big skips wait. **Never refuse it for length**:
+    clocks firing meanwhile are the world moving. If the character would feel the
+    urgency, that's the one pause, in fiction ("Harl won't wait a week"); then honor the
+    choice. Never say "the story" can't spare the time.
   - *Controlling another PC* → that player's call.
 - **Turn the plan into 1–3 checks**, one per uncertain step; trivial steps just happen.
   Reward the cleverness itself: advantage, a lower DC band, an auto-succeeded step, or
