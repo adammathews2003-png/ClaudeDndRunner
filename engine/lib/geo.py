@@ -106,9 +106,21 @@ class Route:
         self.time = row.get("time", "").strip()
         self.notes = row.get("notes", "").strip()
         self.secret = _secret(self.access)
+        # navigation (Phase 14): a `terrain` / `forage` column, else `terrain: forest` in notes
+        self.terrain = _tagged(row, "terrain")
+        self.forage = _tagged(row, "forage")
 
     def ends(self):
         return _base(self.frm), _base(self.to)
+
+
+def _tagged(row, key):
+    """A route row's `key` column, else `key: value` in its notes (lower case), or ''."""
+    v = (row.get(key) or "").strip().lower()
+    if v and v not in ("—", "-"):
+        return v
+    m = re.search(rf"(?:^|[^\w-]){key}:\s*([a-z-]+)", row.get("notes", "") or "", re.I)
+    return m.group(1).lower() if m else ""
 
 
 def _base(ref):
@@ -221,7 +233,9 @@ def load(slug):
     p = campaign.path("locations", slug)
     if not p.exists():
         raise GeoError(f"no location file locations/{slug}.md")
-    key = (str(p), p.stat().st_mtime_ns)
+    st = p.stat()
+    # mtime alone can miss a rewrite within the same clock tick (tests write fast)
+    key = (str(p), st.st_mtime_ns, st.st_size, hash(p.read_bytes()))
     if key not in _frames:
         _frames[key] = Frame(slug, md.load(p))
     return _frames[key]

@@ -21,7 +21,8 @@ The full brief carries `Table: lines — …; veils — …` after `Party:` (con
 boundaries, GM-side only; `Table: boundaries not asked yet` until set, nothing once set
 empty). The party line tags `DYING ✓1 ✗2`, `[conc bless 8r]`, `[exh 2]`; the Sight
 line names the best carried light (`Sight (dark · Kael's torch 40m: bright 20 ft, dim
-40 ft): …`).
+40 ft): …`). Phase 14: `Social: Mara "get the ledger" 2 fails` while an NPC with an
+open social goal is on stage (social.py; the wall on).
 The hook never fails the prompt: any error prints `[GM BRIEF] unavailable: <reason>`
 and exits 0.
 """
@@ -75,6 +76,8 @@ def combat_status(state):
         m = _COMBAT.match(text)
         if m:
             return m.group(1).strip()
+        if re.match(r"^Chase\s*[—-]", text):   # a chase runs in the Combat block's place (Phase 14)
+            return "chase " + re.sub(r"^Chase\s*[—-]\s*", "", text).strip()
     return None
 
 
@@ -310,6 +313,10 @@ def build(state=None):
     sl = sight_line(state)
     if sl:
         lines.append(sl)
+    import social
+    so = social.brief_line(state)
+    if so:
+        lines.append(so)
     setting = str(settings.get("setting") or "").strip()
     if setting:
         lines.append("Setting: " + setting)

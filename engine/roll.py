@@ -27,6 +27,12 @@ Lines:
     [Kira stealth d20 15+7=22 vs Mara perception d20 8+3=11 — Kira wins by 11]
 The margin (`by N`, 06 → Margin) is |total − DC| or |A − B|; a tie shows `by 0`.
 `--secret` prefixes `SECRET` and logs the delta as `(GM)`.
+
+Phase 14: `check PC skill --vs <npc> --ask none|free|minor|major …` is a social check
+(social.py: the DC from the NPC's attitude, leverage, flair, the wall; the number after
+the skill is then the player's total). `atk` from a creature with `hidden N` has
+advantage and gives it away (hiding.py); under `environment: underwater` the weapon
+rules apply (hazard.underwater_attack: disadvantage, or a miss past normal range).
 """
 import re
 
@@ -179,15 +185,37 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     ac = t.ac()
     head = f"{a.name} → {t.name}"
     long_range = False
+    dist = None
+    far, normal = _reach(a, atk)
     if a.pos is not None and t.pos is not None:
         dist = _distance(a, t)
-        far, normal = _reach(a, atk)
         if dist > far:
             line = f"[{head}: out of reach ({dist:g} ft)]"
             return [line], {"out_of_reach": True, "distance": dist}
         long_range = normal is not None and dist > normal
+    import hazard
+    import hiding
+    uw_dis, uw_miss, uw_note = hazard.underwater_attack(a, atk, dist, far, normal)   # Phase 14
+    if uw_miss:
+        body = f"{head}: {uw_miss} — MISS"
+        journal.log_delta(f"atk {body}")
+        return [f"[{body}]"], {"attacker": a.name, "target": t.name, "outcome": "MISS", "note": uw_miss}
+    hidden = hiding.hidden_total(mutations._conds_from_cell(a.combat_row.get("conditions")) if a.combat_row
+                                 else [str(x) for x in (a.front.get("conditions") or [])])
     mode, extra, mode_notes = resolve.attack_mode(mode, long_range=long_range,
                                                   flanked=_flanked(state, a, t), rules=rules)
+    if hidden is not None or uw_dis:   # an unseen attacker has advantage; underwater weapons may not
+        cancelled = any("cancel" in x for x in mode_notes)
+        adv, dis = mode == "adv" or hidden is not None, mode == "dis" or bool(uw_dis)
+        mode = None if cancelled or (adv and dis) else ("adv" if adv else "dis" if dis else None)
+        if hidden is not None:
+            mode_notes.append(f"hidden ({hidden}): advantage")
+        if uw_note:
+            mode_notes.append(uw_note)
+        if adv and dis and not cancelled:
+            mode_notes.append("adv and dis cancel")
+    elif uw_note:
+        mode_notes.append(uw_note)
     mode, exh_bonus, exh_note = _exhaustion(a, "attack", mode)
     if exh_note:
         mode_notes = mode_notes + [exh_note]
@@ -203,6 +231,10 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
     data = {"attacker": a.name, "target": t.name, "attack": atk["name"], "roll": roll.as_dict(),
             "ac": eff, "outcome": outcome, "note": note}
     extra_lines = [ammo_line] if ammo_line else []
+    if hidden is not None:
+        gone = hiding.drop_hidden(a.name)
+        if gone:
+            extra_lines.append(gone)
     if outcome not in ("HIT", "CRIT"):
         journal.log_delta(f"atk {body}")
         return [f"[{body}]"] + extra_lines, data
@@ -298,9 +330,38 @@ def cmd_save(ctx):
     ctx.result = data
 
 
+def _check_args(a):
+    """Split `check`'s positionals: the first number is the DC (the player's total for a
+    social check, `--ask`), adv/dis words are the mode."""
+    words = [w for w in [a.dc] + list(a.mode or []) + list(getattr(a, "extra", None) or []) if w is not None]
+    nums = [w for w in words if re.fullmatch(r"-?\d+", w)]
+    a.mode = [w for w in words if w not in nums]
+    if len(nums) > 1:
+        raise RollError(f"check: unexpected {' '.join(nums[1:])!r}")
+    return int(nums[0]) if nums else None
+
+
 def cmd_check(ctx):
     a = ctx.args
-    line, data = ability_check(a.target, a.skill, a.dc, mode=_mode(a), d20=a.d20, total=a.total,
+    number = _check_args(a)
+    social = a.ask is not None or a.core
+    if social:   # 02 → Social stakes: the DC comes from the NPC's attitude and the ask
+        if not a.vs:
+            raise RollError("check --ask: name the NPC with --vs <npc>")
+        if number is not None and (a.d20 is not None or a.total is not None):
+            raise RollError("check --ask: give the player's total once (<total>, --total or --d20)")
+        import social as social_mod
+        lines, data = social_mod.check(
+            a.target, a.skill, a.vs, a.ask or "none", leverage=a.leverage, flair=a.flair, pitch=a.pitch,
+            appeal=a.appeal, grates=a.grates, why=a.why, goal=a.goal, core=a.core, dc=a.dc_base,
+            d20=a.d20, total=a.total if number is None else number, mode=_mode(a), roller=ctx.roller)
+        for line in lines:
+            ctx.emit(line)
+        ctx.result = data
+        return
+    if number is None:
+        raise RollError("check NAME SKILL DC: the DC is missing (or --ask … --vs <npc> for a social check)")
+    line, data = ability_check(a.target, a.skill, number, mode=_mode(a), d20=a.d20, total=a.total,
                                vs=a.vs, secret=a.secret, roller=ctx.roller)
     ctx.emit(line)
     ctx.result = data
@@ -438,13 +499,26 @@ def register(sub, g):
     _pc_side(p)
     p.set_defaults(func=cmd_save)
 
-    p = sub.add_parser("check", parents=[g], help="check NAME SKILL DC [adv|dis] [--secret]")
-    p.add_argument("target"); p.add_argument("skill"); p.add_argument("dc", type=int)
+    p = sub.add_parser("check", parents=[g], help="check NAME SKILL DC [adv|dis] [--secret] | "
+                       "check PC SKILL --vs NPC --ask SIZE [… <total>]")
+    p.add_argument("target"); p.add_argument("skill"); p.add_argument("dc", nargs="?")
     p.add_argument("mode", nargs="*")
-    p.add_argument("--vs", help="the DC is this PC's score (passive/AC): an NPC tie fails")
+    p.add_argument("--vs", help="the DC is this PC's score (passive/AC): an NPC tie fails; "
+                                "with --ask: the NPC being asked")
     p.add_argument("--secret", action="store_true")
+    # social stakes (Phase 14; social.py)
+    p.add_argument("--ask", choices=["none", "free", "minor", "major"], help="the size of the ask")
+    p.add_argument("--leverage", type=int, default=0, help="-5..5: the pitch's reason for this NPC")
+    p.add_argument("--flair", type=int, default=0, help="0-3 (GM-only score)")
+    p.add_argument("--pitch", help="a short tag for the pitch (a repeat scores 0)")
+    p.add_argument("--appeal", help="the kind of pitch: audacity honesty flattery humour piety coin")
+    p.add_argument("--grates", action="store_true", help="the pitch grates on this NPC (flair −1)")
+    p.add_argument("--why", help="the argument made (a new one is a different approach)")
+    p.add_argument("--goal", help="the goal it serves (counted toward the wall)")
+    p.add_argument("--core", action="store_true", help="the ask would break the core scenario")
+    p.add_argument("--dc", dest="dc_base", type=int, help="the starting DC (social-dcs: gm)")
     _pc_side(p)
-    p.set_defaults(func=cmd_check)
+    p.set_defaults(func=cmd_check, take_extra=True)
 
     p = sub.add_parser("contest", parents=[g], help="contest A SKILL B SKILL | contest A SKILL passive")
     p.add_argument("a_name"); p.add_argument("a_skill")

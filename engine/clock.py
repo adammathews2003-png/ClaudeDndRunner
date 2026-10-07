@@ -20,6 +20,9 @@ Advances `in-game-datetime` and reports everything it crossed:
   a warning at 10 minutes left), concentration with a game-time `until` ends, a
   `stable Nh` PC wakes with 1 HP, and each dawn crossed checks who didn't eat
   (supplies.py; `Supplies: …` lines, exhaustion past the limit).
+- Phase 14 (hazard.py): in extreme cold or heat (`environment:`), each hour crossed asks
+  the PCs who aren't exempt for a CON save; `holding-breath` running out turns into
+  `choking`, and `choking` running out drops the creature to 0 HP.
 - Scenario `- CLOCK Day N HH:MM:` lines and `## Clocks` bullets that fall inside the
   window fire: printed in full and logged as `(GM)` lines. Whether a beat happens is
   the GM's call.
@@ -227,6 +230,8 @@ def _table_mechanics(old, new, w_old, w_new):
         ended += conditions_ext.expire_concs(n_new, campaign.npcs())
     out += ["  Concentration: " + x.strip("[]") for x in ended]
     out += supplies.dawn_check(old, new, pcs)
+    import hazard   # Phase 14: the hourly saves in extreme cold or heat
+    out += hazard.env_lines(old, new, pcs)
     return out
 
 
@@ -293,6 +298,9 @@ def advance(spec, *, log_time=True):
                    + (_tick_conditions(w_minutes, campaign.npcs()) if w_minutes > 0 else []))
     if expired:
         lines.append("  Conditions expired: " + ", ".join(expired))
+        import hazard   # held breath runs out → choking → 0 HP (Phase 14)
+        lines += ["  " + x for x in hazard.expiry_lines([tuple(e.split()[:2]) for e in expired
+                                                          if len(e.split()) > 1])]
     lines += _table_mechanics(old, new, w_old, w_new)
     fired, nxt = [], None
     for t, text, src in clock_lines(campaign.load_state()):

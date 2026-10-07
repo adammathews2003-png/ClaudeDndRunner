@@ -10,6 +10,8 @@ bracket lines:
   (else the active scenario) holds `- ` bullets: one bullet is the reason; several are
   options the players choose from; none means the GM invents 2–4 that fit the premise
   and the opening and asks "Why are you here?". A `Chosen: …` line is the answer.
+- `[TELL THE TABLE] …` (after the INTRO line; first session only, while `social-wall` is on; Phase 14): the
+  one plain-words mention that repeated tries with an NPC can get easier.
 `intro --why "<text>"` records the answer as that `Chosen:` line (the section is created
 after `## Premise` when missing) and logs it.
 """
@@ -121,6 +123,11 @@ def lines():
     first = n == 0
     out = banner.card(title(), "Our tale begins" if first else "Our tale continues")
     out.append(f"[INTRO {'first' if first else 'resume'} · session {n + 1}]")
+    if first:   # the social wall is mentioned once, plainly, at the first session (Phase 14)
+        import social
+        tell = social.intro_line()
+        if tell:
+            out.append(tell)
     import split
     resume = split.resume_line()
     if resume:

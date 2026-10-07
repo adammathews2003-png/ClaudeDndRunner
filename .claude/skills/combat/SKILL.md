@@ -81,6 +81,20 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
 - **Advance:** `python engine/gm.py combat next` — who's up, where, who is within reach,
   and the new turn's budget. A surprised creature's turn passes with no move or action.
   Moves of the round go to the session log automatically.
+- **Morale.** `[Morale (half HP): Thugs — WIS save DC 10 (gm.py save Thugs wis 10) …]`
+  means the foes wonder whether this is worth it: run that save (you roll it). On a
+  failure they flee (Dash and Disengage) or, if cornered, surrender: `cond Thugs +fled`
+  / `+surrendered` takes them out of the turn order. Mark a boss `leader` in its row's
+  notes so its fall shakes the rest. The tool never asks it of the party, nor of
+  mindless undead, constructs and oozes. Fled and surrendered foes count for XP;
+  surrendered ones are on stage as prisoners after the fight.
+- **Hidden attackers.** A creature with `hidden 17` (from `hide`) attacks with advantage
+  and is no longer hidden afterwards; the tool does both. `seek Thug 1 <total>` is an
+  active search (an action).
+- **Underwater** (`hazard env underwater`): the tool gives melee attacks disadvantage
+  except daggers, javelins, shortswords, spears and tridents; ranged attacks miss past
+  normal range and are at disadvantage within it (crossbows, nets and thrown javelins,
+  spears, tridents and darts aside); fire damage is resisted. Just narrate the result.
 - Paste public roll lines; describe enemy HP in fiction only ("bloodied", "staggering").
 - **Dying.** A PC at 0 HP is dying; the tools write it (`DYING ✓0 ✗0` on the party line)
   and count damage while down (a failure; `dmg Kira 6 --crit` is two; damage of their HP
@@ -99,11 +113,28 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
 ## End
 1. When it's over (dead, fled, surrendered): `python engine/gm.py combat end [--count "Bandit"] [--count-fled]`
    - Writes HP/conditions back to the files, marks dead NPCs, ends `combat` rules, runs
-     lint, and prints `[XP available: …]` (foes at 0 HP; `--count` adds the routed,
-     captured or talked-down; `--count-fled` all standing foes, if you judge so).
+     lint, and prints `[XP available: …]` (foes at 0 HP or marked `fled` / `surrendered`;
+     `--count` adds the routed, captured or talked-down; `--count-fled` all standing
+     foes, if you judge so). Surrendered foes join On stage as prisoners.
    - `[Ammo: Kira spent 6 arrows; after a search, 3 can be recovered (gm.py item Kira +3
      arrows)]`: if they search, run that `item`. Under `loose` it names who fired: estimate
      with them and spend it with `item Kira -4 arrows`.
 2. Award XP if the campaign tracks it: `python engine/gm.py xp award from-combat --reason "the inn brawl"`.
    Don't quote XP numbers in narration unless a player asks.
 3. Narrate the aftermath and hand the scene back (tempo is calm again).
+
+## Chases
+When someone runs and someone follows (`chases: dmg`; under `narrative` a contest or two
+does it): `python engine/gm.py chase start --quarry Veskar [--pursuers Kael,Kira]
+[--lead 60] [--env urban|wild]`. It replaces the Combat block; no fight runs alongside.
+- Each turn: `chase next` moves whoever is up (a Dash by default; `--no-dash` for a plain
+  move, `--lose 10` for ground lost to a complication). `chase dash Kira` is an extra
+  Dash (Cunning Action). Past their free Dashes (3 + CON) a PC owes a DC 10 CON save
+  (ask for the d20; a failure is `exhaust Kira +1 "chase"`); the tool rolls an NPC's.
+- The tool rolls a **complication** for whoever is next: narrate it and ask for the
+  check or save it names; a failure costs ground (`--lose`) or what it says.
+- When the quarry is out of sight it tries to hide: the tool rolls an NPC's Stealth
+  against the pursuers' best passive Perception; a PC quarry rolls their own, and on a
+  win you run `chase end escaped`. A pursuer who reaches the quarry ends it: `[caught:
+  start combat or grapple]` → `combat start` (or a grapple). `chase end gave-up` when
+  the pursuers stop. The clock moves 6 s a round when it ends.

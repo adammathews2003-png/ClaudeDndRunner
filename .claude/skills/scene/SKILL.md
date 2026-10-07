@@ -18,7 +18,13 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
    - **Exits / Nearby** — what's around, by bearing, distance and route time.
    - **Present / Not on stage but here** — who is in the room, who is elsewhere in the site.
    - **Passive notices** — volunteer exactly these to the named PCs, in fiction. Never
-     mention who noticed nothing.
+     mention who noticed nothing. `TRAP pit (step on the loose boards)` means that PC
+     spots the trap and what would set it off; describe what they see (a loose board,
+     a thin wire), never the DC or the trap's effect.
+   - **Marching order** (when set) — who walks first into this place.
+   - **Hidden: Kira (17) — unseen by …** — the stored Stealth total against everyone
+     here now. Someone listed under `spotted by` has seen her: play it (or `cond Kira
+     -hidden`). Never re-roll stealth.
    - **Triggers** — beats whose text mentions this place or these people. Read the
      scenario beat only if it might fire now; whether it fires is your call.
    - **Layout** — whether a map exists for this room.
@@ -28,7 +34,18 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
 4. Narrate the establishing exposition: short (2–4 sentences) for a familiar place,
    medium for a new one, long (3+ paragraphs) only for a big story moment. Use real
    details from the Description and the Nearby line. End with an affordance.
-5. If the scene turns tense (a standoff, a grab, someone slipping away), switch tempo:
+5. **Traps.** A trap is a `TRAP` line under the location's `## Hidden`; the tool keeps
+   its state. When someone sets it off: `python engine/gm.py trap trigger <id> --who Kael`
+   (without `--who`, the marching order's front row). It asks for the player's save; run
+   it again with their total and the tool rolls the damage, applies falls and conditions
+   and marks it `triggered`. A disarm attempt: `trap disarm <id> --who Kira <total>` (a
+   miss by 5 or more sets it off). `trap status` is for you only. Never invent a trap's
+   damage, and never read its `(GM …)` notes or disarm details to the table.
+   **Hazards:** `hazard fall Kael 30` (1d6 per 10 ft, lands prone) · `hazard breath Kael`
+   (held breath, then choking, then 0 HP: the clock runs it) · `hazard env
+   extreme-cold|extreme-heat|underwater|none` (the clock then asks the hourly CON saves;
+   underwater changes weapon attacks and fire damage). Narrate the numbers it returns.
+6. If the scene turns tense (a standoff, a grab, someone slipping away), switch tempo:
    `python engine/gm.py tempo tense [--adj "Mara +5 watching the room"] --pos "Mara @bar" --pos "Kira near Tobin"`.
    Place everyone by name (`@feature`, `@feature N|S|E|W`, `near <creature>`). If the room
    has no Layout yet, describe it and place what matters lazily; the first fight writes

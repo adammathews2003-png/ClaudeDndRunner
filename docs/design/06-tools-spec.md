@@ -387,8 +387,8 @@ over.
   Unless `xp-tracking: off`, it also prints the fight's award, un-applied: `[XP available: 700
   (wolf ×3 defeated, 1 fled) → 175 each for 4 present · award with: xp award
   from-combat]`. Base XP per monster (not the encounter multiplier, per the DMG) for
-  foes defeated, routed, captured or talked down; fled foes count only if the GM says
-  so (`--count-fled`).
+  foes defeated, routed, captured or talked down. Foes marked `+fled` or `+surrendered`
+  count as defeated (Phase 14 morale); `--count-fled` counts every foe still standing.
 
 ### `gm.py split` — splitting the party (02 → Splitting the party; 04 → Split party)
 
@@ -1137,39 +1137,60 @@ gm.py item Kira +3 arrows                           # +N/-N: a counted entry (`q
 ```
 gm.py travel <to> --plan [--activities Kira=navigate,Kael=watch,Grusk=forage]
 gm.py travel <to> --nav <d20 total> [--forage Grusk=<total>] [--hours 10]
-gm.py order front=Kael middle=Kira back=Grusk
+gm.py order front=Kael middle=Kira back=Grusk | order | order clear
 gm.py check Kira persuasion --vs mara --ask none|free|minor|major [--leverage -5..5]
-      [--flair 0-3 --pitch "goat grandfather"] [--why "…"] [--goal "get the ledger"] [<total>]
+      [--flair 0-3 --pitch "goat grandfather" [--appeal audacity] [--grates]]
+      [--why "…"] [--goal "get the ledger"] [--core] [--dc N] [<total> | --d20 N]
 gm.py social status [<npc>] | social drop <npc> "<goal>" | social wall on|off|<n>
-gm.py chase start --quarry Veskar --pursuers Kael,Kira [--lead 60] [--env urban|wild]
-gm.py chase next | dash <who> | end
-gm.py trap trigger|disarm|status <trap> [--who Kael] [<d20 total>]
-gm.py hazard fall <who> <ft> | breath <who> | env extreme-cold|extreme-heat|underwater|none
-gm.py hide Kira <total> | hide Kael,Kira <t1>,<t2> --group | seek Veskar <total>
+gm.py chase start --quarry Veskar [--pursuers Kael,Kira] [--lead 60] [--env urban|wild]
+gm.py chase next [--no-dash] [--lose N] | chase dash <who> | chase end [caught|escaped|gave-up]
+gm.py trap trigger <trap> [--who Kael] [<save total>] | trap disarm <trap> --who Kira <total> | trap status
+gm.py hazard fall <who> <ft> | breath <who> | env extreme-cold|extreme-heat|underwater|thin-air|none
+gm.py hide Kira <total> | hide Kael,Kira <t1>,<t2> --group | seek Veskar [<total>]
 ```
-- **Travel activities** (`travel-detail: activities`). `--plan` prints what the trip
-  needs before anything moves: `Navigate: Kira, Survival DC 15 (forest, trackless) ·
-  Forage: Grusk, Survival DC 15 (limited) · Watch: Kael (passive 13; fast pace −5) ·
-  Forced march: 10 h > 8 h, CON saves DC 9+1/h from hour 9`. The second call takes the
-  rolled totals and runs the journey: a failed navigation (getting lost on) picks a
-  wrong bearing (d6 off the intended one, 60° steps), spends 1d6 h on it, then prints
-  `Lost: … the navigator may check again`; the party ends up where that bearing led
-  (`world` frame), never at the destination. Forage yields `1d6 + WIS mod` lb (added
-  as rations: 1 lb a day). Encounter rolls use only the watchers' passives. Forced
-  march hours ask for the CON saves (`gm.py save … con 10`, then `exhaust`).
-  `getting-lost` never applies to `road`, `street` or `path` routes.
+- **Travel activities** (`travel-detail: activities`). `--plan` is a dry run (nothing
+  moves; `--activities` are remembered in `.gm/travel-plan.json` for the next call) and
+  prints what the trip needs: `Navigate: Kira, Survival DC 15 (forest, trackless) ·
+  Forage: Grusk, Survival DC 15 (limited) · Watch: Kael (passive 13; fast pace −5 → 8)
+  · Forced march: 10 h > 8 h`, then one CON save line per hour from hour 9 (DC 11, +1
+  each hour after: 10 + the hours past 8). A road leg says `Navigate: on the road (…) —
+  no check`. The second call takes the rolled totals and runs the journey: a failed
+  navigation (getting lost on) walks the road legs before the first trackless one,
+  then picks a wrong bearing (d6: 1–2 60° left, 3–4 60° right, 5 120° left, 6 120°
+  right of the intended one) and spends 1d6 h on it at trackless pace, then prints
+  `Lost: … the navigator may check again`; the party ends up where that bearing led,
+  measured in the top (`world`) frame, never at the destination:
+  `party-location: "@lost"` with `lost: to hollow · at (x,y,0) world · bearing N (meant
+  NE) · terrain forest · since …` (PCs `location: "@lost"`). `travel <to>` from there
+  is straight-line cross-country at trackless pace (the navigator checks again); an
+  arrival clears `lost:`. Forage yields `1d6 + WIS mod` lb (added as rations: 1 lb a
+  day) and fills the waterskin; it is food, so under `supplies: off` (the default)
+  nothing is counted or added. Encounter rolls print the watchers' passives (only they
+  notice an ambush). Forced march hours ask for the CON saves (`gm.py save … con 11`,
+  then `exhaust`); the hours marched are `--hours`, else the trip's length.
+  `getting-lost` applies only to legs off the roads (kind trail, trackless, marsh,
+  scree, and `--overland`), never to `road`, `street`, `path` or `lane`. Navigation
+  DCs: grassland and coast 5; arctic, desert, hills, sea 10; forest, jungle, swamp,
+  mountains 15; no `terrain:` → 10. `travel-detail: summary` (the default) keeps the
+  one-packet journey and asks for nothing.
 - **Marching order** `order` writes `marching-order:`; `travel` and `scene enter`
-  print it; an ambush from ahead or behind names the front or back row first.
+  print it; when an encounter is rolled on the road the travel output names the front
+  and back rows (`Ambush: from ahead it meets Kael first; from behind, Grusk`), and
+  `trap trigger` without `--who` springs on the front row.
 - **Social DCs** (`social-dcs: dmg`; 02 → Social stakes). `check … --vs <npc> --ask
   <size>` reads the NPC's attitude (and faction renown, Phase 15) and takes the
   starting DC from the 02 table (no "won't": the hardest cell is 30). Then, in order:
-  `--leverage` (−5..+5) adds; `--flair` with `moved-by:` applied (±1 step, 0–3; a
-  `--pitch` tag already in `state/social.md` for this NPC scores 0) takes off the
-  `creativity` steps (light 2/5/8 + advantage at 3; generous 5/8/10 + advantage from
-  2; off 0); the wall stage takes one band (5) off when `fails` ≥ `social-wall` and
-  this attempt's skill or `--why` isn't in `approaches`. DC floor 0. A flair ≥ 1
-  without `--pitch` is an error (the repeat check needs it). The whole sum prints for
-  the GM and logs as one `(GM)` line written **before** the roll result:
+  `--leverage` (−5..+5) adds; `--flair` with `moved-by:` applied (±1 step, 0–3: the
+  GM names the kind of pitch with `--appeal <taste>`, +1 when the NPC is moved by it;
+  `nothing` takes one off any flair pitch; `--grates` takes one off; a `--pitch` tag
+  already in `state/social.md` for this NPC scores 0) takes off the `creativity` steps
+  (light 2/5/8 + advantage at 3; generous 5/8/10 + advantage from 2; off 0); the wall
+  stage takes one band (5) off when `fails` ≥ `social-wall` and this attempt's skill or
+  `--why` isn't in `approaches`. DC floor 0. Under `social-dcs: gm` the GM's `--dc N`
+  is the starting DC. With `--ask`, the number after the skill is the player's total
+  (not a DC). A flair ≥ 1 without `--pitch` is an error (the repeat check needs it).
+  The whole sum prints for the GM and logs as one `(GM)` line written **before** the
+  roll result (the DC call and the roll call log it once):
   ```
   [social] Kira persuasion vs toll-keeper · hostile · major: DC 30
     leverage 0 · flair 3 (moved by audacity: 2→3, "goat grandfather"): −8, advantage
@@ -1187,56 +1208,86 @@ gm.py hide Kira <total> | hide Kael,Kira <t1>,<t2> --group | seek Veskar <total>
   removes the row (logged `[social] cross the bridge — won after 3 tries`). `social
   status` lists open goals (the brief adds `Social: toll-keeper "cross the bridge" 2
   fails` while that NPC is on stage); `social drop` closes one the party gave up on.
-  `social-wall: off` → no rows, no stages. `social wall off|on|<n>` writes the setting
+  `social-wall: off` → no goal rows, no stages (a pitch tried without a goal, or while
+  the wall is off, goes on the NPC's `—` row so a repeat still scores 0).
+  `social wall off|on|<n>` writes the setting
   (campaign.md, else `current.md`; `on` = 3) with a public log line `[social] wall
   off (table's choice)`; open rows are kept, so switching it back on resumes them.
-  `intro` on the first session adds `[TELL THE TABLE] social-wall on: mention once,
+  `intro` on the first session adds (after the `[INTRO …]` line) `[TELL THE TABLE] social-wall on: mention once,
   plainly, that repeated tries with an NPC can get easier and that they can ask to
   turn it off` (nothing when it's off).
 - **The scenario guard.** An ask the GM marks `--core` (it would break the core
   scenario, 02 → Player plans) prints `[social] no roll: core scenario — steer to
   another route to the same goal` and exits 1; nothing else refuses.
-- **Morale** (`morale: on`). `combat next` tracks, per foe side and per group row, the
-  triggers (first below half HP, `leader` down, half the side down) and prints
-  `Morale: Thugs — WIS save DC 10 (gm.py save Thugs wis 10); fail → flee or surrender`
-  once per trigger. Exempt: SRD type construct, ooze, undead (unless the stat block is
-  an intelligent one: `morale` in its notes), and `morale: fearless`. `cond Thugs
-  +fled` / `+surrendered` removes them from the turn order; `combat end` counts both
-  as defeated for `xp award` and adds surrendered foes to On stage as `prisoner`.
-- **Chases** (`chases: dmg`). `chase start` writes `## Chase` (04): positions from
-  `--lead`, speeds from the files, Dashes = 3 + CON mod. `chase next` advances one
-  participant (Dash or not: `dash <who>`, past the free ones a DC 10 CON save or
-  `exhaust +1`), rolls d20 on `tables/chase-<env>.md` (a campaign table; the engine
-  ships a generic one) for the next participant (1–10 complication), and after the
-  quarry's turn, if it is out of the pursuers' sight (gap > their sight in the light,
-  or a complication broke line of sight), asks for its Stealth against the pursuers'
-  best passive Perception. Gap 0 → `chase end` with `[caught: start combat or grapple]`;
-  an escape → `[escaped]`. Rounds are 6 s on the clock, as in combat.
-- **Traps.** `trap trigger <id>` resolves the line's effect (asks the target's save,
-  rolls damage, applies `hazard fall` and the like), `trap disarm <id> --who Kira
-  <total>` compares against the disarm DC (a miss by 5+ triggers it), `trap status`
-  lists the site's traps for the GM. `state:` is written back on the `## Hidden` line.
-  `scene enter` already reveals a trap to a PC whose passive Perception beats its DC.
-- **Hazards.** `fall` rolls 1d6 per 10 ft (max 20d6), applies it and `+prone`.
-  `breath` starts the clock on a creature: `holding breath 3m` (1 + CON mod minutes,
-  min 30 s), then `choking 2r` (CON mod rounds, min 1), then 0 HP and dying.
-  `env` sets `environment:`; with `extreme-cold`/`extreme-heat` the clock asks the
-  hourly CON saves (cold DC 10; heat DC 5 +1 per hour, skipped with water drunk)
-  for every PC not exempt (cold-weather gear or cold resistance; heat: fire
-  resistance, or heat adaptation in `senses:`/features). `underwater` adds the
+- **Morale** (`morale: on`). `combat next` tracks, per foe unit (a group row and the
+  members split off it, or a single creature), the triggers (a creature below half its
+  HP, a `leader` (notes) down, half the side down) and prints `[Morale (half HP): Thugs
+  — WIS save DC 10 (gm.py save Thugs wis 10); fail → flee or surrender (gm.py cond Thugs
+  +fled | +surrendered)]` once per unit and trigger; the Combat block keeps `Morale: thug
+  (half HP)`. Exempt: SRD type construct, ooze, undead (unless the stat block is an
+  intelligent one: `morale` in its notes), and `morale: fearless` (row notes or NPC
+  frontmatter). The party side never checks. `cond Thugs +fled` / `+surrendered`
+  removes them from the turn order; `combat end` counts both as defeated for `xp
+  award` and adds surrendered foes to On stage as `prisoner`; neither condition is
+  written back to a file.
+- **Chases** (`chases: dmg`). `chase start` writes `## Chase` (04) in the Combat
+  block's place: quarry at `--lead` (default 60), pursuers (default: the scene's PCs) at
+  0, speeds from the files (exhaustion applied), Dashes `used/free` with 3 + CON mod
+  free; the order is quarry first, then pursuers as named. `chase next` is the turn of
+  the participant who is up: they move their speed, doubled by a Dash (the default;
+  `--no-dash`; `--lose N` for ground a complication cost). `chase dash <who>` is an
+  extra Dash (a bonus action). A Dash past the free ones is a DC 10 CON save or
+  `exhaust +1`: asked of a player, rolled for an NPC (a failure applies the level).
+  Then the tool rolls d20 on `tables/chase-<env>.md` (the campaign's, else the engine's
+  `engine/templates/tables/chase-urban.md` / `chase-wild.md`) for the next participant
+  (1–10 complication; an `effect` of `los` hides a quarry), and after the quarry's
+  turn, if it is out of the pursuers' sight (gap > their sight: bright 120 ft urban /
+  300 ft wild, dim half that, dark their best darkvision; or a `los` complication),
+  tests its Stealth against the pursuers' best passive Perception (rolled for an NPC;
+  a PC quarry is asked, and the GM ends it `escaped` on a win). A pursuer reaching
+  the quarry → `[chase end · caught: start combat or grapple]`; an escape → `[chase
+  end · escaped]`. `chase end` moves the clock by the rounds run (6 s each, rounded up
+  to the minute; while split, the active group's clock). Combat start and travel
+  refuse while a chase runs.
+- **Traps.** `trap trigger <id>` resolves the line's effect on `--who` (default: the
+  marching order's front, else the first PC): it asks a player for the save total
+  (nothing changes until it comes), then rolls damage, applies `hazard fall` and
+  conditions. Effects: `<ABIL> save DC N or <consequence>` (`(half on a success)` for
+  damage), `+N to hit, <damage>`, or a bare consequence; a consequence is `fall N ft`,
+  `NdM <type>` or a condition (`poisoned 1h`). `trap disarm <id> --who Kira <total>`
+  compares against the disarm DC (a miss by 5+ triggers it on the disarmer; an NPC's
+  total is rolled), `trap status` lists the site's traps as `(GM)` lines. `state:` is
+  written back on the `## Hidden` line. `scene enter` reveals an armed trap to a PC
+  whose passive Perception beats its DC as `TRAP pit (<trigger>)` only. `(GM …)` notes
+  on the line, the disarm and the effect text go only to `(GM)` lines.
+- **Hazards.** `fall` rolls 1d6 per 10 ft (max 20d6), applies it and `+prone` (under
+  10 ft: nothing). `breath` starts the clock on a creature: the condition
+  `holding-breath 3m` (1 + CON mod minutes, min 30 s; rounds in combat), then
+  `choking 2r` (CON mod rounds, min 1; out of combat it shows as `choking 1m`), then 0
+  HP and dying; the clock and `combat next` turn one into the next.
+  `env` sets `environment:` and `environment-since:`; with `extreme-cold`/`extreme-heat`
+  the clock asks the hourly CON saves (cold DC 10; heat DC 5 the first hour, +1 each hour after,
+  skipped by anyone with water while supplies are tracked) for every PC not exempt
+  (cold-weather gear or cold resistance; heat: fire resistance, or heat adaptation in
+  `senses:`/features). `thin-air` is recorded only. `underwater` adds the
   attack rules to `atk` (melee disadvantage except dagger, javelin, shortsword,
   spear, trident; ranged auto-miss past normal range and disadvantage within it
   except crossbows, nets and thrown javelin, spear, trident, dart) and fire
   resistance.
-- **Hiding.** `hide` adds `hidden <total>` to the creature (Combatants or Stage row,
-  else frontmatter `conditions`) and prints every creature in the scene whose passive
-  Perception is at least the total (`spotted by Veskar (passive 14)`). With `--group`,
-  the group is hidden if at least half succeeded (each at their own total). `seek`
-  compares an active Perception total against every hidden creature in range. An
-  `atk` from a hidden creature has advantage and then removes `hidden`; `scene enter`
-  and `combat start` compare arriving creatures' passives against stored totals.
-  In bright light with no cover or obscurement the tool warns `Kira is in plain view`
-  (the GM decides).
+- **Hiding.** `hide` adds `hidden <total>` to the creature (its Combatants row, else
+  frontmatter `conditions`; a Stage row has no conditions column, so an NPC needs a
+  file) and prints every watcher whose passive Perception is at least the total
+  (`spotted by Veskar (passive 14)`) and the rest (`unseen by …`); watchers are the
+  other side in a fight, else the NPCs on stage for a PC and the PCs for an NPC. An
+  NPC's total is rolled when none is given. With `--group`, the group is hidden if at
+  least half beat the watchers' best passive (each stored at their own total), else
+  nobody is. `seek` compares an active Perception total against every hidden creature
+  on the other side and removes `hidden` from those it beats; who stays hidden is a
+  `(GM)` line. An `atk` from a hidden creature has advantage and then removes
+  `hidden`; `scene enter` (`Hidden: Kira (17) — unseen by …`) and `combat start`
+  compare who is there against stored totals (reported; the GM acts on it).
+  In bright light with no cover or obscurement within 5 ft on the map the tool warns
+  `Kira is in plain view?` (the GM decides).
 
 ### Phase 15 — optional subsystems
 

@@ -832,7 +832,8 @@ reason.
 **Travel as play.** With `travel-detail: activities`, each PC on a journey does one
 thing: **navigate** (Survival against the terrain's DC to stay on course), **forage**
 (Survival DC 10 / 15 / 20 for abundant / limited / scarce land; 1d6 + WIS modifier
-lb of food and as much water), **track**, **map**, or **keep watch**. Only PCs keeping
+lb of food and as much water; food is bookkeeping, so with `supplies: off`, the default,
+foraging is only narrated), **track**, **map**, or **keep watch**. Only PCs keeping
 watch (or doing nothing else) add their passive Perception against ambushes and
 encounters; a fast pace costs −5 passive Perception, and only a slow pace allows
 stealth. The **marching order** (front / middle / back) decides who meets trouble
@@ -842,8 +843,10 @@ is a CON save (DC 10 + 1 per extra hour) or one level of exhaustion.
 Survival check against the terrain DC (grassland 5; arctic, desert, hills 10; forest,
 jungle, swamp, mountains 15), and a miss sends the party 1d6 hours on a wrong
 bearing before anyone notices. The tool supplies the DC and the bearing; the GM makes
-it a story ("the river should be on your left").
-`travel-detail: summary` keeps today's one-packet journey.
+it a story ("the river should be on your left"). The party ends where the wrong bearing
+led (no place file there: they are "off course" until the navigator finds the way, and
+the next trip is cross-country from that spot).
+`travel-detail: summary` (the default) keeps today's one-packet journey.
 
 **Social stakes.** **Decided (2026-10-07).** The same promise as Player plans
 (above): the answer is a roll, not a no. With `social-dcs: dmg`, a persuasion,

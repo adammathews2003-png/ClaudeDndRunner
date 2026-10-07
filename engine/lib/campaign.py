@@ -173,6 +173,13 @@ SETTINGS = {
     "supplies": "off",              # strict | loose | off: food and water (off by default)
     "ammo": "special",              # all | special | off: only `special ammo` rows by default
     "exhaustion": "2014",           # 2014 | 2024
+    "travel-detail": "summary",     # summary | activities (Phase 14)
+    "getting-lost": "on",           # on | off: navigation off roads (activities only)
+    "social-dcs": "dmg",            # dmg | gm: the attitude × ask DC table
+    "creativity": "light",          # off | light | generous: what flair takes off
+    "social-wall": 3,               # off | <n>: failed tries before a new approach is easier
+    "morale": "on",                 # on | off: foes check morale in combat
+    "chases": "dmg",                # dmg | narrative
 }
 
 

@@ -115,6 +115,8 @@ def _apply_hp(name, op, n, *, verb="hp", dtype=None, rules=None, log=True, crit=
     n_applied = n
     if op == "-" and dtype:
         resist, immune, vuln = c.damage_traits()
+        if dtype.lower() == "fire" and str(state.front.get("environment") or "").lower() == "underwater":
+            resist = list(resist) + ["fire"]   # creatures underwater resist fire (Phase 14)
         n_applied, note_dmg = resolve.adjust_damage(n, dtype, resist=resist, immune=immune, vuln=vuln)
     exh = c.exhaustion()
     eff_mx = resolve.exhaustion_hp_max(mx, exh, campaign.settings(state).get("exhaustion", "2014"))

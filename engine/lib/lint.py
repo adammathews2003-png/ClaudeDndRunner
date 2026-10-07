@@ -92,6 +92,8 @@ def check_location_value(out, doc, fix_safe=False):
     loc = str(doc.front.get("location") or "").strip()
     if not loc:
         return
+    if loc == "@lost":   # off course in the wilds (Phase 14; state/current.md `lost:`)
+        return
     if loc.startswith("@"):
         rid = loc[1:]
         if not any(r.id == rid for f in _all_frames() for r in f.routes):
@@ -133,7 +135,10 @@ def check_state(out, doc):
             if int(m.group(2)) > n:
                 out.warn(rel, f"Watch for: beat {m.group(2)} — {m.group(1)} has {n} beats")
     loc = str(doc.front.get("party-location") or "")
-    if loc:
+    if loc == "@lost":
+        if not doc.front.get("lost"):
+            out.err(rel, "party-location @lost without a `lost:` line (where are they?)")
+    elif loc:
         site, _, area = loc.partition("/")
         if not campaign.path("locations", site).exists():
             out.err(rel, f"party-location {loc!r}: no locations/{site}.md")
@@ -286,6 +291,51 @@ def check_location_file(out, doc):
                 if derived >= 1 and (over > 2 * derived or over < derived / 2):
                     out.warn(rel, f"route `{r.id}`: time {r.time!r} vs derived {derived:.0f} min (>2× off)")
     check_compass_prose(out, doc, frame)
+    check_traps(out, doc)
+    check_terrain(out, doc, frame)
+
+
+def check_traps(out, doc):
+    """`TRAP` lines under `## Hidden` (Phase 14; 04 → Scene state added) parse: an id, an
+    `effect:` the tool can resolve, a known `state:`, a `disarm:` with a DC."""
+    import hazard
+    rel = _rel(doc.path)
+    span = doc.section("Hidden")
+    for i in range(span[0] + 1, span[1]) if span else []:
+        line = doc.body[i]
+        if not re.search(r"\bTRAP\b", line):
+            continue
+        t = hazard.parse_trap(line)
+        if t is None:
+            out.err(rel, f"Hidden: a TRAP line doesn't parse (want `- DC N: TRAP <id> (area) · trigger: … · "
+                         f"disarm: DC N … · effect: … · state: armed`): {line.strip()[:60]}")
+            continue
+        if t.state not in hazard.STATES:
+            out.err(rel, f"TRAP {t.id}: state {t.state!r} is not {' | '.join(hazard.STATES)}")
+        if not t.get("effect"):
+            out.err(rel, f"TRAP {t.id}: no `effect:`")
+        else:
+            for cl in hazard._clauses(t.get("effect")):
+                if not hazard.clause_ok(cl):
+                    out.warn(rel, f"TRAP {t.id}: effect `{cl}` isn't one the tool resolves (the GM narrates it)")
+        if t.get("disarm") and t.disarm_dc() is None:
+            out.warn(rel, f"TRAP {t.id}: `disarm:` has no DC")
+        if t.area and doc.front.get("tier") == "site" and t.area not in set(geo._area_slugs(doc)):
+            out.warn(rel, f"TRAP {t.id}: area `{t.area}` is not in ## Areas")
+
+
+def check_terrain(out, doc, frame):
+    """`terrain:` / `forage:` on the file and its routes take the 04 values (Phase 14)."""
+    import explore
+    rel = _rel(doc.path)
+    checks = [("file", str(doc.front.get("terrain") or ""), str(doc.front.get("forage") or ""))]
+    checks += [(f"route `{r.id}`", r.terrain, r.forage) for r in frame.routes]
+    for where, terrain, forage in checks:
+        terrain, forage = terrain.strip().lower(), forage.strip().lower()
+        if terrain and terrain not in explore.TERRAINS:
+            out.warn(rel, f"{where}: terrain {terrain!r} is not {' | '.join(explore.TERRAINS)}")
+        if forage and forage not in explore.FORAGE_DC:
+            out.warn(rel, f"{where}: forage {forage!r} is not abundant | limited | scarce")
 
 
 def check_compass_prose(out, doc, frame):

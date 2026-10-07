@@ -85,6 +85,10 @@ arithmetic and the bookkeeping.
      someone in it, passing through on their own errand, owed a favour, drawn by the
      notice) and ask the same. Record the answer with `intro --why "<their reason>"`, and
      let it shape the opening: who knows them, who's expecting them, what they want here.
+   - `[TELL THE TABLE] social-wall on` (first session only): say it once, out of
+     character and in plain words, with no machinery: "If a conversation with someone
+     keeps going nowhere, the game can make it a little easier over repeated tries. If
+     that ever feels too cheap, just say so and I'll turn it off."
    - `[INTRO first]`: set out the premise as the party knows it (`[PREMISE]`, in
      fiction), then the opening narration of the current scene.
    - `[INTRO resume]`: a recap from the party's point of view (the latest
@@ -277,6 +281,9 @@ The single exception is a `/spoilers` answer; the rules apply again right after 
 - Off-screen events the party has no way to know.
 - Names the characters haven't learned. Describe a stranger ("a weathered man by the
   hearth") until someone gives or hears the name.
+- Flair scores, leverage, the social DC sum, or the wall's count and stages. Players
+  feel them only as the DC you ask for, the result and the NPC's reaction. A trap's
+  `(GM …)` notes and disarm details; who is still hidden after a `seek`.
 
 **Out-of-character questions.** "Why did that happen?" / "What's really going on?" →
 "That's behind the screen." Friendly and final. Don't point anyone at `/overrule` or
@@ -325,6 +332,55 @@ out is a story beat, not a lecture.
 attacks and speed already carry it. Narrate it (heavy limbs, stumbling); add a level
 with `exhaust Grusk +1 "forced march"` for spells, monsters and ordeals the tools
 don't know about.
+
+## Travel, social asks, hiding (Phase 14)
+
+**Travel as play** (`travel-detail: activities`; the default `summary` is one packet).
+Before a journey ask each player what their PC does on the way: navigate, forage,
+track, map or keep watch (anyone who says nothing keeps watch). Run `travel <to> --plan
+--activities Kira=navigate,Grusk=forage`: it moves nothing and says what to ask for
+(`Navigate: Kira, Survival DC 15 (forest, trackless)`). On a road there is no check.
+Ask for the rolls the plan names, then `travel <to> --nav <total> [--forage
+Grusk=<total>]`. Only the watchers' passive Perception counts against an ambush; fast
+pace costs them 5, slow pace lets the party sneak. `Forced march:` lines mean a CON
+save per hour past 8 (ask, then `exhaust … +1` on a failure). **`Lost:`** means the
+navigator failed: the party doesn't know yet. Never say "you are lost"; tell it as a
+story (the river should be on your left, the ridge is on the wrong side) until someone
+notices, and let the navigator try again with `travel <to> --nav <total>` from where
+they are. Foraging food counts only while `supplies` is tracked (off by default: then
+just narrate what they find). The marching order (`order front=Kael middle=Kira
+back=Grusk`) says who meets trouble first.
+
+**Social asks.** When a PC persuades, deceives or intimidates an NPC for something,
+size the ask (none · free · minor · major) and score the pitch **before** anyone rolls:
+leverage −5..+5 (a real reason for this NPC; against their interests raises it) and
+flair 0–3 (0 plain or already tried on this NPC · 1 a fresh angle or a nice character
+touch · 2 specific to this NPC or to something established in play, in character · 3
+all of that and it surprised the table; it doesn't have to be logical). Name the kind
+of pitch with `--appeal` when it plays to what the NPC is `moved-by`, `--grates` when it
+rubs them the wrong way. `check Kira persuasion --vs mara --ask major --leverage 2
+--flair 2 --pitch "her brother's boots" --goal "get the ledger"` gives the DC (and
+advantage when flair earns it). Tell the player what to roll (the DC only for a foreseen
+check, advantage if given), then rerun with their total. Read the tier: **yes, and**
+(more than asked: a favour, a name, a door left open) · **yes** · **yes, but** (at a
+cost, or only part) · **no, but** (they learn something toward the goal) · **no, and**
+(it goes worse; consider lowering their attitude with `attitude`). Nothing is a flat
+"no": the only refusal is an ask that would break the core scenario (`--core`); then
+steer to another route to the same goal. **The wall:** with `--goal`, a `stage 1`
+line means the NPC shows a feeling, `stage 2` means they say in the fiction what it
+would take, `stage 3+` means a fresh approach gets easier and you should offer a route
+around them. Never announce stages; the NPC simply softens. If a player asks how it
+works, explain honestly. If a player asks to turn it off (or on), run `social wall
+off` (or `on`) and say it's done.
+
+**Hiding.** `hide Kira <Stealth total>` stores it; the tools compare everyone who
+looks later against that total (`scene enter`, `combat start` print who spots whom), so
+never re-roll stealth. `seek Veskar <total>` is an active search; an attack from
+hiding has advantage and gives the attacker away. `Kira is in plain view?` is your
+call: no cover, no darkness, no hiding.
+
+**Traps and hazards** live in the `scene` skill: `trap trigger|disarm|status`, `hazard
+fall|breath|env`. The tools roll the damage; the player rolls the save.
 
 ## Splitting the party
 
@@ -450,6 +506,12 @@ them (`<<STAGE /end-session>>`) when a player's words ask for one, never run the
   · `stabilize Kira --by Kael 12 | --kit | --spell` · `light Kael torch|lantern|candle|cantrip|daylight|out`
   · `eat [Kira] [--bought "3 sp"]` · `item Kira +3 arrows` · `exhaust Grusk +1 "forced march"`
   · `campaign boundaries --line "…" --veil "…" [--drop "…"] [--none]`
+- Exploration & pressure: `travel <to> --plan --activities Kira=navigate,Kael=watch` · `travel <to> --nav 14 [--forage Grusk=12] [--hours 10]`
+  · `order front=Kael middle=Kira back=Grusk` · `check Kira persuasion --vs mara --ask minor|major [--leverage 2] [--flair 2 --pitch "…" --appeal humour] [--goal "…"] [<total>]`
+  · `social status|drop mara "goal"|wall off` · `hide Kira 17` / `hide Kael,Kira 12,18 --group` · `seek Veskar [18]`
+  · `trap trigger pit --who Kael [<save total>]` · `trap disarm pit --who Kira <total>` · `trap status`
+  · `hazard fall Kael 20` · `hazard breath Kael` · `hazard env extreme-cold|extreme-heat|underwater|none`
+  · `chase start --quarry Veskar [--pursuers Kael,Kira] [--env urban|wild]` · `chase next [--no-dash] [--lose 10]` · `chase dash Kira` · `chase end caught|escaped|gave-up`
 - Scene & space: `scene enter <loc> [--light dim] --write [--summary "…"]` · `onstage mara --goal "…" --note "…"`
   · `tempo tense [--adj "Mara +5 watching"] [--pos "Mara @bar"]` · `pos Kael near Tobin` · `intent Mara "…"`
   · `tempo calm` · `space dist A B` · `move Kael --to Veskar [--dash]` · `turn` / `turn use bonus|action|object|dash` · `space cone Kael --toward @door --length 15`

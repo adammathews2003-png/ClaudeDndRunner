@@ -30,7 +30,7 @@ USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
                    "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
                    "brief", "juice", "tempo", "xp", "stub", "where", "trace", "odds", "spoil", "scaffold", "encounter", "loot", "loop", "campaign_cmd", "monster", "intro", "turn", "split",
-                   "conditions_ext", "supplies")
+                   "conditions_ext", "supplies", "social", "explore", "chase", "hazard", "hiding")
 
 
 class CommandError(Exception):
@@ -317,7 +317,11 @@ def run(argv, batch=True, roller=None):
     if name not in parser.commands:
         raise CommandError(f"unknown command {name!r}\n{USAGE}")
     try:
-        args = parser.parse_args(argv)
+        args, extra = parser.parse_known_args(argv)
+        if extra:   # positionals after options (`check … --ask major 22`): only where taken
+            if not getattr(args, "take_extra", False):
+                parser.error(f"unrecognized arguments: {' '.join(extra)}")
+            args.extra = extra
     except CommandError as e:
         raise CommandError(f"{e}\n{USAGE}") from None
     for key, value in found.items():

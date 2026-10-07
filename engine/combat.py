@@ -12,17 +12,26 @@ PCs. `--add` places SRD monsters (`@x,y,z`, `@feature [N|S|E|W]`, `@near <creatu
 surprised or struck-first creature comes up, a note says what that turn allows. Prints
 the order and the player-view map.
 
-`next` advances `up:` (dead NPC rows are skipped). On wrap it starts the next round,
-moves the Moves log into the session log and ticks `Nr` condition durations (expiry
-reported). Prints who's up, where, and who is within their reach.
+`next` advances `up:` (dead NPC rows, and anyone `fled` or `surrendered`, are skipped).
+On wrap it starts the next round, moves the Moves log into the session log and ticks
+`Nr` condition durations (expiry reported). Prints who's up, where, and who is within
+their reach. Phase 14 (`morale: on`): the first time a foe unit (a group row and its
+split members, or one creature) has a creature below half its HP, its side's `leader`
+falls, or half the side is down, it prints `Morale (half HP): Thugs — WIS save DC 10 …`
+once per unit and trigger (kept on the Combat block's `Morale:` line). Constructs,
+oozes and undead (unless their notes say `morale`) and `morale: fearless` never check;
+the party side never does.
 
 `end [--count <name> …] [--count-fled]` writes HP / temp HP / conditions from the
 Combatants rows back to PC/NPC frontmatter (round-based conditions end with the fight),
 marks NPCs at 0 HP `status: dead`, restores `(not in combat)`, sets tempo calm, ends
 `combat`-scoped table rules, and (unless `xp-tracking: off`) writes
 `.gm/last-combat.json` and prints the un-applied `[XP available: …]` line: base XP of
-foes at 0 HP, plus any named with `--count` (routed, captured, talked down) or all
-standing foes with `--count-fled`. `--frame` / `reframe` are Phase 8.
+foes at 0 HP or marked `fled` / `surrendered` (they count as defeated, Phase 14), plus
+any named with `--count` (routed, captured, talked down) or all standing foes with
+`--count-fled`. Surrendered foes join On stage as prisoners. `start` refuses while a
+chase runs and prints the stored Stealth totals of hidden rows against the other side
+(hiding.py). `--frame` / `reframe` are Phase 8.
 """
 import io
 import json
@@ -129,6 +138,8 @@ def start(inits=(), adds=(), surprised=(), frame=None, roller=None, openers=()):
     state = campaign.load_state()
     if tempo.in_combat(state):
         raise CombatError("combat is already running (combat next / combat end)")
+    if state.section("Chase") is not None:
+        raise CombatError("combat start: a chase is running (chase end first; a caught quarry is a fight)")
     roller = roller or dice.Roller()
     rules_ = resolve.active_keys()
     gm_rolls = resolve.dice_mode(state.front, rules_) == "gm-rolls-all"
@@ -237,6 +248,8 @@ def start(inits=(), adds=(), surprised=(), frame=None, roller=None, openers=()):
         lines.append("[unplaced: " + ", ".join(st.unplaced) + " — gm.py pos <name> @<feature>]")
     if lay is None:
         lines.append(f"[no Layout for {site}/{area}: write one (02 → first fight writes the Layout)]")
+    import hiding
+    lines += hiding.combat_lines(ordered)   # stored Stealth totals vs the other side (Phase 14)
     lines += map_lines(player_view=True)
     return lines, {"order": [(norm_name(r["name"]), r["init"]) for r in ordered]}
 
@@ -279,10 +292,136 @@ def map_lines(player_view=False, origin=None):
 # ---------- next ----------
 
 def _alive(row):
+    """Still takes turns: not dead (a PC), not at 0 HP (an NPC), not fled or surrendered."""
+    words = [c.split()[0].lower() for c in _conds(row.get("conditions"))]
+    if "fled" in words or "surrendered" in words:
+        return False
     is_pc = "(pc)" in row.get("name", "").lower() or row.get("ref", "").startswith("pcs/")
     if is_pc:
-        return "dead" not in [c.split()[0].lower() for c in _conds(row.get("conditions"))]
+        return "dead" not in words
     return not row.get("hp", "").startswith("0/")
+
+
+# ---------- morale (Phase 14; 02 → Table mechanics → Morale) ----------
+
+MORALE_EXEMPT = ("construct", "ooze", "undead")
+_MORALE = "Morale:"
+
+
+def _unit_of(name):
+    """(key, save name) of a foe row: `Thugs ×3` and its split members `Thug 1` are one
+    unit, saved as `Thugs` while the group row stands."""
+    g = GROUP.match(name)
+    base = g.group(1) if g else re.sub(r"\s+\d+$", "", name)
+    key = base.lower()
+    key = key[:-1] if key.endswith("s") and not key.endswith("ss") else key
+    return key, base
+
+
+def _morale_exempt(row):
+    notes = (row.get("notes") or "").lower()
+    if re.search(r"morale:\s*fearless", notes):
+        return True
+    ref = (row.get("ref") or "").strip()
+    try:
+        c = creatures.get(norm_name(row.get("name")))
+        if str(c.front.get("morale") or "").strip().lower() == "fearless":
+            return True
+        mon = srd.monster(ref[4:]) if ref.startswith("srd:") else c.monster
+    except (ToolError, campaign.CampaignError):
+        mon = None
+    kind = str((mon.rec.get("type") if mon is not None else "") or "").lower()
+    return kind in MORALE_EXEMPT and "morale" not in notes
+
+
+def _morale_line(state):
+    """(index, {"unit (trigger)"}) of the Combat block's `Morale:` line."""
+    span = state.section("Combat")
+    if span is None:
+        return None, set()
+    for j in range(span[0] + 1, span[1]):
+        if state.body[j].startswith(_MORALE):
+            return j, {x.strip() for x in state.body[j][len(_MORALE):].split("·") if x.strip()}
+    return None, set()
+
+
+def morale_check(state=None):
+    """combat next: a morale check for each foe unit the first time a trigger happens
+    (a creature below half its HP, its leader down, half the side down). -> lines."""
+    if str(campaign.settings().get("morale", "on")).strip().lower() == "off":
+        return []
+    state = state or campaign.load_state()
+    table = state.table("Combatants")
+    if table is None:
+        return []
+    units, order = {}, []
+    side_n = side_down = 0
+    leader_down = False
+    for r in table.rows:
+        if r.get("side", "").strip().lower() != "foe":
+            continue
+        name = norm_name(r.get("name"))
+        g = GROUP.match(name)
+        n = int(g.group(2)) if g else 1
+        cell = parse_hp_cell(r.get("hp", ""))
+        words = [c.split()[0].lower() for c in _conds(r.get("conditions"))]
+        down = (cell is not None and cell[0] == 0) or any(w in words for w in ("fled", "surrendered", "dead"))
+        below = cell is not None and 0 < cell[0] < cell[1] / 2
+        side_n += n
+        side_down += n if down else 0
+        if down and "leader" in (r.get("notes") or "").lower():
+            leader_down = True
+        key, base = _unit_of(name)
+        u = units.get(key)
+        if u is None:
+            u = units[key] = {"name": base, "save": None, "group": False, "standing": 0, "below": False,
+                              "exempt": True}
+            order.append(key)
+        if g and not down:          # a standing group row saves for the unit
+            u["save"], u["group"] = base, True
+        elif not down and u["save"] is None:
+            u["save"] = name        # else the first standing member
+        if not down:
+            u["standing"] += n
+            u["below"] = u["below"] or below
+            u["exempt"] = u["exempt"] and _morale_exempt(r)
+    j, fired = _morale_line(state)
+    new = []
+    for key in order:
+        u = units[key]
+        if not u["standing"] or u["exempt"]:
+            continue
+        why = []
+        if u["below"]:
+            why.append("half HP")
+        if leader_down:
+            why.append("leader down")
+        if side_n and side_down * 2 >= side_n:
+            why.append("half the side down")
+        for w in why:
+            tag = f"{key} ({w})"   # keyed by the unit, so a group splitting up doesn't re-fire
+            if tag in fired:
+                continue
+            fired.add(tag)
+            new.append((u, w, tag))
+    if not new:
+        return []
+    line = _MORALE + " " + " · ".join(sorted(fired))
+    if j is None:
+        span = state.section("Combat")
+        j = span[0] + 1
+        while j < len(state.body) and state.body[j].startswith(("Turn:", "Ammo spent:")):
+            j += 1
+        state.body.insert(j, line)
+    else:
+        state.body[j] = line
+    state.save()
+    out = []
+    for u, w, tag in new:
+        journal.log_delta(f"morale {tag}: WIS save DC 10", gm=True)
+        out.append(f"[Morale ({w}): {u['name']} — WIS save DC 10 (gm.py save {u['save']} wis 10); "
+                   f"fail → flee or surrender (gm.py cond {u['save']} +fled | +surrendered)]")
+    return out
 
 
 def next_turn():
@@ -309,10 +448,10 @@ def next_turn():
             break
     else:
         raise CombatError("combat next: nobody left standing")
-    ended_conc = []
+    ended_conc, ended_other = [], []
     if wrapped:
         round_no += 1
-        lines += _end_of_round(state, round_no - 1, ended_conc)
+        lines += _end_of_round(state, round_no - 1, ended_conc, ended_other)
         table = state.table("Combatants")
     new_up = norm_name(table.rows[j]["name"])
     i, _ = _heading_index(state)
@@ -325,17 +464,20 @@ def next_turn():
             lines += conditions_ext.end_conc(caster, "duration ended")
         except ToolError:
             pass
+    import hazard   # held breath → choking → 0 HP (Phase 14)
+    lines += hazard.expiry_lines(ended_other)
     lines.insert(0, f"[round {round_no} · up: {new_up}]")
     note = _turn_note(table.rows[j])
     lines.insert(1, note or turnstate.turn_start_line(budget))
     dying = conditions_ext.dying_prompt(new_up)
     if dying:
         lines.insert(2, dying)
+    lines += morale_check()
     lines.append(_reach_line(new_up))
     return lines, {"round": round_no, "up": new_up}
 
 
-def _end_of_round(state, finished, ended_conc=None):
+def _end_of_round(state, finished, ended_conc=None, ended_other=None):
     """Move the Moves log into the session log and tick `Nr` durations. A `conc <spell>
     Nr` mirror that runs out puts its creature in `ended_conc` (next_turn ends the
     record after saving)."""
@@ -365,6 +507,8 @@ def _end_of_round(state, finished, ended_conc=None):
         for e in ended:
             out.append(f"[{norm_name(r['name'])}: {e} ended]")
             journal.log_delta(f"cond {norm_name(r['name'])} -{e} (expired)")
+            if ended_other is not None:
+                ended_other.append((norm_name(r["name"]), e.split()[0]))
             if e.lower().startswith("conc ") and ended_conc is not None:
                 ended_conc.append(norm_name(r["name"]))
                 notes = [b.strip() for b in (r.get("notes") or "").split(";")
@@ -408,7 +552,7 @@ def end(count=(), count_fled=False):
     if table is None:
         raise CombatError("combat end: not in combat")
     lines = []
-    foes = []
+    foes, prisoners = [], []
     import split
     sp = split.load()
     played = split.rounds_played(sp, state) if sp else 0
@@ -416,7 +560,11 @@ def end(count=(), count_fled=False):
         name = norm_name(r["name"])
         ref = r.get("ref", "").strip()
         cell = parse_hp_cell(r.get("hp", ""))
-        conds = conditions_ext.strip_mirrors([c for c in _conds(r.get("conditions")) if not _DUR.match(c)])
+        all_conds = _conds(r.get("conditions"))
+        words = [c.split()[0].lower() for c in all_conds]
+        gone = "surrendered" if "surrendered" in words else ("fled" if "fled" in words else None)
+        conds = conditions_ext.strip_mirrors([c for c in all_conds if not _DUR.match(c)
+                                              and c.split()[0].lower() not in ("fled", "surrendered")])
         if ref and not ref.startswith("srd:"):
             p = campaign.root() / (ref if ref.endswith(".md") else ref + ".md")
             if p.exists() and cell is not None:
@@ -434,7 +582,11 @@ def end(count=(), count_fled=False):
                     lines.append(f"[{name}: status dead]")
                 doc.save()
         if r.get("side", "").strip().lower() == "foe":
-            foes.append((name, ref, cell))
+            foes.append((name, ref, cell, gone))
+            if gone == "surrendered":
+                prisoners.append((name, ref))
+            elif gone == "fled" and ref and not ref.startswith("srd:"):
+                lines.append(f"[{name} fled: gm.py move-npc {name.split()[0]} <where> when you know]")
     span = state.section("Moves log")   # the unfinished round's moves still reach the session log
     if span is not None:
         for k in range(span[0] + 1, span[1]):
@@ -450,6 +602,7 @@ def end(count=(), count_fled=False):
     lines += rules.end_scope("combat")
     lines += conditions_ext.end_round_concs()
     lines += ammo
+    lines += _prisoners(prisoners)
     journal.log_delta("combat end")
     if sp:
         lines += split.charge_combat(played)
@@ -466,6 +619,31 @@ def end(count=(), count_fled=False):
     return lines, data
 
 
+def _prisoners(prisoners):
+    """Surrendered foes join On stage as prisoners (02 → Morale)."""
+    if not prisoners:
+        return []
+    state = campaign.load_state()
+    out = []
+    for name, ref in prisoners:
+        path = ""
+        if ref and not ref.startswith("srd:"):
+            rel = ref if ref.endswith(".md") else ref + ".md"
+            if (campaign.root() / rel).exists():
+                path = f" ({rel})"
+        bullet = f"- **{name}**{path} — prisoner (surrendered)"
+        span = state.section("On stage")
+        if span is not None and any(state.body[k].strip() == "(nobody)" for k in range(span[0] + 1, span[1])):
+            k = next(k for k in range(span[0] + 1, span[1]) if state.body[k].strip() == "(nobody)")
+            state.body[k] = bullet
+        else:
+            state.append_line("On stage", bullet)
+        journal.log_delta(f"onstage {name} (prisoner)")
+        out.append(f"[{name} surrendered: on stage as a prisoner]")
+    state.save()
+    return out
+
+
 def _xp_each(ref, name):
     try:
         if ref.startswith("srd:"):
@@ -480,15 +658,15 @@ def _xp_each(ref, name):
 
 def _xp(foes, count, count_fled):
     counted, parts, total = [], [], 0
-    for name, ref, cell in foes:
+    for name, ref, cell, gone in foes:
         g = GROUP.match(name)
         n = int(g.group(2)) if g else 1
         down = cell is not None and cell[0] == 0
         named = any(name.lower().startswith(c.lower()) for c in count)
-        if down or named or count_fled:
+        if down or gone or named or count_fled:   # fled / surrendered count as defeated (Phase 14)
             each = _xp_each(ref, name)
             total += each * n
-            how = "defeated" if down else ("counted" if named else "fled")
+            how = "defeated" if down else (gone or ("counted" if named else "fled"))
             parts.append(f"{name} {how}")
             counted.append({"name": name, "ref": ref, "n": n, "xp each": each, "outcome": how})
         else:

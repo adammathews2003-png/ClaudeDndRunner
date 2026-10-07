@@ -99,9 +99,13 @@ def new(slug, area=None, sets=(), seed_file=None, activate=False):
     vals["name"] = slug.replace("-", " ").title()
     for item in sets or []:
         k, sep, v = item.partition("=")
-        if not sep or k.strip() not in vals:
-            raise CampaignCmdError(f"campaign new: unknown setting {item!r} ({', '.join(vals)})")
-        vals[k.strip()] = _value(k.strip(), v.strip())
+        # the table settings (04 → Table settings: supplies, social-wall, …) may be set
+        # here too; left unset they keep their defaults and aren't written
+        if not sep or (k.strip() not in vals and k.strip() not in campaign.SETTINGS):
+            raise CampaignCmdError(f"campaign new: unknown setting {item!r} ({', '.join(vals)}, "
+                                   f"or a table setting: {', '.join(k for k in campaign.SETTINGS if k not in vals)})")
+        v = v.strip()
+        vals[k.strip()] = int(v) if k.strip() == "social-wall" and v.isdigit() else _value(k.strip(), v)
     head = ["---"] + [f"{k}: {md.fmt_value(v)}" if md.fmt_value(v) != "" else f"{k}:" for k, v in vals.items()] + ["---"]
     old = campaign._override
     campaign.set_override(str(root))

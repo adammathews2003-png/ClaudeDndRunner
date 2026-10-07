@@ -843,8 +843,8 @@ skill starts a band lower while one with the same skill doesn't; success removes
 goal row; `--core` exits 1; `social wall off` writes the setting and stops the stages,
 and a first-session `intro` prints the `[TELL THE TABLE]` line only while it's on; with Mara friendly `--ask major` prints DC 20; a bandit group dropping under half HP prints one morale line
 and never again for that trigger; a fled bandit counts toward `xp award`; `chase
-start --quarry Veskar` → `chase next` × 4 spends Dashes and the 5th asks for a CON
-save; `trap trigger` on a fixture pit applies the fall damage and `prone`, and `trap
+start --quarry Veskar --pursuers Kael` (Veskar with 2 free Dashes) → `chase next` × 4
+spends Dashes and the 5th (Veskar's third Dash) asks for a CON save; `trap trigger` on a fixture pit applies the fall damage and `prone`, and `trap
 status` shows `triggered`; `hazard breath Kael` with CON +1 → `holding breath 2m`;
 `hide Kira 17` then `scene enter` with Veskar (passive 14) arriving → not spotted;
 `seek Veskar 18` → spotted; each undoes.
@@ -1335,3 +1335,96 @@ Line references in this plan predate the move; search for the quoted heading.
   and `test_brief.test_shapes` (the `Table: boundaries not asked yet` line).
 - Verified by `engine/tests/test_phase13.py` (36 tests: every Verify bullet, undo of
   every new command, `supplies: off` / `track-light: off`, LF and CRLF files).
+
+## Phase 14 — completion notes (2026-10-07)
+
+- New modules: `engine/explore.py` (travel activities, navigation and getting lost,
+  foraging, watchers, forced march, `order`), `engine/lib/social.py` (the 02 DC table,
+  flair steps, tastes, tiers as data) and `engine/social.py` (`check --ask` through
+  roll.py, `state/social.md`, `social status|drop|wall`, the brief's `Social:` line, the
+  intro's `[TELL THE TABLE]`), `engine/chase.py` (+ `engine/templates/tables/chase-urban.md`
+  and `chase-wild.md`, original text), `engine/hazard.py` (`trap`, `hazard
+  fall|breath|env`, the clock's hourly environment saves, breath → choking → 0 HP, the
+  underwater attack rules), `engine/hiding.py` (`hide`, `seek`, the scene/combat
+  compare, the attack reveal). Morale lives in `combat.py`; travel.py was split into
+  `route()` (nothing moved) and `travel()`. The seven settings are in `campaign.SETTINGS`.
+- **Defaults and the bookkeeping preference (c01465e):** foraging is food, so it follows
+  `supplies` (off by default): nothing is counted or added, the plan says so. Nothing new
+  counts per hour or per item by default: the hourly environment saves only run while
+  `hazard env` sets an extreme environment, forced-march saves only print under
+  `travel-detail: activities` (default `summary`). `getting-lost`, `social-dcs`,
+  `creativity`, `social-wall`, `morale`, `chases` keep the spec's gameplay defaults.
+- **Spec fixes (docs updated):**
+  - Forced march: 06 said "DC 9+1/h from hour 9"; 02 and the PHB say DC 10 + 1 per hour
+    past 8, so hour 9 is DC 11. 06 fixed.
+  - Getting lost: 04 said only `trail`/`trackless`, 06 "never road/street/path". Now:
+    every leg off the roads (trail, trackless, marsh, scree, `--overland`), never road,
+    street, path or lane; 04 and 06 fixed. It applies only under `travel-detail:
+    activities` (summary asks for nothing, as before).
+  - XP: 06's `combat end` said fled foes count only with `--count-fled`; Phase 14 says
+    fled and surrendered count as defeated. Marked ones (`+fled`/`+surrendered`) now
+    count; `--count-fled` still counts every standing foe. 06 fixed.
+  - Verify's chase bullet couldn't happen with the fixture CONs (3 + CON free Dashes,
+    turns alternate); the test gives Veskar CON 8 (2 free) against one pursuer, and the
+    plan's Verify text says so.
+  - 06 had no way for the tool to know a pitch played to an NPC's `moved-by`: `--appeal
+    <taste>` (+1 when it's a taste of theirs) and `--grates` (−1) added; `nothing` is −1
+    on any flair pitch. Under `social-dcs: gm` the start is `--dc N`. With `--ask` the
+    number after the skill is the player's total (a plain `check` keeps its DC).
+  - The 04 `Morale:` line is keyed by the unit's singular name (`Morale: thug (half
+    HP)`), so a group row splitting into members doesn't fire again.
+  - Lost has to live somewhere: `party-location: "@lost"` (PCs too) plus `lost: to … ·
+    at (x,y,0) world · bearing … (meant …) · terrain … · since …`; travel from there is
+    straight-line cross-country in that frame. 04 documents it; lint accepts it.
+  - TRAP lines: the area may stand after the id (`TRAP pit (cellar)`, as 04 shows) or
+    before the colon like other Hidden lines; both parse. Breath is the one-word
+    condition `holding-breath` (conditions are one word); the output says `holding
+    breath 2m` as Verify asks.
+  - `campaign new --set` accepts the table settings (so `/campaign-new` can record
+    `social-wall=off`); before, only the campaign keys were accepted.
+- Decisions where the spec was silent:
+  - `--plan` writes nothing to the campaign; the activities go to `.gm/travel-plan.json`
+    (scratch) so the resolving call needn't repeat them. Unnamed PCs keep watch.
+  - Wrong bearing: d6 1–2 60° left, 3–4 60° right, 5 120° left, 6 120° right (never the
+    intended one); 1d6 hours at trackless pace from where the first off-road leg starts
+    (road legs before it are walked and timed; encounter rolls cover those routes).
+    Navigation DCs: coast 5, sea 10, unset terrain 10 (DMG list otherwise).
+  - Social: pitch tags are remembered per NPC (a `—` goal row holds pitches tried with
+    no goal or while the wall is off), so "the same trick twice scores 0" holds without
+    the wall. The DC call and the roll call log the `(GM)` sum once. Stage cues and
+    tiers are `(GM)` log lines; the check line itself is public.
+  - Morale units are a group row plus the members split off it (by singular name) or
+    one creature; side triggers (leader down — `leader` in row notes — and half the side
+    down) ask every standing unit once. Surrendered foes go On stage as `prisoner`;
+    `fled`/`surrendered` aren't written back to files.
+  - Chases: order is quarry first, then pursuers as named (no initiative); `chase next`
+    Dashes by default (`--no-dash`, `--lose N`); `chase dash` is the extra (bonus-action)
+    Dash. Only a `los` complication is applied by the tool; the rest are printed for the
+    GM. Sight for the escape test: bright 120 ft urban / 300 ft wild, dim half, dark the
+    pursuers' best darkvision. `chase end` moves the clock by the rounds (6 s, rounded up
+    to the minute) even when not split; combat start and travel refuse during a chase.
+  - Traps resolve `ABIL save DC N or …`, `+N to hit, …`, `fall N ft`, `NdM type` and
+    conditions; anything else prints for the GM (lint warns). The victim defaults to the
+    marching order's front, else the first PC. A PC's save is asked for and nothing
+    changes until the total comes; an NPC disarmer's check is rolled.
+  - Hidden: a Stage row has no conditions column, so out of combat `hidden N` sits in the
+    creature's file (an srd-only Stage row can't hide). `scene enter`/`combat start`
+    report who spots whom; they don't remove `hidden` (the GM acts on it). `seek` names
+    who stays hidden only in a `(GM)` line. Group hide: success when at least half beat
+    the watchers' best passive (strictly).
+  - `gm.py` now parses with `parse_known_args`; a command that sets `take_extra` (check,
+    trap) receives positionals given after options (`check … --ask major 22`, `trap
+    trigger pit --who Kael 8`); every other command still rejects strays.
+  - `geo.load`'s cache key includes the file's size and content hash: an mtime-only key
+    missed rewrites within one clock tick (an intermittent `test_bestiary` failure).
+- Gaps left: faction renown in the social DC (Phase 15); chase complications other than
+  `los` aren't applied mechanically; a PC quarry's escape is closed by the GM (`chase end
+  escaped`); `seek` doesn't check range; the plain-view warning only knows map terrain
+  rows marked cover/obscured; `thin-air` is recorded only; out of combat, choking is a
+  minute (the clock has no rounds); the heat save's water exemption is checked only
+  while supplies are tracked; while `@lost` there is no scene packet (no place file).
+- Existing tests updated: `test_intro` expectations unchanged (the TELL line sits after
+  the `[INTRO …]` line, so `[WHY …]` stays last).
+- Verified by `engine/tests/test_phase14.py` (43 tests: every Verify bullet and Guard,
+  undo of every new mutating command, supplies-off foraging, lint, LF and CRLF trap
+  lines, `campaign new --set social-wall=off`). Suite: 420 tests.

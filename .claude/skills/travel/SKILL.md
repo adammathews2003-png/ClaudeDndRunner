@@ -15,6 +15,13 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
    - No route at all → offer the fiction ("there's no road; cross-country through the
      marsh?") and use `--overland` if they go.
    - A place with no file yet → `stub location "<name>" --in <area> [--at x,y]` first.
+   - **Travel as play** (`travel-detail: activities`): first ask each player what their
+     PC does on the way, then `travel <to> --plan --activities Kira=navigate,Grusk=forage`
+     (a dry run: it names the checks and DCs). Ask for those rolls, then `travel <to>
+     --nav <total> [--forage Grusk=<total>] [--hours N]`. `Lost:` means they're off course
+     and don't know it: tell it as a story, never "you're lost"; the navigator tries again
+     from where they are (`travel <to> --nav <total>`). `Forced march:` lines are CON
+     saves the players roll. See `/gm` → Travel, social asks, hiding.
 2. Read the output (never paste it):
    - `[TRAVEL]` route and time; `passes:` real landmarks for the journey's narration.
    - `Encounter [SECRET …]` rolls: an `ENCOUNTER …` result is a fight or event to run

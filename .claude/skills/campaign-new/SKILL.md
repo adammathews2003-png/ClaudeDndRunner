@@ -26,11 +26,15 @@ and the generation runs in a forked context that returns a shape card.
 2. **Ask only for what's missing**, in one grouped, numbered message with the options.
    Propose defaults ("I'll use medium difficulty — OK?"). No secrets, no plot ideas.
    Always include **content boundaries** in that message: "Anything you never want in
-   this game (lines), or want kept off screen (veils)? 'None' is a fine answer." The
+   this game (lines), or want kept off screen (veils)? 'None' is a fine answer." Ask
+   **`social-wall`** in the same message, in one line, alongside advancement: "On by
+   default; it can make social scenes easier when you're stuck, and you can turn it off
+   any time." (on → leave the default 3; off → `--set social-wall=off`). The other
    table settings (`supplies` strict | loose | off, `ammo` all | special | off,
-   `track-light` on | off,
-   `death-save-rolls` open | secret, `exhaustion` 2014 | 2024) keep their defaults unless
-   the seed touches them.
+   `track-light` on | off, `death-save-rolls` open | secret, `exhaustion` 2014 | 2024,
+   `travel-detail` summary | activities, `getting-lost` on | off, `social-dcs` dmg | gm,
+   `creativity` off | light | generous (generous suits a comedy), `morale` on | off,
+   `chases` dmg | narrative) keep their defaults unless the seed touches them.
 3. **Write the seed verbatim** to a scratch file (e.g. `<slug>-seed.md` in your scratch
    space, or pass the text you have), then:
    `python engine/gm.py campaign new <slug> --area "<starting area>" --set length="3-5 sessions" start-level=3 difficulty=hard shape=mystery tone=comedic … [--set "mechanics=time-loop"] --seed-file <seed file>`

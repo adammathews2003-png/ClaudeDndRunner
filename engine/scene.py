@@ -13,6 +13,10 @@ is the GM's call), and the Layout status. The packet is GM-only; never pasted.
 rebuilds On stage (from NPC frontmatter), Watch for (the matching beats) and Clocks
 (scenario CLOCK lines not yet passed are added; existing ones kept), resets tempo to
 calm and ends `scene`-scoped table rules. Refused during combat.
+
+Phase 14: an armed `TRAP` line under `## Hidden` is noticed like any Hidden line but
+shows only as `TRAP pit (its trigger)`; the packet adds the marching order when set and
+`Hidden: Kira (17) — unseen by …` for each hidden creature against who is here now.
 """
 import re
 from pathlib import Path
@@ -149,10 +153,21 @@ def elsewhere_line(docs, now):
 
 
 def hidden_entries(frame, area):
+    """[(DC, text)] of the `## Hidden` lines for this area. A `TRAP` line (Phase 14) is
+    noticed only while armed, and shows as `TRAP pit (trigger: …)`: its disarm, effect
+    and `(GM …)` notes stay in `gm.py trap status`."""
+    import hazard
     out = []
     for line in _bullets(frame.doc, "Hidden"):
         m = _HIDDEN.match(line)
         if not m:
+            continue
+        trap = hazard.parse_trap(line)
+        if trap is not None:
+            if trap.state != "armed" or (trap.area and trap.area != area):
+                continue
+            trig = hazard.strip_gm(trap.get("trigger"))
+            out.append((trap.notice, f"TRAP {trap.id}" + (f" ({trig})" if trig else "")))
             continue
         scope = m.group(2)
         if scope and scope != area:
@@ -257,6 +272,10 @@ def enter(location, area=None, light=None, write=False, summary=None, scene_name
              exits_line(site, area) if frame.tier == "site" else "Exits: (area: see its Routes)",
              nearby_line(frame), present_line(here, pcs), elsewhere_line(elsewhere, now),
              notices_line(frame, area, pcs, light), triggers_line(found), layout_line(frame, area)]
+    import explore
+    import hiding
+    lines += [x.strip() for x in explore.order_lines(state)]
+    lines += hiding.scene_lines(here, pcs)   # stored Stealth totals vs who is here now (Phase 14)
     data = {"location": loc, "present": [str(d.front.get("name")) for d in here]}
     if write:
         lines += write_scene(loc, light, here, found, summary, scene_name)

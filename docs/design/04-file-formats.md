@@ -788,14 +788,19 @@ light: dark                       # still the AMBIENT light; carried sources are
 marching-order: {front: [Kael], middle: [Kira], back: [Grusk]}   # 14
 weather: "light rain, light wind, cool"   # 15; rolled at dawn when weather: on
 environment: extreme-cold         # 14; none | extreme-cold | extreme-heat | underwater | thin-air
+environment-since: "Day 2 09:00"  # 14; when it was set (the hourly saves count from here)
+party-location: "@lost"           # 14; off course in the wilds, with:
+lost: "to hollow · at (1.2,7.5,0) world · bearing N (meant NE) · terrain forest · since Day 1 23:31"
 ```
 - **Combatants `conditions`** gain `conc bless`, `dying ✓1 ✗2`, `stable`, `exh 2`,
-  `hidden 17` (the Stealth total it must beat), `ready: shoot whoever opens the door`
+  `hidden 17` (the Stealth total it must beat; out of combat it sits in the file's
+  `conditions`), `fled` / `surrendered` (14: out of the turn order), `ready: shoot whoever opens the door`
   and `ctrl Kira` (an allied creature's controller). `notes` gains `leader` and
   `morale: fearless`. `side` is unchanged (familiars and hirelings are `party`).
 - **Combat block** gains a line under the heading: `Ammo spent: Kira arrows 6 ·
-  Grusk javelins 2` (13), and `Morale: thugs checked (half HP)` once a side has rolled
-  (14).
+  Grusk javelins 2` (13), and `Morale: thug (half HP) · thug (half the side down)` (14:
+  each unit and trigger that has already asked for its check, keyed by the unit's
+  singular name so a group splitting up doesn't ask again).
 - **`## Chase`** (14) replaces `## Combat` while a chase runs (they don't overlap):
   ```markdown
   ## Chase — round 3 · up: Veskar · env: urban
@@ -808,18 +813,28 @@ environment: extreme-cold         # 14; none | extreme-cold | extreme-heat | und
 - **Traps** (14) are `## Hidden` lines with a `TRAP` tag:
   `- DC 15: TRAP pit (cellar) · trigger: step on the third stair · disarm: DC 12 thieves'
   tools · effect: DEX save DC 13 or fall 20 ft · state: armed` (`state`: armed |
-  triggered | disarmed | spent; written by `gm.py trap`).
+  triggered | disarmed | spent; written by `gm.py trap`). The `(cellar)` after the id is
+  the sub-area, like `DC 15 (cellar):` on any Hidden line (either place works). `effect:`
+  clauses, joined by `;` or ` and `: `<ABIL> save DC N or <consequence>` (add `(half on
+  a success)` for damage), `+N to hit, <damage>`, or a bare consequence: `fall N ft`,
+  `NdM <type>`, or a condition (`poisoned 1h`). A `(GM: …)` note may sit anywhere on
+  the line; it never reaches players.
 - **Navigation** (14): a route row's `kind` (road / path / trail / trackless …) says
-  whether a party can get lost on it (only `trail` and `trackless`), and an area's or
-  route's `terrain:` (grassland | arctic | desert | hills | forest | jungle | swamp |
-  mountains | coast | sea) gives the navigation DC and foraging (`forage: abundant |
-  limited | scarce`). Area frontmatter `climate: temperate` drives weather (15).
+  whether a party can get lost on it (off the roads: `trail`, `trackless`, `marsh`,
+  `scree`; never `road`, `street`, `path`, `lane`), and an area's or route's `terrain:`
+  (grassland | arctic | desert | hills | forest | jungle | swamp | mountains | coast |
+  sea) gives the navigation DC and foraging (`forage: abundant | limited | scarce`,
+  default limited). On a route row they are a `terrain` / `forage` column or
+  `terrain: forest; forage: scarce` in its `notes`; on an area (or the destination
+  site) frontmatter keys. Area frontmatter `climate: temperate` drives weather (15).
 - **`state/social.md`** (14, unless `social-wall: off`): one row per open social goal,
   written by `check --vs … --goal`, removed on success:
   `| npc | goal | fails | approaches | pitches | since |`
   (`approaches` = the skills and arguments tried, so a "different approach" can be
   told; `pitches` = short tags of flair pitches already scored, so a repeat scores 0;
-  `since` = game time of the first attempt). A split party shares it.
+  `since` = game time of the first attempt). A split party shares it. A row whose goal
+  is `—` is the NPC's pitch memory (flair pitches tried without a goal, or while the
+  wall is off, so a repeat still scores 0). `npc` is the NPC's file slug.
 - **`state/factions.md`** (15, `renown` on): `| faction | renown | rank | who | notes |`
   (`who` = party or a PC); NPCs name theirs with `faction: red-ledger`.
 
