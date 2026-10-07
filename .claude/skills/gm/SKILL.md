@@ -219,6 +219,10 @@ Players roll their own d20s and report the natural roll or the total; you pass i
 for public rolls; secret rolls appear only as `[rolled behind the screen]`, or not at
 all. Ties go to the PC (the tools apply it and say `tie→PC`).
 
+**Spell components (house rule):** material components are waived, all of them, costly
+and consumed ones included. Never ask for, charge for or track them; the material is
+flavor at most. Verbal and somatic still count (gagged, silenced, no free hand).
+
 ## NPCs
 
 Each NPC acts from (1) the scene goal / intent in the brief, (2) disposition and
