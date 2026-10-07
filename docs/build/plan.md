@@ -1618,3 +1618,69 @@ Line references in this plan predate the move; search for the quoted heading.
   Guards: the engine's tables folder holds only its own original tables and `table
   import` never writes there, every `carouse` log line is `(GM)`, the crit die never fires
   on checks or saves; plus `crit-die: off` byte-identical). Suite: 487 tests.
+
+## Phase 17 — completion notes (2026-10-07)
+
+- Items (all built, live Discord check pending): [x] (1) `discord.py` is an optional
+  import, only inside `discord_bridge.DiscordPyIO.run()`; `--discord off|queue|auto`
+  (else `discord:` in `discord.md`); a missing token, package, `discord.md` or channel
+  prints one notice and the console runs exactly as before (the old loop is unchanged
+  when the bridge is off); [x] (2) posting: a second, public `Renderer` (`Renderer.tee`
+  events: line, fence, spoiler, endspoiler, end) fed by its own non-passthrough
+  `TextGate`, so GM-view text, notices, the activity line and staged prompts can't
+  reach it; `discord_bridge.Posts` turns it into paragraph posts under 2000 characters,
+  code blocks for fenced maps, and spoiler header + `||…||`; [x] (3) inbound: one
+  channel, no DMs, no bots, the `| discord user | player |` map (username or id), the
+  once-per-user ignore notice, speaker resolution; [x] (4) the numbered queue with host
+  lines, empty Enter / `:send`, `:q`, `:edit`, `:drop`, `:clear`, ✅ 🗑 ✏️, Discord edits
+  and deletes mirrored; [x] (5) auto batching (during the reply, then `debounce`
+  seconds of quiet, injected clock); [x] (6) `!x` first, Discord slash lines ⚑ and held;
+  [x] (7) `:discord queue|auto|off`, `connect_loop` with backoff (2…60 s), `BridgeFatal`
+  for a bad token / missing intent, token only from `DND_DISCORD_TOKEN`; [x] (8)
+  CLIENT-CHECKS.md §6 lists the live checks.
+- Structure: `engine/discord_bridge.py` (stdlib only at import; pure logic + the
+  discord.py adapter behind `run/post/react/close/ready`); `table.py` gains
+  `bridge_setup`, `start_bridge`, `run_bridged` (an event loop: a keyboard reader
+  thread, Discord callbacks and GM replies are all events, so remote players can post
+  while the host types or the GM talks; staged-command y/N is answered by the next
+  host line) and `local_command`. Discord text is only ever a prompt string through
+  the same `InputState` and PreToolUse gate.
+- Spec fixes / decisions (06 → Discord bridge → Built, 04, `/gm` updated):
+  - The token is popped from the process environment at start, so the GM's Claude Code
+    child process never inherits it; `redact()` scrubs it from every notice and
+    `client.log` line (`Table._log_error` too).
+  - Unprefixed Discord lines from a player with zero or several present PCs go as
+    `(Sam, table talk) …` (06 said "table talk" without the speaker; the GM needs to
+    know who asked). `/gm` turn loop now explains batches and this label.
+  - In a submitted batch, ordinary lines join into one prompt; each slash or `!` line
+    is its own prompt in its place (a skill must start its prompt, and `!x`/`!brief`
+    are detected at the prompt's start by `brief --hook`).
+  - Auto mode: the host's typed line joins the batch and sends it at once; empty Enter
+    or `:send` also sends ⚑ lines. The host's own `!x` skips the queue too.
+  - Reactions: only those 06 lists, plus ✅ on a Discord `!x` when it is sent (no
+    separate "received" reaction; the terminal echo is the host's receipt).
+  - `:discord off` posts `[the table is closed]` and stops listening/posting; turning it
+    back on posts `[the table is open]`; `:discord queue|auto` in a console started
+    without the bridge starts it. After a fatal connection error the bridge stays off.
+  - Posts disable mentions; discord.py's logging is silenced (errors → client.log).
+  - `discord user` matches the username (not the display name, which anyone can change)
+    or the numeric id (04 updated).
+- Gaps: no live Discord run yet (CLIENT-CHECKS §6: bot setup, Message Content intent,
+  permissions, reconnect, reactions, edit/delete events — `on_message_edit` only fires
+  for messages discord.py has cached, i.e. posted while the table runs); the host's
+  typed lines are not echoed to the channel (remote players see their effect in the
+  narration); `intro`'s Discord how-to-play line follows `discord.md` only, not the
+  `--discord` flag; posting is paced by discord.py's rate limiter (a long reply with many
+  paragraphs posts many messages); printing queue notices while the `> ` prompt waits
+  can interleave with what the host is typing.
+- Verified by `engine/tests/test_phase17.py` (34 tests, no network: config CRLF/LF,
+  speaker resolution, queue order/edit/drop/clear/submit-as-one-prompt and reactions,
+  Discord edit/delete, slash and `!` lines as own prompts, `:` lines ignored, auto
+  debounce with an injected clock, batching during a reply, host lines in auto, Discord
+  `/overrule` held in auto, `!x` bypass in both modes, unmapped/DM/bot/other-channel
+  ignored, 4,500 characters → three posts, paragraph posting, spoiler `|| ||`, map code
+  block, notices not posted, `--gm-view` through a fake `claude_agent_sdk` never
+  reaching the fake channel, an end-to-end `run_bridged` with a staged command; Guards:
+  token only from the environment and removed, never in a log, notice or campaign
+  file, no permission code in the bridge, failing I/O / tee / events never stop the
+  console, `discord` import optional). Existing tests unchanged. Suite: 525 tests.

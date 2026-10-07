@@ -115,7 +115,10 @@ arithmetic and the bookkeeping.
 
 1. Players type what their characters do or say, prefixed by name (`Kira: …`). A
    player's name (`Adam: …`) speaks for the PC whose `player:` is Adam. Unprefixed lines
-   are table talk.
+   are table talk. With the Discord bridge one prompt may hold several lines, one per
+   player, in the order they were posted: that is one turn with several actors (order
+   them as below). `(Sam, table talk) …` is Sam's table talk from Discord; answer Sam.
+   The channel is a shared screen: everything in *Behind the screen* applies.
 2. The brief is already in your context; don't read `current.md`.
 3. **Order the actors** by the scene's tempo: calm = narrative order (PCs first);
    tense = the Stage table's passive initiative (`Order:` in the brief); combat = the

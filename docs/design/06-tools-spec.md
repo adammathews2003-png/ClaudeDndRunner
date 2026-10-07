@@ -944,6 +944,48 @@ work the same way, so remote players can roll their own dice and say so.
 - If the connection drops: `[discord: disconnected — retrying]`, then reconnect with
   backoff. The terminal keeps working throughout.
 
+**Built (Phase 17).** `engine/discord_bridge.py` holds the pure parts (discord.md reader,
+speaker resolution, the queue and auto batch, the post formatter, reconnect with
+backoff) behind a four-call I/O interface (`run`, `post`, `react`, `close`), so tests use
+a fake; `DiscordPyIO` is the only code that imports `discord`, inside `run()`. A second,
+*public* renderer is fed the same stream with the narration filter always on (never
+`--gm-view`), and its lines, fences and banners become the posts. Decisions where this
+section was silent:
+- The mode is `--discord` if given, else `discord:` in `discord.md`. `:discord
+  queue|auto` also starts the bridge from a console that began without it. `:discord
+  off` stops listening and posting (`[the table is closed]` is posted; switching back
+  posts `[the table is open]`); a queue left behind stays for `:send`.
+- The token is taken out of the process environment as the client starts, so the GM's
+  Claude Code session (a child process) never inherits it; any error text is scrubbed
+  of it before it reaches the terminal or `client.log`.
+- An unprefixed line from a player with no PC or several PCs goes to the GM as
+  `(Sam, table talk) …`, so the GM knows who asked. Only PCs not marked `present:
+  false` count. Discord users are matched by username (case-insensitive) or numeric id.
+- In a batch, consecutive ordinary lines join into one prompt; a slash or `!` line is a
+  prompt of its own (a skill must start its prompt), in its place in the order.
+- Auto mode: the host's own typed line joins the batch and sends it at once (the host's
+  Enter is the deliberate submit); an empty Enter or `:send` also sends ⚑ lines.
+- The host's own `!x` also skips the queue.
+- `!x` from Discord gets ✅ when it is sent; no other receipt reaction (the terminal
+  echo is the host's receipt; ✅ is the players').
+- Posts are sent with mentions disabled (`@everyone` in narration pings nobody).
+- `discord.py`'s own logging is silenced; event errors go to `client.log`, scrubbed.
+
+**Setup for a live game** (once):
+1. `pip install discord.py` (2.x) into the Python that runs `table.py`.
+2. Discord Developer Portal → New Application → Bot: copy the token; under *Privileged
+   Gateway Intents* turn on **Message Content Intent**.
+3. OAuth2 → URL Generator: scope `bot`; permissions View Channels, Send Messages, Read
+   Message History, Add Reactions. Open the URL and add the bot to your server.
+4. Discord → User Settings → Advanced → Developer Mode; right-click the channel → Copy
+   Channel ID. Write `<campaign>/discord.md` (04) with the channel and each player's
+   Discord username (or right-click → Copy User ID).
+5. Set the token in the shell that starts the table, never in a file:
+   PowerShell `$env:DND_DISCORD_TOKEN = "…"`, bash `export DND_DISCORD_TOKEN=…`.
+6. `python engine/table.py --campaign <name> --discord queue`. Players type plain
+   text in the channel; a `/…` line they type is sent as an ordinary message (the bot
+   registers no Discord slash commands), which the bridge flags ⚑ for the host.
+
 **Out of scope for v1:** private per-player messages (a split group's scene sent only
 to its own players), voice, and dice-roller bots (players report their rolls as text).
 

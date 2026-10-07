@@ -60,3 +60,26 @@ command lines, tool output, thinking or brief. The GM's first, wrong command
 (`python gm.py …`) was denied and logged; it retried correctly. `--gm-view` on the
 resumed session showed the `SessionStart:resume` and `UserPromptSubmit` briefs, the
 tool calls and their results.
+
+## 6. Discord bridge (Phase 17) — PENDING (needs a live bot)
+Unit-tested with a fake Discord I/O (`engine/tests/test_phase17.py`); these need one run
+in a private test server, set up as in 06 → Discord bridge → Setup, with
+`python engine/table.py --campaign <scratch copy> --discord queue`:
+1. Connect: the terminal shows `[discord: connected — queue mode]`; the channel gets
+   `[the table is open]` and the `/gm` recap, paragraph by paragraph. A wrong token
+   prints `[discord: login failed …]` once and the console keeps working; Message
+   Content intent off prints the intent notice.
+2. Inbound: a mapped user's line shows as `[Q1 <user>] Kira: …`; an unmapped user gets
+   one `[discord: ignoring @… (not on the map)]`; a DM to the bot and another channel
+   are ignored; a message edited/deleted before `:send` shows `(edited)` / is dropped.
+3. Queue: `:q`, `:edit 1 …` (✏️ on Discord), `:drop 2` (🗑), empty Enter sends one
+   prompt and ✅ each message.
+4. Auto (`:discord auto`): two posts within 4 s go as one prompt; lines posted during a
+   reply go when it ends; `/overrule …` from Discord waits with ⚑ until Enter.
+5. `!x` from Discord goes at once (✅), ahead of the queue.
+6. Output: a `/spoilers` answer arrives as the header line plus `||…||`; the
+   player-view map arrives as a code block; nothing from `:gm-view on` reaches the
+   channel; staged-command prompts stay on the terminal.
+7. Drop the network for a minute: `[discord: disconnected — retrying]`, the console
+   keeps working, then `[discord: reconnected]`. `:quit` posts `[the table is closed]`.
+8. `client.log` and the campaign folder never contain the token.
