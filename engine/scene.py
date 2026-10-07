@@ -263,15 +263,28 @@ def enter(location, area=None, light=None, write=False, summary=None, scene_name
     return lines, data
 
 
+def place_name(loc):
+    """'The Old Mill — main floor' for `old-mill/main-floor` (the site file's name)."""
+    site, _, area = loc.partition("/")
+    try:
+        name = geo.load(site).name or site
+    except geo.GeoError:
+        name = site.replace("-", " ")
+    return f"{name} — {area.replace('-', ' ')}" if area else name
+
+
 def write_scene(loc, light, here, found, summary, scene_name):
     state = campaign.load_state()
     if tempo.in_combat(state):
         raise SceneError("scene enter --write: combat is running (combat end first)")
+    moved = str(state.front.get("party-location") or "") != loc
     out = [mutations.move_party(loc)[0]]
     state = campaign.load_state()
     state.set_front("light", light)
     if scene_name:
         state.set_front("scene", scene_name)
+    elif moved:   # a new place: never keep the last place's scene name
+        state.set_front("scene", place_name(loc))
     if summary:
         tempo.set_section(state, "Summary", [summary])
     bullets = []

@@ -63,11 +63,26 @@ class Split(CampaignCase):
         self.assertIn("Cut due: 3 exchanges", self.brief())
         self.assertTrue(any("CUT DUE" in l or "Cut due" in l for l in out), out)
 
+    def test_waiting_speaker_is_held(self):
+        set_front_raw(self, "state/current.md", "in-session", True)
+        run_main(["pc", "edit", "Kira", "--set", "player=Alex"])
+        self.split()
+        out = hook("Kira: I slip out the back")
+        self.assertIn("Held: Kira is in b, which is waiting", "\n".join(out))
+        out = hook("Alex: she checks the yard")              # by player name too
+        self.assertIn("Held: Kira is in b", "\n".join(out))
+        self.assertIn("Slice: exchange 0/3", self.brief())   # held prompts aren't exchanges
+        out = hook("Kael: I bar the door. Kira: I wave")      # mixed: counts, Kira still held
+        self.assertIn("Held: Kira", "\n".join(out))
+        self.assertNotIn("Held: Kael", "\n".join(out))
+        self.assertIn("Slice: exchange 1/3", self.brief())
+
     def test_cut_swaps_scenes_and_groups_move_alone(self):
         self.split()
         run_main(["time", "+20m"])
         code, lines = run_main(["split", "cut"])
-        self.assertIn("[split cut: a → b (Kira)", lines[-1])
+        self.assertIn("[split cut: a → b (Kira)", lines[0])
+        self.assertIn("[first cut: before the scene, one line of table voice — Kira doesn't know what just happened with a", lines[1])
         self.assertEqual(self.front("state/current.md")["in-game-datetime"], "Day 1 18:30")
         self.assertEqual(self.front("state/split/a.md")["in-game-datetime"], "Day 1 18:50")
         self.assertFalse(self.path("state/split/b.md").exists())
@@ -75,6 +90,7 @@ class Split(CampaignCase):
         self.assertEqual(self.front("pcs/kira-thornwood.md")["location"], "old-mill")
         self.assertEqual(self.front("pcs/kael-ashford.md")["location"], "crossroads-inn/common-room")
         self.assertIn("a (Kael) crossroads-inn/common-room Day 1 18:50 calm, 20m ahead", self.brief())
+        self.assertEqual(len(run_main(["split", "cut", "--force"])[1]), 1)   # only the first cut reminds
 
     def test_ahead_warning_and_refusal(self):
         self.split()

@@ -279,3 +279,11 @@ class Guards(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class SceneName(CampaignCase):
+    def test_new_place_replaces_the_old_scene_name(self):
+        run_main(["scene", "enter", "old-mill/main-floor", "--write"])
+        self.assertEqual(md.load(self.path("state/current.md")).front["scene"], "The Old Mill — main floor")
+        run_main(["scene", "enter", "old-mill/main-floor", "--write", "--scene", "Dust and flour"])
+        run_main(["scene", "enter", "old-mill/main-floor", "--write"])   # same place: the name stays
+        self.assertEqual(md.load(self.path("state/current.md")).front["scene"], "Dust and flour")

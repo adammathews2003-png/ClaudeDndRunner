@@ -653,6 +653,7 @@ and combat tool works unchanged. Each waiting group's scene is parked in
 ---
 active: mill
 slice-round: 0                    # the combat round the active slice began in (0 = not in combat)
+cuts: 3                           # cuts so far (the first prints the who-knows-what reminder)
 ---
 
 # Split party

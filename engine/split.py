@@ -79,7 +79,8 @@ def load():
             tasks.append({"group": m.group(1), "what": m.group(2), "dur": m.group(3),
                           "start": gametime.parse(m.group(4)), "end": gametime.parse(m.group(5))})
     return {"active": str(doc.front.get("active") or ""), "groups": groups, "tasks": tasks,
-            "slice-round": int(doc.front.get("slice-round") or 0), "doc": doc}
+            "slice-round": int(doc.front.get("slice-round") or 0),
+            "cuts": int(doc.front.get("cuts") or 0), "doc": doc}
 
 
 def info():
@@ -108,7 +109,8 @@ def _save(sp):
     widths = [max(len(c), *(len(r[i]) for r in rows)) for i, c in enumerate(cols)]
     line = lambda cells: "| " + " | ".join(c.ljust(w) for c, w in zip(cells, widths)) + " |"  # noqa: E731
     text = (f"---\nactive: {sp['active']}\nslice-round: {sp.get('slice-round', 0)}"
-            "                    # the combat round the active slice began in (0 = not in combat)\n---\n\n"
+            "                    # the combat round the active slice began in (0 = not in combat)\n"
+            f"cuts: {sp.get('cuts', 0)}\n---\n\n"
             + HEADER + "\n" + line(cols) + "\n|" + "|".join("-" * (w + 2) for w in widths) + "|\n"
             + "\n".join(line(r) for r in rows) + "\n")
     if sp["tasks"]:
@@ -227,13 +229,43 @@ def _write_slice(n):
     p.write_text(f"{n}\n", encoding="utf-8")
 
 
+_SPEAKER = re.compile(r"(?:^|\n|(?<=[.!?\"*)])\s+)\(?([A-Z][\w'-]*(?: [A-Z][\w'-]*)?)\)?\s*:")
+
+
+def speaker_groups(sp, prompt):
+    """[(speaker as typed, PC short name, group)] for each `Name:` in the prompt that is
+    a PC (first or full name) or a PC's player."""
+    names = {}
+    for g in sp["groups"]:
+        for full in g["pcs"]:
+            names[full.lower()] = (_short(full), g["group"])
+            names[_short(full).lower()] = (_short(full), g["group"])
+    for d in campaign.pcs():
+        full = str(d.front.get("name") or "")
+        player = campaign.player_of(d)
+        if player and full.lower() in names:
+            names.setdefault(player.lower(), names[full.lower()])
+    out = []
+    for m in _SPEAKER.finditer(str(prompt or "")):
+        hit = names.get(m.group(1).lower())
+        if hit and (m.group(1), *hit) not in out:
+            out.append((m.group(1), *hit))
+    return out
+
+
 def count_prompt(prompt):
-    """Brief hook: one more exchange for the active group (commands don't count)."""
-    if not campaign.split_path().exists():
-        return
-    if str(prompt or "").lstrip().startswith(("/", "!")):
-        return
-    _write_slice(_read_slice() + 1)
+    """Brief hook: one more exchange for the active group, unless every speaker is in a
+    waiting group (commands don't count either). Returns `Held:` lines for the GM."""
+    sp = load()
+    if sp is None or str(prompt or "").lstrip().startswith(("/", "!")):
+        return []
+    who = speaker_groups(sp, prompt)
+    waiting = [(typed, pc, g) for typed, pc, g in who if g != sp["active"]]
+    if not who or len(waiting) < len(who):
+        _write_slice(_read_slice() + 1)
+    return [f"Held: {pc} is in {g}, which is waiting — don't resolve, roll for or time this; "
+            f"say you'll be right with them and take it up at {g}'s next slice"
+            for _, pc, g in waiting]
 
 
 def _ahead_limit(sp, waiting):
@@ -526,12 +558,19 @@ def cut(group=None, force=False):
     _remove(parked_path(target))
     sp["active"] = target
     sp["slice-round"] = combat_round(state)
+    sp["cuts"] = sp.get("cuts", 0) + 1
     _save(sp)
     _write_slice(0)
     journal.log_delta(f"split cut {old} → {target}")
     g = _group(sp, target)
-    return charged + [f"[split cut: {old} → {_label(g)} · {state.front.get('party-location')} "
-            f"{state.front.get('in-game-datetime')} · {tempo_of(state)}]"]
+    out = charged + [f"[split cut: {old} → {_label(g)} · {state.front.get('party-location')} "
+                     f"{state.front.get('in-game-datetime')} · {tempo_of(state)}]"]
+    if sp["cuts"] == 1:
+        others = [_short(n) for x in sp["groups"] if x["group"] != old for n in x["pcs"]]
+        out.append(f"[first cut: before the scene, one line of table voice — {', '.join(others)} "
+                   f"{'don' if len(others) != 1 else 'doesn'}'t know what just happened with {old}. "
+                   "After that, just don't let characters act on what they couldn't know]")
+    return out
 
 
 def status():

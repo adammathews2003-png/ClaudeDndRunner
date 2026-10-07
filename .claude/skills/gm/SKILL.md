@@ -259,10 +259,14 @@ travel, combat and time tools act on it alone.
   archive") → `split task inn "search the archive" 30m`; their slices are progress and
   interruptions until the tool says it's done. Beats and NPC schedules wait for the
   group furthest behind; the tools handle that.
-- **Who knows what.** At the first cut only, one line of table voice ("Kira and Kael
-  don't know any of this yet"). Then just don't let characters act on what they
-  couldn't know. A waiting player's character action is held: "Hold that thought,
-  Kael, we'll be right with you." Table talk is fine.
+- **Who knows what.** `split cut` prints `[first cut: …]` once: give that one line of
+  table voice ("Kira and Kael don't know any of this yet") before the scene. Then just
+  don't let characters act on what they couldn't know.
+- **Waiting players.** A `Held: Kael is in inn, which is waiting` line with the brief
+  means that action belongs to a waiting group: don't resolve it, don't roll for it,
+  don't move time for it, even right after a cut. One line ("Hold that thought, Kael,
+  we'll be right with you"), then carry on with the active group and pick it up at
+  their next slice. Table talk is fine.
 - **Reuniting.** Once the groups reach the same site, `split join <active> <other>`.
   It levels the clocks and tells you whose gap to summarise; recap in character
   what the others need to hear. A group arriving mid-fight rolls initiative.

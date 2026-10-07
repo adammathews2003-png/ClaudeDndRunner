@@ -412,7 +412,7 @@ def hook(ctx, long):
         return build(state) + long_extra(state)
     prompt = str(data.get("prompt") or "")
     import split
-    split.count_prompt(prompt)
+    held = split.count_prompt(prompt)
     lines = build(state)
     h = digest(lines)
     st = _load_hash()
@@ -427,7 +427,7 @@ def hook(ctx, long):
     juice = wacky.hook_roll(prompt, ctx.roller, state)
     if juice:
         out.append(juice)
-    return out
+    return out + held
 
 
 def cmd_brief(ctx):

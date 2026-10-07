@@ -333,6 +333,10 @@ Layout: common-room (9 features) — `gm.py space map` to draw
   `(unplaced)` with their route time if one exists. `secret` routes and places are
   omitted until discovered, like terrain.
 
+`scene enter --write` to a new location without `--scene` names the scene after the
+place (`The Old Mill — main floor`), so the last place's scene name never carries
+over.
+
 ### `gm.py tempo tense|calm [--adj "Mara +5 watching the room"] [--pos Mara @bar ...]`
 - `tense`: passive initiative (10 + DEX mod ± adj, ties → PCs) for everyone on stage,
   written as a **Stage table** in `current.md` (Combatants columns; `init` = passive
@@ -397,7 +401,11 @@ gm.py split join <group> <group>   # merge when they meet (same site required)
   ordinary tools (`scene enter`, `travel`, `move-party`), which act on `current.md`, so
   a group must be active to move. `move-party` moves only the active group's PCs.
 - **Counting.** The brief hook adds 1 to the exchange counter (`.gm/split-slice`) for
-  each player prompt (not `/` or `!` lines); combat rounds are read from the Combat
+  each player prompt (not `/` or `!` lines, and not a prompt whose every `Name:`
+  speaker — PC first/full name or player — is in a waiting group; each such speaker
+  gets a `Held: Kael is in inn, which is waiting — don't resolve, roll for or time
+  this…` line with the brief). The first `split cut` of a split also prints
+  `[first cut: … don't know what just happened with mill …]`; combat rounds are read from the Combat
   block against `slice-round`. `split cut` resets both. Nothing cuts automatically:
   the brief says when a cut is due and the GM picks the moment.
 - **Choosing the next group:** `split cut` with no group picks the one with the
