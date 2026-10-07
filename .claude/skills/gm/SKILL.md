@@ -469,9 +469,17 @@ want a night of heavy drinking somewhere that has it:
 5. **File the rest in the same `do`:** every `[file for Kira: …]` line and anything the
    result implies: `stub npc` for the new spouse or rival, `attitude`, a rumor, a clock
    for whatever comes due. From then on it's canon; play the consequences.
-6. **Same limits as Wacky Juice:** a result may not break the core scenario (reveal
-   secrets, kill or remove a key NPC, skip a beat). If one would, `carouse --reroll Kira`
-   (takes that row's effects back, not the cost; GM-only), without a word to the table.
+6. **No scenario-breaking nights** (same limits as Wacky Juice): before the reveal, check
+   every row. Re-roll it if it can't happen here (waking on a ship that set sail, with no
+   water for miles), would make the scenario's goals unreachable (exiled from the town the
+   mystery is in, a week laid up while the ritual clock runs out, drafted and marched
+   off), or would break the core scenario (reveal secrets, kill or remove a key NPC, skip
+   a beat). Bend a row to fit when a small change does it (the "ship" is a river barge
+   that hasn't left yet); otherwise `carouse --reroll Kira` (takes that row's effects
+   back, not the cost; GM-only), without a word to the table. A `[fit check: …]` line
+   flags rows tagged `disruptive`, but any row can fail the check.
+7. **Combined tables** roll d100 then a second die for the slot (`37.2`); row 100 `twice`
+   rolls two more for you: weave them into one night.
 
 **The crit die** (`crit-die: on`, default off) changes every critical hit, both ways: see
 `/combat`. Narrate each face; a `kill` is a kill (a PC drops to 0 and is dying under the

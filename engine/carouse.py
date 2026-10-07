@@ -12,8 +12,11 @@ line until the morning reveal. For each PC:
    `(veil: off screen)`;
 3. the row's effect codes are applied: `coin ±<dice>[xN] [denom]` (a loss beyond the
    purse becomes a debt), `item +"…"`, `item -"…"`, `item -random` (one whole entry from
-   the pack), `clock +3d "…"` (a `## Clocks` bullet in current.md), `no-rest` (printed).
-   Anything else is printed for the GM to file with ordinary commands.
+   the pack), `clock +3d "…"` (a `## Clocks` bullet in current.md), `no-rest` (printed),
+   `twice` (two more rolls, each applied, never landing on a `twice` row again; the GM
+   combines the stories). Anything else is printed for the GM to file with ordinary commands.
+No scenario-breaking nights (02 → Carousing): a row tagged `disruptive` prints a fit check;
+the GM re-rolls any row that can't happen here or would put the scenario's goals out of reach.
 The night is recorded in `state/carousing.md` (one row per PC: roll, result, what was
 applied) so `--reroll <pc>` can take the row back (reversing what the tool applied, never
 the cost) and roll again, logged GM-only. The clock is not moved: the GM adds `clock
@@ -206,6 +209,8 @@ def _codes(c, row, roller, applied):
             lines.append(_clock(c, cm.group(1).replace(" ", ""), cm.group(2), applied))
         elif low in ("no-rest", "no rest"):
             no_rest = True
+        elif low == "twice":
+            pass
         else:
             other.append(code)
     return lines, other, no_rest
@@ -216,7 +221,7 @@ def _roll_row(table, roller, lines_, veils, skip=None):
     notes = []
     for _ in range(200):
         n, row = table.roll(roller)
-        if skip is not None and row is skip:
+        if skip is not None and (skip(row) if callable(skip) else row is skip):
             continue
         hit = next((x for x in lines_ if tables.matches(row.tags, x)), None)
         if hit:
@@ -266,16 +271,36 @@ def _one(c, table, roller, lines_, veils, night):
     out += _show(c, table, k, row, notes)
     lines, other, no_rest = _codes(c, row, roller, applied)
     out += lines + _for_gm(c, other, no_rest)
+    if _twice(row):
+        picks = [_roll_row(table, roller, lines_, veils, skip=_twice) for _ in range(2)]
+        for k2, r2, n2 in picks:
+            out += _show(c, table, k2, r2, n2)
+            lines, other, nr = _codes(c, r2, roller, applied)
+            out += lines + _for_gm(c, other, nr and not no_rest)
+            no_rest = no_rest or nr
+        out.append(f"[carouse {_first(c)}: combine the two into one night]")
+        k = f"{k}: " + " + ".join(str(x) for x, _, _ in picks)
+        row = tables.Row(row.lo, row.hi, " + ".join(r.result for _, r, _ in picks))
     _record(c, night, k, row, applied)
     journal.log_delta(f'[carouse] {_first(c)} {k}: "{row.result}"' + (f" ({'; '.join(notes)})" if notes else ""))
     return out
+
+
+def _twice(row):
+    return any(x.lower() == "twice" for x in tables.codes(row.effect))
 
 
 def _show(c, table, n, row, notes):
     tag = f" · tags: {', '.join(row.tags)}" if row.tags else ""
     eff = f" · effect: {row.effect}" if row.effect else ""
     note = f" ({'; '.join(notes)})" if notes else ""
-    return [f"[carouse {_first(c)}: d{table.die} {n} → {row.result}{eff}{tag}{note}]"]
+    base, _, k = str(n).partition(".")
+    die = f"d{table.die} {base}" + (f" · d{len(table.slots(int(base)))} {k}" if k else "")
+    out = [f"[carouse {_first(c)}: {die} → {row.result}{eff}{tag}{note}]"]
+    if any(t.lower() == "disruptive" for t in row.tags):
+        out.append(f"[fit check: can this happen here, and does it leave the scenario's goals reachable? "
+                   f"If not, `carouse --reroll {_first(c)}` before the reveal]")
+    return out
 
 
 def _for_gm(c, other, no_rest):
@@ -356,8 +381,8 @@ def reroll(name, table_name="carousing", roller=None):
     out = [f"[CAROUSE re-roll — GM only: {_first(c)}'s {row.get('roll')} is taken back]"]
     with journal.gm_only():
         out += _reverse(c, row.get("applied", ""))
-        old = table.row_for(int(row.get("roll"))) if str(row.get("roll", "")).isdigit() else None
-        k, new, notes = _roll_row(table, roller, lines_, veils, skip=old)
+        old = table.row_for_label(row.get("roll"))
+        k, new, notes = _roll_row(table, roller, lines_, veils, skip=lambda r: r is old or _twice(r))
         out += _show(c, table, k, new, notes)
         applied = []
         lines, other, no_rest = _codes(c, new, roller, applied)

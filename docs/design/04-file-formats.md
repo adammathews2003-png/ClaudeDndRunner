@@ -400,9 +400,12 @@ its `notes`.
 
 **Random tables (Phase 16)** live in `<campaign>/tables/<name>.md`, the same folder as
 loot and stock tables. Header: `| roll | result | effect | tags |`. `roll` is a number or
-a range (`01-03`, `7`). `effect` holds zero or more `;`-separated codes the tool applies
+a range (`01-03`, `7`). Several rows may share a number when each has a slot suffix
+(`37.1`, `37.2`, `24-40.3`): the tool rolls the table's die, then a die the size of that
+number's slot count (`37.2` = 37, then 2). `effect` holds zero or more `;`-separated codes the tool applies
 (02 → Phase 16; anything else is narrated). `tags` is a comma list matched against the
-campaign's `lines:`/`veils:`. Frontmatter: `die: d100` (default: inferred from the
+campaign's `lines:`/`veils:`; the tag `disruptive` makes `carouse` print a scenario fit
+check. Effect `twice` (carousing) rolls two more rows and applies both. Frontmatter: `die: d100` (default: inferred from the
 highest roll) and, for carousing, `cost: 1d6x10gp`. `carousing.md` and `crit-die.md`
 are copied from `engine/templates/tables/` by `campaign new` (original starter text).
 A table imported from elsewhere (`table import`) replaces the copy and stays in the

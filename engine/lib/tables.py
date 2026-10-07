@@ -5,7 +5,9 @@ A table file is `<campaign>/tables/<name>.md` (else the engine's starter copy in
 `engine/templates/tables/<name>.md`) with a `| roll | result | effect | tags |` table
 (`effect` and `tags` optional). `roll` is a number or a range (`01-03`, `7`, `00` = 100);
 the ranges are read by lib/dice.py's `_range`, the same reader as `roll table:` and the
-loot tables. Frontmatter: `die: d100` (default: the highest roll) and, for carousing,
+loot tables. Several rows may share a number when each carries a slot suffix (`37.1`,
+`37.2`, `24-40.3`): the d{die} picks the number, then a second die the size of that
+number's slot count picks the row (`37.2` = 37, then 2 on the d3). Frontmatter: `die: d100` (default: the highest roll) and, for carousing,
 `cost: 1d6x10gp`.
 
 `effect` holds `;`-separated codes. `codes(text)` splits them (a `;` inside quotes stays);
@@ -33,8 +35,9 @@ class TableError(ToolError):
 
 
 class Row:
-    def __init__(self, lo, hi, result, effect="", tags=()):
+    def __init__(self, lo, hi, result, effect="", tags=(), slot=None):
         self.lo, self.hi, self.result, self.effect, self.tags = lo, hi, result, effect, list(tags)
+        self.slot = slot
 
     @property
     def roll(self):
@@ -48,21 +51,48 @@ class RandomTable:
         m = re.fullmatch(r"d(\d+|%)", die)
         self.die = (100 if m.group(1) == "%" else int(m.group(1))) if m else max(r.hi for r in rows)
 
-    def row_for(self, n):
-        hit = next((r for r in self.rows if r.lo <= n <= r.hi), None)
-        if hit is None:
+    def slots(self, n):
+        """The rows covering n, in slot order (one row, or the slotted rows sharing n)."""
+        hits = [r for r in self.rows if r.lo <= n <= r.hi]
+        if not hits:
             raise TableError(f"tables/{self.name}.md: no row covers {n} on d{self.die}")
-        return hit
+        if len(hits) > 1 and any(r.slot is None for r in hits):
+            raise TableError(f"tables/{self.name}.md: rows overlap at {n} (give them slots: {n}.1, {n}.2)")
+        return sorted(hits, key=lambda r: r.slot or 0)
+
+    def row_for(self, n, k=None):
+        """The row for n (k: its slot position, 1-based, when several rows share n)."""
+        hits = self.slots(n)
+        if len(hits) == 1:
+            return hits[0]
+        if k is None or not 1 <= k <= len(hits):
+            raise TableError(f"tables/{self.name}.md: {n} has {len(hits)} slots; name one ({n}.1)")
+        return hits[k - 1]
+
+    def row_for_label(self, label):
+        """'37' or '37.2' (as `roll` labels them) -> Row, or None when unreadable."""
+        m = re.fullmatch(r"\s*(\d+)(?:\.(\d+))?\s*", str(label or ""))
+        if not m:
+            return None
+        try:
+            return self.row_for(int(m.group(1)), int(m.group(2)) if m.group(2) else None)
+        except TableError:
+            return None
 
     def roll(self, roller, face=None):
-        """(n, Row). `face` is a physical die the table rolled."""
+        """(n, Row). `face` is a physical die the table rolled. When several rows share
+        the number, a second die picks one and n becomes the label 'n.k'."""
         if face is not None:
             if not 1 <= face <= self.die:
                 raise TableError(f"{self.name}: the die is a d{self.die} (got {face})")
             n = face
         else:
             n = roller.die(self.die)
-        return n, self.row_for(n)
+        hits = self.slots(n)
+        if len(hits) == 1:
+            return n, hits[0]
+        k = roller.die(len(hits))
+        return f"{n}.{k}", hits[k - 1]
 
 
 def path_of(name, fallback=True):
@@ -92,12 +122,15 @@ def load(name, fallback=True):
         raise TableError(f"{p.name}: no | roll | result | rows")
     rows = []
     for r in t.rows:
+        cell = r.get("roll", "").strip()
+        m = re.fullmatch(r"(.*?)\.(\d+)", cell)
+        slot = int(m.group(2)) if m else None
         try:
-            lo, hi = dice._range(r.get("roll", ""), name)
+            lo, hi = dice._range(m.group(1) if m else cell, name)
         except dice.DiceError as e:
             raise TableError(str(e)) from None
         tags = [x.strip() for x in (r.get("tags") or "").split(",") if x.strip()]
-        rows.append(Row(lo, hi, r.get("result", "").strip(), (r.get("effect") or "").strip(), tags))
+        rows.append(Row(lo, hi, r.get("result", "").strip(), (r.get("effect") or "").strip(), tags, slot))
     return RandomTable(name, p, doc.front, rows)
 
 

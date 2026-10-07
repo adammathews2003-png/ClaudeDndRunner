@@ -1048,9 +1048,16 @@ decide what they got up to.
    effect codes the tool applies itself (`coin -2d6x10`, `item +"a dented crown"`,
    `item -random`, `clock +3d "…"`). The GM files everything else with ordinary
    commands. From then on the consequences are canon and get dealt with in play.
-6. **Same limits as Wacky Juice.** A result may not break the core scenario: it can't
-   reveal secrets, kill or remove a key NPC, or skip a beat. If a row would, the GM
-   re-rolls it (`carouse --reroll Kira`, logged as GM-only) without a word to the table.
+6. **No scenario-breaking nights** (decided 2026-10-07; the same limits as Wacky
+   Juice). A result may not break the core scenario: it can't reveal secrets, kill or
+   remove a key NPC, or skip a beat. It also has to fit: a row that can't happen here
+   (waking on a ship that set sail, with no water anywhere near) or that makes the
+   scenario's goals unreachable (exile from the town the mystery is in, a week laid up
+   while a clock runs down, being marched off to the army) is re-rolled. A small bend
+   that keeps the joke is fine (the ship is a river barge still at the dock). Rows a
+   table marks with the tag `disruptive` print a `[fit check: …]` line, but the GM checks
+   every row. The GM re-rolls with `carouse --reroll Kira` (logged as GM-only), without a
+   word to the table.
    The re-roll takes back what the tool applied for that row (coin, items, clocks; the
    night's record is `state/carousing.md`), never the night's cost.
 

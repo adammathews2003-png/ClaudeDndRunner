@@ -498,3 +498,68 @@ class CritDie(Base):
         norm = lambda b: b.replace(b"\r\n", b"\n").replace(b"crit-die: off\n", b"")  # noqa: E731
         for rel, data in default_files.items():
             self.assertEqual(norm(off_files[rel]), norm(data), rel)
+
+
+SLOTTED = """---
+die: d2
+cost: 1d6x10gp
+---
+# Carousing (combined test table)
+
+| roll | result | effect | tags |
+|------|--------|--------|------|
+| 01.1 | You wake up in a hat shop. | item +"a red hat" | |
+| 01.2 | You wake up on a ship that has set sail. | item +"a blue hat" | travel, disruptive |
+| 02 | Roll twice more and combine. | twice | |
+"""
+
+
+class _Dice:
+    def __init__(self, *faces):
+        self.faces = list(faces)
+
+    def die(self, n):
+        return self.faces.pop(0)
+
+
+class SlottedTables(Base):
+    """Combined tables: rows sharing a number carry slots (`01.2`) and a second die picks
+    one; `twice` rolls two more; `disruptive` rows print a scenario fit check."""
+    def setUp(self):
+        super().setUp()
+        self.setting("carousing", "on")
+        (self.camp / "tables").mkdir(exist_ok=True)
+        self.path("tables/carousing.md").write_text(SLOTTED, encoding="utf-8")
+
+    def test_slot_roll_and_labels(self):
+        t = tables.load("carousing")
+        n, row = t.roll(_Dice(1, 2))
+        self.assertEqual((n, row.result), ("1.2", "You wake up on a ship that has set sail."))
+        n, row = t.roll(_Dice(2))
+        self.assertEqual((n, row.effect), (2, "twice"))
+        self.assertEqual(t.row_for_label("1.1").result, "You wake up in a hat shop.")
+        self.assertIsNone(t.row_for_label("1"))                         # a shared number needs its slot
+        self.path("tables/carousing.md").write_text(SLOTTED.replace("| 01.2 |", "| 01 |"), encoding="utf-8")
+        with self.assertRaises(tables.TableError):
+            tables.load("carousing").roll(_Dice(1))                     # unslotted overlap
+
+    def test_fit_check_and_reroll(self):
+        s = seed_for(lambda r: r.randint(1, 6) and r.randint(1, 2) == 1 and r.randint(1, 2) == 2)
+        out = self.ok("--seed", str(s), "carouse", "Kira")
+        self.assertTrue(any("d2 1 · d2 2 → You wake up on a ship" in x for x in out), out)
+        self.assertTrue(any(x.startswith("[fit check:") and "carouse --reroll Kira" in x for x in out))
+        self.assertIn("a blue hat", self.text("pcs/kira-thornwood.md"))
+        self.assertEqual(md.load(self.path("state/carousing.md")).table("Carousing").rows[0]["roll"], "1.2")
+        out = self.ok("--seed", "5", "carouse", "--reroll", "Kira")
+        kira = self.text("pcs/kira-thornwood.md")
+        self.assertNotIn("a blue hat", kira)                            # the old slot's effects are taken back
+        self.assertIn("a red hat", kira)                                # the only row left (never `twice`)
+
+    def test_twice(self):
+        s = seed_for(lambda r: r.randint(1, 6) and r.randint(1, 2) == 2)
+        out = self.assert_undoes("--seed", str(s), "carouse", "Kira")
+        out = self.ok("--seed", str(s), "carouse", "Kira")
+        self.assertEqual(len([x for x in out if x.startswith("[carouse Kira: d2 1 · d2 ")]), 2, out)
+        self.assertIn("[carouse Kira: combine the two into one night]", out)
+        self.assertFalse(any(x.startswith("[file for Kira: twice") for x in out))
+        self.assertTrue(md.load(self.path("state/carousing.md")).table("Carousing").rows[0]["roll"].startswith("2: 1."))
