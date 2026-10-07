@@ -1,4 +1,4 @@
-"""`gm.py srd monster|spell|condition <name> [--write <npc>]` — SRD lookups from the local
+"""`gm.py srd monster|spell|condition|item <name> [--write <npc>]` — SRD lookups from the local
 data (docs/design/06 → `gm.py srd`; 02 → Combat mode; plan.md Phase 4 item 5).
 
 `monster` prints the compact stat block (lib/srd.py). `--write <npc>` copies its numbers
@@ -59,6 +59,10 @@ def cmd_srd(ctx):
         lines = mon.block()
         if a.write:
             lines.append(write_block(a.write, mon))
+    elif a.kind == "item":
+        if a.write:
+            raise SrdCmdError("srd --write is for monsters")
+        lines = data.magic_item(name)
     elif a.kind == "spell":
         if a.write:
             raise SrdCmdError("srd --write is for monsters")
@@ -73,8 +77,8 @@ def cmd_srd(ctx):
 
 
 def register(sub, g):
-    p = sub.add_parser("srd", parents=[g], help="SRD monster | spell | condition lookup")
-    p.add_argument("kind", choices=["monster", "spell", "condition"])
+    p = sub.add_parser("srd", parents=[g], help="SRD monster | spell | condition | item lookup")
+    p.add_argument("kind", choices=["monster", "spell", "condition", "item"])
     p.add_argument("name", nargs="+")
     p.add_argument("--write", metavar="NPC", help="monster: copy the block into this NPC file")
     p.set_defaults(func=cmd_srd)

@@ -1226,7 +1226,7 @@ gm.py hide Kira <total> | hide Kael,Kira <t1>,<t2> --group | seek Veskar [<total
   +fled | +surrendered)]` once per unit and trigger; the Combat block keeps `Morale: thug
   (half HP)`. Exempt: SRD type construct, ooze, undead (unless the stat block is an
   intelligent one: `morale` in its notes), and `morale: fearless` (row notes or NPC
-  frontmatter). The party side never checks. `cond Thugs +fled` / `+surrendered`
+  frontmatter). The party side never checks (a hireling does, against DC 20 − loyalty: Phase 15). `cond Thugs +fled` / `+surrendered`
   removes them from the turn order; `combat end` counts both as defeated for `xp
   award` and adds surrendered foes to On stage as `prisoner`; neither condition is
   written back to a file.
@@ -1293,70 +1293,108 @@ gm.py hide Kira <total> | hide Kael,Kira <t1>,<t2> --group | seek Veskar [<total
 
 ```
 gm.py inspire Kira ["the toast to the dead"] | atk|save|check … --insp
-gm.py ready Kira "shoot whoever opens the door" | ready Kira fire | ready Kira drop
-gm.py attune Kira "<item>" | unattune | charge Kira "<item>" -1 | identify Kira "<item>"
-gm.py downtime Kira craft "chain shirt" 10d [--lifestyle modest] | downtime status
-gm.py companion add Kira Ash srd:owl --acts own|with | hire "Bren" --wage "2 gp/day"
-gm.py weather [roll | set "heavy rain, strong wind, cold"]
-gm.py renown "Red Ledger" +1 "returned the ledger" [--who Kira]
-gm.py mount Kael horse | dismount Kael
-gm.py injury Kael                                   # lingering-injuries: on
+gm.py ready Kira "shoot whoever opens the door" [--spell hold-person] | ready Kira fire | ready Kira drop
+gm.py attune Kira "<item>" --during-rest | unattune Kira "<item>" | charge Kira "<item>" -1|+2|=7
+gm.py identify Kira "<item>" [--spell] | rest short [--attune Kira="<item>"] [--identify Kira="<item>"]
+gm.py srd item "<magic item>"                       # the SRD text and the inventory tags it implies
+gm.py downtime Kira craft "chain shirt" 10d [--lifestyle modest] [--value "50 gp"] [--goal 10d] [--no-clock] | downtime status
+gm.py companion add Kira Ash srd:owl --acts own|with|mount [--hp 1/1] [--note "…"] | companion drop Kira Ash | companion list
+gm.py hire "Bren" --wage "2 gp/day" [--by Kira|party] [--loyalty 10] [--statblock guard]
+gm.py weather [roll | set "heavy rain, strong wind, cold" | clear]
+gm.py renown ["Red Ledger" +1|-1|=3 "returned the ledger" [--who Kira] [--rank "…"]]
+gm.py mount Kael Horse [--independent] | dismount Kael
+gm.py injury Kael [--roll N]                        # lingering-injuries: on
+gm.py pc card Kira                                  # a written PC: live numbers, items, load
 ```
-- **Inspiration.** `inspire` sets `inspiration: true` (refuses a second); `--insp`
-  on a d20 command spends it: advantage (`advantage`) or, after the roll, a reroll
-  that keeps the new result (`reroll`). Party line: `★`.
-- **Readied actions.** `ready` writes `ready: …` on the combatant and spends nothing
-  until it fires; `ready fire` spends the reaction (and a held spell's slot was spent
-  when readied; it holds concentration via `conc`); `combat next` clears an unfired
-  ready at the start of its owner's turn and, before every other combatant's turn,
-  prints `Readied: Kira — shoot whoever opens the door`.
-- **Magic items.** `attune` refuses a fourth item and an item without `attune`;
-  it takes a short rest (`rest short` with `--attune Kira="<item>"`, or this command
-  with `--during-rest`). Bracketed numbers on an equipped (and attuned if needed) item
-  feed `pc` derivation (`ac +1`, `saves +1`, `attack +1`, `damage +1`). `charge` spends
-  charges; the clock rolls each item's recharge at its time (`dawn`) and the destroy
-  roll at 0. `identify` (after a short rest with the item, or *identify*) swaps the
-  line to its `(GM: …)` true name. Data: the SRD magic-items list joins
-  `data/srd/` (5e-SRD-Magic-Items.json).
-- **Downtime.** `downtime <pc> <activity> <days>` (light: craft, train, research,
-  recuperate, work; full: plus campaign tables `tables/downtime-<activity>.md`) adds
-  progress to `## Downtime`, spends the lifestyle cost per day (wretched 0, squalid 1
-  sp, poor 2 sp, modest 1 gp, comfortable 2 gp, wealthy 4 gp, aristocratic 10 gp),
-  rolls any complication, and advances the clock by the longest PC's days (the whole
-  party; the usual `[TIME]` packet follows). Crafting: 5 gp of market value per day,
-  half the price in materials up front. Training: 250 days at 1 gp a day.
-- **Allied creatures.** `companion add` writes a `## Companions` row; `combat start`
-  adds the companions of present PCs as `party` rows with `ctrl <PC>` (own init: rolled
-  as a monster; `with`: placed directly after the controller). `combat next` on a
-  controlled row prints `Ash (Kira's)`, so the GM asks Kira. `hire` makes an NPC with
-  `hired-by:`, `wage:` and `loyalty:` (the clock charges wages each day; a morale
-  check uses loyalty).
+- **Bookkeeping.** Anything that charges coin over time (lifestyle, crafting materials,
+  training fees, hireling wages) moves money only under `upkeep: on` (default off, the
+  table's preference); otherwise the line says what it would cost and nothing is taken.
+- **Inspiration.** `inspire` sets `inspiration: true` (refuses a second; refuses under
+  `inspiration: off`); `--insp` on a d20 command spends it (the key is removed): advantage
+  (`advantage`), or under `reroll` the given d20 is the reroll and stands (after a roll
+  the player wants back: `undo`, then the command again with the new d20). It is spent
+  only once every other check passed. Party line: `★`.
+- **Readied actions** (combat only). `ready` writes `ready: …` into the combatant's
+  `conditions` (commas become `;`) and spends nothing until it fires; `ready fire`
+  spends the reaction; `--spell` casts it now (the slot is spent when readied, the line
+  says so) and holds it with `conc` until released (`fire` keeps concentration only for a
+  concentration spell, which then runs its own duration). `combat next` clears an unfired
+  ready at the start of its owner's turn (`lapsed (unused)`) and, before every other
+  combatant's turn, prints `Readied: Kira — shoot whoever opens the door` (the tool can't
+  judge the trigger; the GM does). `combat end` drops it.
+- **Magic items.** `attune` refuses without `--during-rest` (naming the `rest short
+  --attune` that does it), an item without `attune`, an unidentified item, one already
+  attuned and a fourth. Bracketed numbers on an equipped (and attuned if needed) item feed
+  the numbers live: AC, saves, and `attack`/`damage` for the Attacks row the item names
+  (an item naming no weapon counts for every attack); the file's `ac:` stays the base and
+  `overrides` win. `charge` spends or restores charges; spending the last one of a
+  `destroy on 1` item rolls the d20 then (RAW), and a 1 removes the item. The clock rolls
+  each item's recharge at its time (`dawn`, `dusk`, `midnight`, `noon`) for PCs' and NPCs'
+  items below their maximum. `identify` (or `rest short --identify`) swaps the line to its
+  `(GM: …)` true name with the SRD's tags; `(GM: …)` never reaches a public log line or
+  `pc card`. Data: `data/srd/5e-SRD-Magic-Items.json` (fetched by `fetch_srd.py --only
+  Magic-Items`). `pc card <pc>` on a written PC (no draft) prints the live AC (`AC 15 (14
+  + items)`), saves, attacks, `Magic items: … · attuned n/3` and the load.
+- **Downtime.** `downtime <pc> <activity> [subject] <days>` (light: craft, train,
+  research, recuperate, work; full: plus campaign tables `tables/downtime-<activity>.md`,
+  rolled once per call as a `(GM)` complication) adds progress to `## Downtime`, records the
+  lifestyle (wretched 0, squalid 1 sp, poor 2 sp, modest 1 gp, comfortable 2 gp, wealthy
+  4 gp, aristocratic 10 gp a day; none while working), and advances the clock by the days
+  (the whole party; the usual `[TIME]` packet follows; `--no-clock` for all but the
+  longest PC). Crafting: 5 gp of market value per day toward the SRD price (or `--value`),
+  half the price in materials when the work starts; done → the item joins the pack.
+  Training: 250 days at 1 gp a day; done → a Features line. Other activities count days
+  toward `--goal`. Under `upkeep: on` the coin is taken (refused up front when the purse
+  can't cover it).
+- **Allied creatures.** `companion add` writes a `## Companions` row; `combat start` adds
+  the companions of the PCs in the fight as `party` rows with `ctrl <PC>` (own init:
+  rolled as a monster or `--init Ash=N`; `with` / `mount`: the controller's initiative,
+  placed directly after them). `combat next` on a controlled row prints `up: Ash (Kira's)`,
+  so the GM asks Kira; `combat end` writes its HP back to the row. `hire` makes (or
+  updates) an NPC with `hired-by:`, `wage:` and `loyalty:` (hirelings join a fight on the
+  party's side); under `upkeep: on` the clock charges wages each dawn (a PC employer pays
+  from their coin; a party hire prints what is due). A hireling below half HP, or with
+  half the party side down, checks morale once per trigger: WIS save DC 20 − loyalty.
 - **Weather** (`weather: on`). At each dawn the clock rolls temperature, wind and
   precipitation (d20 each: 1–14 normal / 15–17 colder by 1d4×10 °F / 18–20 warmer;
-  wind 1–12 none / 13–17 light / 18–20 strong; precipitation 1–12 none / 13–17 light
-  / 18–20 heavy, snow if freezing) per the area's `climate:` and writes `weather:`.
-  Effects: heavy precipitation lightly obscures (sight Perception at disadvantage);
-  strong wind gives disadvantage on ranged attacks and Perception by hearing, puts out
-  open flames (`lit` torches and candles go out; lanterns don't), and grounds
-  non-magical flight; extreme temperatures set `environment:` (Phase 14). The brief
-  header carries it: `· light rain, cool`.
+  wind 1–12 calm / 13–17 light / 18–20 strong; precipitation 1–12 clear / 13–17 light
+  / 18–20 heavy, snow at or below 32 °F) per the area's `climate:` (base °F: arctic 0,
+  cold 30, mountain 40, temperate and coast 60, warm 75, tropical 85, desert 95; the roll
+  detail is a `(GM)` log line) and writes `weather-now:`. Effects outdoors only:
+  strong wind gives disadvantage on ranged weapon attacks (a thrown weapon beyond 5 ft),
+  puts out open flames (`lit` torches and candles go out at once; lanterns don't;
+  lighting one prints a warning) and grounds non-magical flight; Perception notes (heavy
+  precipitation: by sight; strong wind: by hearing) are printed on Perception checks, not
+  applied, since the tool can't know the sense. ≤ 0 °F / ≥ 100 °F set `environment:
+  extreme-cold | extreme-heat` (Phase 14); a later non-extreme roll clears an environment
+  the weather set. The brief header carries it: `· light rain, cool` (`calm`/`clear` left
+  out).
 - **Encumbrance** (`encumbrance: basic|variant`). Inventory weight from the SRD
-  equipment data (`(N lb)` for custom items, coins at 50 per lb); the thresholds in
-  02. `pc card` shows `load 62/150 lb`; the speed change goes through `turn`/`move`
-  and `travel`; `variant` heavy load adds the disadvantage in the resolver. Party line
-  `[enc]` / `[heavy]`.
+  equipment data (bundles per item, `(N lb)` for custom items, coins at 50 per lb;
+  unknown entries weigh nothing and are listed by `pc card`); the thresholds in 02. `pc
+  card` shows `load 62/120 lb`; the speed change goes through `turn`/`move`/`chase`
+  (turnstate.speed_of) and `travel` (on foot the trip takes base speed / the slowest
+  loaded PC's speed times as long, with a note); `variant` heavy load adds the
+  disadvantage in the resolver (attacks; STR/DEX/CON checks and saves). Party line
+  `[enc]` / `[heavy]` (basic over capacity is `[heavy]`, speed 5).
 - **Renown** (`renown: party|per-pc`). `renown` edits `state/factions.md` with a
-  reason (public log line); rank names are the campaign's (`rank:` free text).
-  Attitude shift for the faction's NPCs (02) applies in `brief` and the social DC.
-- **Mounts.** `mount` links rider and mount rows (`mounted on horse` / `ridden by
-  Kael`); a controlled mount takes the rider's initiative and its turn may only be
-  Dash, Disengage or Dodge; forced movement or prone on the mount → DC 10 DEX save or
-  the rider falls prone within 5 ft. Vehicles are SRD equipment rows (cart, boat, ship
-  speed and HP) used by `travel --by`.
+  reason (public log line); rank names are the campaign's (`--rank`, free text). The
+  attitude shift for the faction's NPCs (02) applies in `brief` (`Mara (wary→neutral,
+  Red Ledger 3)`; per-pc: each PC's shifted attitude) and the social DC (`· wary→neutral
+  (Red Ledger 3) · major: DC 25`; per-pc: the checking PC's standing).
+- **Mounts.** `mount` links rider and mount (`mounted on Horse` / `ridden by Kael`); in
+  combat both need rows, and a controlled mount (default; `--independent` otherwise) takes
+  the rider's initiative right after them (`ctrl Kael`) and `combat next` reminds that it
+  may only Dash, Disengage or Dodge; out of combat the mount is one of the rider's
+  Companions (`acts: mount`), seated again by `combat start`. `cond <rider> +prone` asks
+  for the DC 10 DEX save (fall prone within 5 ft); `cond <mount> +prone` drops the rider
+  unless they spend their reaction. Forced movement isn't detected (the GM asks the same
+  save). Vehicles are SRD equipment rows (cart, boat, ship speed and HP) used by `travel
+  --by`.
 - **Lingering injuries** (`lingering-injuries: on`). On a crit against a PC or a drop
-  to 0 HP, `hp`/`dmg` appends `consider: gm.py injury Kael`; `injury` rolls on the
-  campaign's `tables/injuries.md` and writes the result to `## Features & abilities`
-  as `(injury)` with its cure.
+  to 0 HP, `hp`/`dmg`/`atk` append `[consider: gm.py injury Kael]`; `injury` rolls on the
+  campaign's `tables/injuries.md` (`| roll | result | effect | cure |`; the engine ships
+  none) and writes the result to `## Features & abilities` as `(injury)` with its cure.
 
 ### Phase 16 — table extras (02 → Dice → Pre-rolls; 02 → Table mechanics → Phase 16)
 

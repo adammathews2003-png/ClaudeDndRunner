@@ -393,6 +393,7 @@ its `notes`.
 | `encumbrance` | `off \| basic \| variant` | off | 15 |
 | `renown` | `off \| party \| per-pc` | off | 15 |
 | `lingering-injuries` | `off \| on` | off | 15 |
+| `upkeep` | `off \| on` (coin for lifestyle, crafting materials, training fees, hireling wages) | off | 15 |
 | `carousing` | `on \| off` | on | 16 |
 | `crit-die` | `off \| on` | off | 16 |
 | `crit-die-pcs` | `dying \| dead` | dying | 16 |
@@ -617,7 +618,15 @@ attuned: [cloak of protection]    # 15; at most 3
   is the true name and is stripped from player-facing output until identified.
 - **Weight** (15) comes from the SRD equipment data; a custom item may carry `(5 lb)`.
 - **`## Companions`** (15): `| name | ref | hp | acts | notes |` (`acts`: own init |
-  with me; e.g. `Ash | srd:owl | 1/1 | own init | familiar, telepathic link`).
+  with me | mount; e.g. `Ash | srd:owl | 1/1 | own init | familiar, telepathic link`).
+  Written by `companion add`; `combat end` writes the HP back. A rider out of combat
+  carries `mounted on Horse` in `conditions` (the mount being a `mount` companion).
+- **Hirelings** (15) are NPC files with `hired-by: Kira | party`, `wage: 2 gp/day` and
+  `loyalty: 10` (0–20; their morale save is DC 20 − loyalty), written by `hire`.
+- **Equipped and attuned** (15): an item's bonuses count while it sits on the
+  `- Equipped:` line (and is in `attuned:` when tagged `attune`); the file's `ac:` stays
+  the base, the tools add the items live. Charge and recharge tags: `charges N/M`,
+  `recharge <dice> dawn|dusk|midnight|noon`, `destroy on 1`.
 - **`## Downtime`** (15): `| activity | progress | goal | cost/day | notes |` (e.g.
   `craft chain shirt | 25 gp | 50 gp | 1 gp | at Brannoc's forge`).
 
@@ -786,7 +795,7 @@ due; 1 while any waiting group is fighting).
 ```yaml
 light: dark                       # still the AMBIENT light; carried sources are on creatures (lit:)
 marching-order: {front: [Kael], middle: [Kira], back: [Grusk]}   # 14
-weather: "light rain, light wind, cool"   # 15; rolled at dawn when weather: on
+weather-now: "light rain, light wind, cool"   # 15; rolled at dawn when weather: on (not `weather:`, the setting's key)
 environment: extreme-cold         # 14; none | extreme-cold | extreme-heat | underwater | thin-air
 environment-since: "Day 2 09:00"  # 14; when it was set (the hourly saves count from here)
 party-location: "@lost"           # 14; off course in the wilds, with:
@@ -826,7 +835,10 @@ lost: "to hollow · at (1.2,7.5,0) world · bearing N (meant NE) · terrain fore
   sea) gives the navigation DC and foraging (`forage: abundant | limited | scarce`,
   default limited). On a route row they are a `terrain` / `forage` column or
   `terrain: forest; forage: scarce` in its `notes`; on an area (or the destination
-  site) frontmatter keys. Area frontmatter `climate: temperate` drives weather (15).
+  site) frontmatter keys. Area frontmatter `climate: temperate` drives weather (15):
+  arctic | cold | temperate | warm | tropical | desert | mountain | coast, read on the
+  party's site and then up its `parent:` chain. A site whose `type` is a building,
+  dungeon, cave … or tagged `indoors`/`underground` is under a roof (weather effects off).
 - **`state/social.md`** (14, unless `social-wall: off`): one row per open social goal,
   written by `check --vs … --goal`, removed on success:
   `| npc | goal | fails | approaches | pitches | since |`
@@ -835,8 +847,10 @@ lost: "to hollow · at (1.2,7.5,0) world · bearing N (meant NE) · terrain fore
   `since` = game time of the first attempt). A split party shares it. A row whose goal
   is `—` is the NPC's pitch memory (flair pitches tried without a goal, or while the
   wall is off, so a repeat still scores 0). `npc` is the NPC's file slug.
-- **`state/factions.md`** (15, `renown` on): `| faction | renown | rank | who | notes |`
-  (`who` = party or a PC); NPCs name theirs with `faction: red-ledger`.
+- **`state/factions.md`** (15, `renown` on): `# Factions` and one table `| faction |
+  renown | rank | who | notes |` (`who` = party or a PC's first name; `notes` = the last
+  reason), written by `gm.py renown`; NPCs name theirs with `faction: red-ledger` (the
+  faction's slug). A split party shares it.
 
 ## Table rules — `state/table-rules.md` (player overrules)
 

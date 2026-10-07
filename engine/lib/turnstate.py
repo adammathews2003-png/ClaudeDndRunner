@@ -24,8 +24,16 @@ _LINE = re.compile(r"^Turn:\s*(?P<name>[^·]+?)\s*·\s*action (?P<action>\w+)\s*
 
 def speed_of(c):
     """Walking speed in feet: the PC/NPC file's `speed`, else the stat block's walk, else
-    30; reduced by exhaustion (2014: halved at 2, 0 at 5; 2024: −5 ft per level)."""
+    30; reduced by the load (lib/encumbrance.py, Phase 15) and by exhaustion (2014: halved
+    at 2, 0 at 5; 2024: −5 ft per level)."""
     base = _base_speed(c)
+    try:
+        doc = c.doc
+    except Exception:  # noqa: BLE001 — a row with no file
+        doc = None
+    if doc is not None:
+        from . import encumbrance
+        base = encumbrance.speed(base, doc)
     try:
         level = c.exhaustion()
     except Exception:  # noqa: BLE001 — a row with no file

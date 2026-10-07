@@ -12,6 +12,8 @@ rest`; rules/rests-and-recovery.md; plan.md Phase 7 item 3).
   level of exhaustion from each PC who ate (or always with `supplies: off`, or in town
   under `loose`); HP fill to the maximum (halved at exhaustion 4+, 2014 table), and a
   dying or stable PC wakes.
+- Phase 15: a short rest may attune (`--attune Kira="cloak of protection"`) or identify
+  (`--identify Kira="smoky glass ring"`) an item (magic.py).
 Default: every present PC. Uses the PC files and the clock (clock advance).
 """
 import re
@@ -59,7 +61,18 @@ def _hd(text):
     return out
 
 
-def rest(kind, names=(), hd=(), interrupted=False, roller=None):
+def _pairs(texts, flag):
+    """[(pc, item)] from `--attune Kira="cloak of protection"`."""
+    out = []
+    for t in texts or []:
+        k, sep, v = t.partition("=")
+        if not sep or not v.strip():
+            raise RestError(f'{flag} wants Name="item", got {t!r}')
+        out.append((k.strip(), v.strip().strip('"')))
+    return out
+
+
+def rest(kind, names=(), hd=(), interrupted=False, roller=None, attune=(), identify=()):
     if campaign.load_state().table("Combatants") is not None:
         raise RestError("rest: combat is running")
     docs = _targets(names)
@@ -71,6 +84,14 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
         journal.log_delta(f"rest {kind} interrupted ({who}) — no benefit")
         return [f"[rest {kind} interrupted · {who} · no benefit]"], {}
     spend = _hd(hd)
+    attune, identify = _pairs(attune, "--attune"), _pairs(identify, "--identify")
+    if (attune or identify) and kind != "short":
+        raise RestError("rest: --attune / --identify go with a short rest")
+    import magic   # Phase 15: checked first, so a refusal leaves the rest untaken
+    for who, item in attune:
+        magic.attune(who, item, during_rest=True, dry=True)
+    for who, item in identify:
+        magic.identify(who, item, "short rest", dry=True)
     if kind == "long":
         import supplies
         eaters = [str(d.front.get("name")) for d in docs if supplies.counts_here(d)]
@@ -131,6 +152,10 @@ def rest(kind, names=(), hd=(), interrupted=False, roller=None):
         line = f"rest {kind} · {name}" + (" · " + " · ".join(bits) if bits else " · nothing to recover")
         journal.log_delta(line)
         lines.append(f"[{line}]")
+    for who, item in attune:
+        lines += magic.attune(who, item, during_rest=True)
+    for who, item in identify:
+        lines += magic.identify(who, item, "short rest")
     clk, data = clock.advance("+8h" if kind == "long" else "+1h")
     return lines + clk, data
 
@@ -152,7 +177,7 @@ def _recover_exhaustion(docs, today, mode, supplies):
 
 def cmd_rest(ctx):
     a = ctx.args
-    lines, data = rest(a.kind, a.names, a.hd, a.interrupted, ctx.roller)
+    lines, data = rest(a.kind, a.names, a.hd, a.interrupted, ctx.roller, a.attune, a.identify)
     for line in lines:
         ctx.emit(line)
     ctx.result = data
@@ -164,4 +189,6 @@ def register(sub, g):
     p.add_argument("names", nargs="*")
     p.add_argument("--hd", action="append", default=[], help="short rest: Kael=2 hit dice to spend")
     p.add_argument("--interrupted", action="store_true")
+    p.add_argument("--attune", action="append", default=[], help='short rest: Kira="cloak of protection" (Phase 15)')
+    p.add_argument("--identify", action="append", default=[], help='short rest: Kira="smoky glass ring"')
     p.set_defaults(func=cmd_rest)

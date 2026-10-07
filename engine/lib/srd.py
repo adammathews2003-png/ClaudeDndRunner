@@ -247,6 +247,19 @@ def spell(name):
     return lines
 
 
+def magic_item(name):
+    """`srd item <name>` (Phase 15): the SRD magic item's text and the inventory tags it
+    implies (lib/magic.srd_tags), ready to paste into `item <pc> + "…"`."""
+    from . import magic
+    r = find("Magic-Items", name)
+    tags = magic.srd_tags(r["name"])
+    lines = [f"[SRD {r['name']}] {(r.get('rarity') or {}).get('name', '')} · "
+             f"{(r.get('equipment_category') or {}).get('name', '')}"]
+    lines += [d for d in r.get("desc", [])]
+    lines.append(f"Inventory: {r['name'].lower()}" + (f" ({tags})" if tags else ""))
+    return lines
+
+
 def condition(name):
     r = find("Conditions", name)
     return [f"[SRD {r['name']}]"] + [str(d) for d in r.get("desc", [])]

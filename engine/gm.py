@@ -30,7 +30,8 @@ USAGE = "usage: " + USAGE_LINE
 COMMAND_MODULES = ("scene", "combat", "clock", "travel", "rest", "lint", "session",
                    "srd", "pc", "world", "mutations", "inventory", "roll", "rules",
                    "brief", "juice", "tempo", "xp", "stub", "where", "trace", "odds", "spoil", "scaffold", "encounter", "loot", "loop", "campaign_cmd", "monster", "intro", "turn", "split",
-                   "conditions_ext", "supplies", "social", "explore", "chase", "hazard", "hiding")
+                   "conditions_ext", "supplies", "social", "explore", "chase", "hazard", "hiding",
+                   "inspiration", "ready", "magic", "downtime", "allies", "weather", "renown", "injury")
 
 
 class CommandError(Exception):

@@ -22,7 +22,10 @@ boundaries, GM-side only; `Table: boundaries not asked yet` until set, nothing o
 empty). The party line tags `DYING ✓1 ✗2`, `[conc bless 8r]`, `[exh 2]`; the Sight
 line names the best carried light (`Sight (dark · Kael's torch 40m: bright 20 ft, dim
 40 ft): …`). Phase 14: `Social: Mara "get the ledger" 2 fails` while an NPC with an
-open social goal is on stage (social.py; the wall on).
+open social goal is on stage (social.py; the wall on). Phase 15: the header ends with
+the weather (`· light rain, cool`, weather: on); the party line tags `★` (inspiration),
+`[enc]` / `[heavy]` (encumbrance) and counts magic AC; an NPC whose faction renown shifts
+its attitude shows `Mara (wary→neutral, Red Ledger 3)`.
 The hook never fails the prompt: any error prints `[GM BRIEF] unavailable: <reason>`
 and exits 0.
 """
@@ -95,7 +98,8 @@ def header(state):
     site = str(state.front.get("party-location") or "?").split("/")[0]
     scene = state.front.get("scene")
     where = f"{site} — {scene}" if scene else site
-    return f"[GM BRIEF] {camp} · {when} · {where} · tempo: {tempo(state)}"
+    import weather   # Phase 15: `· light rain, cool` while weather: on
+    return f"[GM BRIEF] {camp} · {when} · {where}{weather.header_bit(state)} · tempo: {tempo(state)}"
 
 
 def _goal_from_bullet(state, m):
@@ -115,13 +119,31 @@ def on_stage(state):
         bit = m.name
         att = front.get("attitude-to-party")
         if att:
-            bit += f" ({att})"
+            bit += f" ({att}{_renown_shift(front, att)})"
         goal = (m.row or {}).get("intent", "").strip() if m.row else ""
         goal = goal if goal and goal not in ("—", "-") else (_goal_from_bullet(state, m) or front.get("default-goal"))
         if goal:
             bit += f" goal: {goal}"
         parts.append(bit)
     return "On stage: " + (" · ".join(parts) if parts else "—")
+
+
+def _renown_shift(front, att):
+    """`→neutral, Red Ledger 3` when faction renown shifts the attitude (Phase 15)."""
+    import renown
+    mode = renown.setting()
+    if mode == "off":
+        return ""
+    if mode == "party":
+        new, why = renown.shift(front, att)
+        return f"→{new}, {why}" if why else ""
+    bits = []
+    for d in campaign.scene_pcs():
+        first = _short(d.front.get("name") or "?")
+        new, why = renown.shift(front, att, first)
+        if why:
+            bits.append(f"{first}: {new}")
+    return (" · " + ", ".join(bits)) if bits else ""
 
 
 def order(state):
@@ -158,6 +180,9 @@ def _pc_numbers(state, doc):
     hp = doc.front.get("hp") if isinstance(doc.front.get("hp"), dict) else {}
     cur, mx, temp = hp.get("current"), hp.get("max"), hp.get("temp") or 0
     ac = doc.front.get("ac")
+    if isinstance(ac, int) and "ac" not in (doc.front.get("overrides") or {}):
+        from lib import magic   # an equipped (attuned) item's AC bonus (Phase 15)
+        ac += magic.bonus(doc, "ac")
     conds = [str(c) for c in (doc.front.get("conditions") or []) if str(c).strip()]
     row = _combat_row(state, doc)
     if row is not None:
@@ -189,7 +214,7 @@ def party(state, settings):
             bit += " " + dying[0]
         if conds:
             bit += " [" + ", ".join(conds) + "]"
-        rest = [t for t in tags if not t.startswith("DYING")]
+        rest = [t for t in tags if not t.startswith("DYING")] + _phase15_tags(doc)
         if rest:
             bit += " " + " ".join(rest)
         xp = doc.front.get("xp")
@@ -199,6 +224,20 @@ def party(state, settings):
             bit += f" XP {xp:,}" + (f"/{nxt:,}" if nxt else "")
         bits.append(bit)
     return "Party: " + (" · ".join(bits) if bits else "—")
+
+
+def _phase15_tags(doc):
+    """`★` (inspiration) and `[enc]` / `[heavy]` (encumbrance on) for the party line."""
+    out = []
+    import inspiration
+    if inspiration.holds(doc.front) and inspiration.setting() != "off":
+        out.append("★")
+    from lib import encumbrance
+    if encumbrance.mode() != "off":
+        tag = encumbrance.status(doc)["tag"]
+        if tag:
+            out.append(tag)
+    return out
 
 
 def sight_line(state):

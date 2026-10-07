@@ -127,6 +127,8 @@ class Actor:
             return "party"
         att = ""
         if self.creature is not None and self.creature.doc is not None:
+            if self.creature.front.get("hired-by"):   # a hireling fights for the party (Phase 15)
+                return "party"
             att = str(self.creature.front.get("attitude-to-party") or "").lower()
         return "foe" if att in ("hostile", "enemy") else "neutral"
 

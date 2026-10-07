@@ -419,7 +419,7 @@ def cmd_time(ctx):
         emit(ctx, advance_time(spec))
         return
     import clock
-    lines, data = clock.advance(spec)
+    lines, data = clock.advance(spec, roller=ctx.roller)
     for line in lines:
         ctx.emit(line)
     ctx.result = data

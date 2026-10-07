@@ -382,6 +382,48 @@ call: no cover, no darkness, no hiding.
 **Traps and hazards** live in the `scene` skill: `trap trigger|disarm|status`, `hazard
 fall|breath|env`. The tools roll the damage; the player rolls the save.
 
+## Optional subsystems (Phase 15)
+
+Each is behind a setting; when one is off, never bring it up.
+
+**Inspiration** (`inspiration: advantage | reroll | off`, default advantage). Award it
+for play that fits the character: acting on a flaw or bond at a cost, a line the table
+loves, a choice that makes the story better. `inspire Kira "the toast to the dead"`
+(one at a time; the party line shows `★`). Say it in the fiction and out loud ("take
+inspiration"). When the player spends it, add `--insp` to their `atk`/`save`/`check`:
+advantage, or under `reroll` the new d20 stands (after a roll they want back: `undo`,
+then the command again with the new d20 and `--insp`).
+
+**Downtime between adventures** (`downtime: light | full | off`). When the story gives
+the party days in a safe place, ask each player what their PC does with them: craft,
+train, research, recuperate, work (`full` adds the campaign's own tables, e.g. crime).
+`downtime Kira craft "chain shirt" 10d [--lifestyle modest]` records progress and moves
+the clock (the world moves too: read the `[TIME]` packet as usual). With several PCs,
+give all but the longest `--no-clock`. Coin for lifestyle, materials and training fees
+is only taken under `upkeep: on` (off by default: the line says what it would cost; don't
+ask for it). `downtime status` shows what's under way.
+
+**Weather** (`weather: on`, default off) is rolled at dawn; the header shows it. Put it
+in every outdoor description. `Light out: Kael's torch (strong wind)` happened: say so.
+
+**Faction renown** (`renown: party | per-pc`, default off). When the party helps or
+crosses a faction, `renown "Red Ledger" +1 "returned the ledger"` (public, with the
+reason). Members start a step warmer at 3+, a step colder below 0; the brief and social
+DCs already apply it (`Mara (wary→neutral, Red Ledger 3)`), so play the warmer attitude.
+
+**Magic items** carry their tags in the inventory line (`srd item <name>` prints them):
+attuning takes a short rest (`rest short --attune Kira="cloak of protection"`),
+`charge Kira wand -1` spends charges (the clock recharges at dawn), an unidentified item
+is written `unidentified: smoky glass ring (GM: ring of mind shielding)` — never say the
+`(GM: …)` name until `identify`. Equipped (and attuned) bonuses count by themselves.
+
+**Hirelings and companions:** `hire "Bren" --wage "2 gp/day" --by Kira` and `companion
+add Kira Ash srd:owl --note familiar` (see `/combat`). **Encumbrance** (`encumbrance:
+basic | variant`, default off): `[enc]` / `[heavy]` on the party line is already in
+speed and rolls; mention the weight only when it matters. **Lingering injuries**
+(`lingering-injuries: on`, default off): on `[consider: gm.py injury Kael]` decide
+whether this blow leaves a mark; `injury Kael` rolls the campaign's own table.
+
 ## Splitting the party
 
 When the PCs go separate ways, split them: `split mill=Grusk inn=Kael,Kira` (PC or
@@ -512,6 +554,11 @@ them (`<<STAGE /end-session>>`) when a player's words ask for one, never run the
   · `trap trigger pit --who Kael [<save total>]` · `trap disarm pit --who Kira <total>` · `trap status`
   · `hazard fall Kael 20` · `hazard breath Kael` · `hazard env extreme-cold|extreme-heat|underwater|none`
   · `chase start --quarry Veskar [--pursuers Kael,Kira] [--env urban|wild]` · `chase next [--no-dash] [--lose 10]` · `chase dash Kira` · `chase end caught|escaped|gave-up`
+- Optional subsystems: `inspire Kira "why"` · `atk|save|check … --insp` · `ready Kira "trigger → action" | fire | drop`
+  · `attune Kira "<item>" --during-rest` / `rest short --attune Kira="<item>"` · `unattune` · `charge Kira "<item>" -1` · `identify Kira "<item>" [--spell]`
+  · `srd item <name>` · `downtime Kira craft "chain shirt" 10d [--lifestyle modest] [--no-clock]` · `downtime status`
+  · `companion add Kira Ash srd:owl --acts own|with|mount` · `companion list|drop` · `hire "Bren" --wage "2 gp/day" [--by Kira]`
+  · `mount Kael Horse` / `dismount Kael` · `weather [roll | set "…" | clear]` · `renown "Red Ledger" +1 "why" [--who Kira]` · `injury Kael` · `pc card Kira`
 - Scene & space: `scene enter <loc> [--light dim] --write [--summary "…"]` · `onstage mara --goal "…" --note "…"`
   · `tempo tense [--adj "Mara +5 watching"] [--pos "Mara @bar"]` · `pos Kael near Tobin` · `intent Mara "…"`
   · `tempo calm` · `space dist A B` · `move Kael --to Veskar [--dash]` · `turn` / `turn use bonus|action|object|dash` · `space cone Kael --toward @door --length 15`

@@ -83,6 +83,37 @@ def _exhaustion(c, kind, mode):
     return new, penalty, note
 
 
+def _situational(c, kind, mode, ability=None, atk=None, dist=None, insp=False):
+    """Phase 15 sources of advantage/disadvantage after exhaustion: a heavy load
+    (`encumbrance: variant`), strong wind on a ranged attack (`weather: on`, outdoors),
+    and spent inspiration (`--insp`, last, so nothing is spent when an earlier check
+    refuses). -> (mode, [notes])."""
+    notes = []
+    from lib import encumbrance
+    try:
+        doc = c.doc
+    except Exception:  # noqa: BLE001 — a row with no file
+        doc = None
+    dis = []
+    enc = encumbrance.disadvantage(doc, kind, ability)
+    if enc:
+        dis.append(enc)
+    if kind == "attack" and atk is not None:
+        import weather
+        wind = weather.ranged_note(atk, dist)
+        if wind:
+            dis.append(wind)
+    for note in dis:
+        cancel = mode == "adv"
+        mode = resolve.with_disadvantage(mode, True)
+        notes.append(note + (", adv and dis cancel" if cancel else ""))
+    if insp:
+        import inspiration
+        mode, note = inspiration.spend(c, mode)
+        notes.append(note)
+    return mode, notes
+
+
 def _outcome(outcome, note, margin=None):
     """`SUCCESS by 6 (note)`: the margin is how far the total landed from the DC or the
     other side (02 → Player plans, outcome tiers); None leaves it out (total cover)."""
@@ -173,7 +204,7 @@ def _flanked(state, a, t):
 # ---------- atk ----------
 
 def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, total=None,
-           apply=True, seed=None, roller=None):
+           apply=True, seed=None, roller=None, insp=False):
     """Python API: resolve one attack. Returns (lines, data). One delta per attack:
     the HP change is folded into the atk line (mutations.dmg(log=False))."""
     state = campaign.load_state()
@@ -221,6 +252,8 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
         mode_notes = mode_notes + [exh_note]
     import supplies
     ammo_line = supplies.spend_ammo(a, atk)   # refuses before the roll when out of ammunition
+    mode, more = _situational(a, "attack", mode, atk=atk, dist=dist, insp=insp)
+    mode_notes = mode_notes + more
     roll = _d20(roller, a, atk["hit"] + extra + exh_bonus, mode, d20, total, state, rules)
     outcome, note = resolve.attack(roll, ac, attacker_is_pc=a.is_pc, target_is_pc=t.is_pc,
                                    cover=cover, rules=rules)
@@ -263,7 +296,7 @@ def attack(attacker, target, *, with_=None, mode=None, cover=None, d20=None, tot
 def cmd_atk(ctx):
     a = ctx.args
     lines, data = attack(a.attacker, a.target, with_=a.with_, mode=_mode(a), cover=a.cover,
-                         d20=a.d20, total=a.total, apply=not a.no_apply, roller=ctx.roller)
+                         d20=a.d20, total=a.total, apply=not a.no_apply, roller=ctx.roller, insp=a.insp)
     if not data.get("out_of_reach"):
         import turn
         lines += turn.after_attack(data.get("attacker", a.attacker), bonus=a.bonus) or []
@@ -275,7 +308,7 @@ def cmd_atk(ctx):
 # ---------- save / check ----------
 
 def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None, cover=None,
-                 secret=False, seed=None, roller=None):
+                 secret=False, seed=None, roller=None, insp=False):
     state = campaign.load_state()
     rules = resolve.active_keys()
     c = creatures.get(name, state)
@@ -285,10 +318,11 @@ def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None,
     dc_from_pc = creatures.get(by, state).is_pc if by else False
     mode, exh_bonus, exh_note = _exhaustion(c, "save", mode)
     bonus = c.save_bonus(ab) + exh_bonus
+    mode, more = _situational(c, "save", mode, ability=ab, insp=insp)
     roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
     outcome, note = resolve.save(roll, dc, saver_is_pc=c.is_pc, dc_from_pc=dc_from_pc,
                                  cover=cover, ability=ab, rules=rules)
-    note = ", ".join(x for x in (exh_note, note) if x)
+    note = ", ".join(x for x in [exh_note] + more + [note] if x)
     shown = resolve.save_total(roll, cover, ab)
     rtext = roll.text if shown == roll.total else f"{roll.text} → {shown}"
     margin = None if note.endswith("total cover") else shown - dc
@@ -302,16 +336,22 @@ def saving_throw(name, ability, dc, *, mode=None, d20=None, total=None, by=None,
 
 
 def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, secret=False,
-                  seed=None, roller=None):
+                  seed=None, roller=None, insp=False):
     state = campaign.load_state()
     rules = resolve.active_keys()
     c = creatures.get(name, state)
     vs_pc = creatures.get(vs, state).is_pc if vs else False
     mode, exh_bonus, exh_note = _exhaustion(c, "check", mode)
     bonus = c.skill_bonus(skill) + exh_bonus
+    key = creatures.skill_key(skill)
+    mode, more = _situational(c, "check", mode, ability=creatures.ABILITIES.get(key) or creatures.SKILLS.get(key),
+                              insp=insp)
+    if key == "perception":
+        import weather
+        more = more + [x for x in [weather.perception_note()] if x]
     roll = _d20(roller or dice.Roller(seed), c, bonus, mode, d20, total, state, rules)
     outcome, note = resolve.check(roll, dc, checker_is_pc=c.is_pc, vs_pc=vs_pc, rules=rules)
-    note = ", ".join(x for x in (exh_note, note) if x)
+    note = ", ".join(x for x in [exh_note] + more + [note] if x)
     margin = roll.total - dc
     body = f"{c.name} {creatures.skill_key(skill)}: {roll.text} vs DC {dc} — {_outcome(outcome, note, margin)}"
     _log(body, secret)
@@ -323,7 +363,7 @@ def ability_check(name, skill, dc, *, mode=None, d20=None, total=None, vs=None, 
 def cmd_save(ctx):
     a = ctx.args
     line, data = saving_throw(a.target, a.ability, a.dc, mode=_mode(a), d20=a.d20, total=a.total,
-                              by=a.by, cover=a.cover, secret=a.secret, roller=ctx.roller)
+                              by=a.by, cover=a.cover, secret=a.secret, roller=ctx.roller, insp=a.insp)
     ctx.emit(line)
     for extra in data.get("after", []):
         ctx.emit(extra)
@@ -354,7 +394,8 @@ def cmd_check(ctx):
         lines, data = social_mod.check(
             a.target, a.skill, a.vs, a.ask or "none", leverage=a.leverage, flair=a.flair, pitch=a.pitch,
             appeal=a.appeal, grates=a.grates, why=a.why, goal=a.goal, core=a.core, dc=a.dc_base,
-            d20=a.d20, total=a.total if number is None else number, mode=_mode(a), roller=ctx.roller)
+            d20=a.d20, total=a.total if number is None else number, mode=_mode(a), roller=ctx.roller,
+            insp=a.insp)
         for line in lines:
             ctx.emit(line)
         ctx.result = data
@@ -362,7 +403,7 @@ def cmd_check(ctx):
     if number is None:
         raise RollError("check NAME SKILL DC: the DC is missing (or --ask … --vs <npc> for a social check)")
     line, data = ability_check(a.target, a.skill, number, mode=_mode(a), d20=a.d20, total=a.total,
-                               vs=a.vs, secret=a.secret, roller=ctx.roller)
+                               vs=a.vs, secret=a.secret, roller=ctx.roller, insp=a.insp)
     ctx.emit(line)
     ctx.result = data
 
@@ -467,10 +508,12 @@ def cmd_contest(ctx):
 
 # ---------- registration ----------
 
-def _pc_side(p):
+def _pc_side(p, insp=False):
     x = p.add_mutually_exclusive_group()
     x.add_argument("--d20", type=int, help="the player's natural d20 (tool adds the bonus)")
     x.add_argument("--total", type=int, help="the player's total")
+    if insp:
+        p.add_argument("--insp", action="store_true", help="spend inspiration on this d20 (Phase 15)")
 
 
 def register(sub, g):
@@ -487,7 +530,7 @@ def register(sub, g):
     p.add_argument("--cover", choices=["half", "three-quarters", "total"])
     p.add_argument("--no-apply", action="store_true", help="don't apply the damage")
     p.add_argument("--bonus", action="store_true", help="a bonus-action attack (off-hand, etc.)")
-    _pc_side(p)
+    _pc_side(p, insp=True)
     p.set_defaults(func=cmd_atk)
 
     p = sub.add_parser("save", parents=[g], help="save NAME ABILITY DC [adv|dis]")
@@ -496,7 +539,7 @@ def register(sub, g):
     p.add_argument("--by", help="whose DC it is (a PC's: an NPC tie fails, house rule)")
     p.add_argument("--cover", choices=["half", "three-quarters", "total"])
     p.add_argument("--secret", action="store_true")
-    _pc_side(p)
+    _pc_side(p, insp=True)
     p.set_defaults(func=cmd_save)
 
     p = sub.add_parser("check", parents=[g], help="check NAME SKILL DC [adv|dis] [--secret] | "
@@ -517,7 +560,7 @@ def register(sub, g):
     p.add_argument("--goal", help="the goal it serves (counted toward the wall)")
     p.add_argument("--core", action="store_true", help="the ask would break the core scenario")
     p.add_argument("--dc", dest="dc_base", type=int, help="the starting DC (social-dcs: gm)")
-    _pc_side(p)
+    _pc_side(p, insp=True)
     p.set_defaults(func=cmd_check, take_extra=True)
 
     p = sub.add_parser("contest", parents=[g], help="contest A SKILL B SKILL | contest A SKILL passive")

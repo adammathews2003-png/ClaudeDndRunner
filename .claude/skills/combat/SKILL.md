@@ -88,6 +88,29 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
   notes so its fall shakes the rest. The tool never asks it of the party, nor of
   mindless undead, constructs and oozes. Fled and surrendered foes count for XP;
   surrendered ones are on stage as prisoners after the fight.
+- **Readied actions.** "I wait for the door to open, then shoot": `ready Kira "shoot
+  whoever opens the door"` (it spends nothing yet). Before every other creature's turn
+  `combat next` prints `[Readied: Kira — …]`: if that turn meets the trigger, interrupt it
+  and `ready Kira fire` (her reaction), then resolve the action (`atk …`). An unfired
+  ready lapses at the start of her next turn by itself; `ready Kira drop` lets it go. A
+  readied spell: `ready Kael "when Veskar moves" --spell "hold person"` — the slot goes
+  now and he concentrates on it until it fires or lapses.
+- **Companions and hirelings.** A PC's companions (`companion add Kira Ash srd:owl --acts
+  own|with`) join `combat start` on the party's side with `ctrl Kira`; give one its own
+  initiative with `--init Ash=N` (or the tool rolls it), and `with` places it right after
+  its owner. `[round 1 · up: Ash (Kira's)]` means **ask Kira's player** what Ash does.
+  Hired NPCs (`hire`) fight for the party and check morale against `DC 20 − loyalty` when
+  hurt or when the party is losing; run that save yourself.
+- **Mounts.** `mount Kael Horse` (in combat both need rows; out of combat the horse is one
+  of Kael's companions with `--acts mount`, and the next fight seats him). A controlled
+  mount moves to Kael's initiative right after him and may only Dash, Disengage or Dodge
+  (the tool reminds you); move it and keep Kael on it with `pos`. Kael knocked prone →
+  the tool asks for his DC 10 DEX save (a fail: `dismount Kael`, prone beside it); the
+  horse knocked prone → he falls unless he spends his reaction. `--independent` for a
+  mount that acts on its own initiative.
+- **Inspiration / weather / load.** `--insp` on the player's `atk`/`save` spends their
+  inspiration. Outdoors in a strong wind (`weather: on`) ranged attacks are at
+  disadvantage by themselves; a heavy load (`[heavy]`) is too. Don't add them twice.
 - **Hidden attackers.** A creature with `hidden 17` (from `hide`) attacks with advantage
   and is no longer hidden afterwards; the tool does both. `seek Thug 1 <total>` is an
   active search (an action).
@@ -115,7 +138,8 @@ round. `combat start`/`next` print `[Kael's turn: …]`; the tools track what's 
    - Writes HP/conditions back to the files, marks dead NPCs, ends `combat` rules, runs
      lint, and prints `[XP available: …]` (foes at 0 HP or marked `fled` / `surrendered`;
      `--count` adds the routed, captured or talked-down; `--count-fled` all standing
-     foes, if you judge so). Surrendered foes join On stage as prisoners.
+     foes, if you judge so). Surrendered foes join On stage as prisoners. Companions' HP
+     goes back to their owner's `## Companions` row; readied actions are dropped.
    - `[Ammo: Kira spent 6 arrows; after a search, 3 can be recovered (gm.py item Kira +3
      arrows)]`: if they search, run that `item`. Under `loose` it names who fired: estimate
      with them and spend it with `item Kira -4 arrows`.

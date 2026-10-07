@@ -22,6 +22,9 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
      and don't know it: tell it as a story, never "you're lost"; the navigator tries again
      from where they are (`travel <to> --nav <total>`). `Forced march:` lines are CON
      saves the players roll. See `/gm` → Travel, social asks, hiding.
+   - A `note: Kira is encumbered … (×1.5 time)` line (`encumbrance` on) means the party
+     walks at the loaded PC's pace: say why it took longer. Under `weather: on` describe
+     the day's `weather-now` on the way.
 2. Read the output (never paste it):
    - `[TRAVEL]` route and time; `passes:` real landmarks for the journey's narration.
    - `Encounter [SECRET …]` rolls: an `ENCOUNTER …` result is a fight or event to run

@@ -34,7 +34,12 @@ and the generation runs in a forked context that returns a shape card.
    `track-light` on | off, `death-save-rolls` open | secret, `exhaustion` 2014 | 2024,
    `travel-detail` summary | activities, `getting-lost` on | off, `social-dcs` dmg | gm,
    `creativity` off | light | generous (generous suits a comedy), `morale` on | off,
-   `chases` dmg | narrative) keep their defaults unless the seed touches them.
+   `chases` dmg | narrative; Phase 15: `inspiration` advantage | reroll | off, `downtime`
+   off | light | full, `weather` off | on, `encumbrance` off | basic | variant, `renown`
+   off | party | per-pc, `lingering-injuries` off | on, `upkeep` off | on — lifestyle,
+   materials and wages in coin; this table keeps bookkeeping off) keep their defaults
+   unless the seed touches them (a faction-heavy seed: `renown=party`; a wilderness
+   seed: `weather=on`). Lingering injuries need the campaign's own `tables/injuries.md`.
 3. **Write the seed verbatim** to a scratch file (e.g. `<slug>-seed.md` in your scratch
    space, or pass the text you have), then:
    `python engine/gm.py campaign new <slug> --area "<starting area>" --set length="3-5 sessions" start-level=3 difficulty=hard shape=mystery tone=comedic … [--set "mechanics=time-loop"] --seed-file <seed file>`

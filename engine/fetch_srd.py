@@ -19,7 +19,7 @@ REPO = "5e-bits/5e-database"
 DIR = "src/2014/en"
 LISTING = f"https://api.github.com/repos/{REPO}/contents/{DIR}"
 # Phase 4 needs these; Phase 6 adds Classes, Subclasses, Levels, Features, Races,
-# Subraces, Traits, Equipment, Backgrounds (pass them with --only).
+# Subraces, Traits, Equipment, Backgrounds; Phase 15 adds Magic-Items (pass them with --only).
 WANTED = ("Monsters", "Spells", "Conditions")
 OUT = Path(__file__).resolve().parents[1] / "data" / "srd"
 

@@ -33,7 +33,7 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 12 | 2d | `split` (splitting the party: groups, slices, per-group clocks, sensing, join) + `/gm` guidance (02 → Splitting the party) | [x] 2026-10-06 |
 | 13 | 2e | Table bookkeeping: `conc`, dying/`deathsave`, carried light sources, supplies, exhaustion, content boundaries + `!x` (02 → Table mechanics) | [x] 2026-10-07 |
 | 14 | 2f | Exploration and pressure: travel activities + getting lost, social DCs, morale, chases, traps and hazards, hiding as a state | [x] 2026-10-07 |
-| 15 | 2g | Optional subsystems: inspiration, readied actions, magic items, downtime, companions, weather, encumbrance, renown, mounts, injuries | [ ] |
+| 15 | 2g | Optional subsystems: inspiration, readied actions, magic items, downtime, companions, weather, encumbrance, renown, mounts, injuries | [x] 2026-10-07 |
 | 16 | 2h | Table extras: pre-rolls + first-session how-to-play talk, carousing (`carouse`, `table import`, starter table), critical hit die | [ ] |
 | 17 | 2i | Discord bridge in `table.py`: queue and auto modes, channel output, player map | [ ] |
 

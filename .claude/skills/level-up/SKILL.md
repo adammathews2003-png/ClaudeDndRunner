@@ -22,5 +22,13 @@ allowed-tools: Bash(python engine/gm.py:*), PowerShell(python engine/gm.py:*), R
    - With `hp-method: roll` the tool rolls the hit die publicly (paste the roll line);
      `--hp-roll N` if the player rolled their own.
    - `--apply` refuses while a choice is unanswered and lists it: ask that, then retry.
-5. One level per flow; repeat while `level-pending` is still higher than the level.
+5. **Magic items in the card.** After the level, `python engine/gm.py pc card <pc>` shows the
+   written PC: live AC, saves and attacks with equipped (and attuned) magic items counted
+   (`AC 15 (14 + items)`), `Magic items: … · attuned 2/3`, and the load under
+   `encumbrance`. The file's `ac:` stays the base (armour and shield): never fold an item's
+   `ac +1` into it or into `overrides`. A new magic item goes in with its tags (`srd item
+   <name>` prints them: `item <pc> + "cloak of protection (uncommon, attune, ac +1, saves
+   +1)"`), and attuning takes a short rest (`rest short --attune <pc>="<item>"`, three at
+   most). Mention an unattuned or unequipped item if the player expects its bonus.
+6. One level per flow; repeat while `level-pending` is still higher than the level.
    Multiclassing is custom: record it in Features and treat the PC as their primary class.

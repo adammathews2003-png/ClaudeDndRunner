@@ -279,8 +279,11 @@ def item(name, sign, text, reason="", count=None):
         new = prefix + ", ".join(entries) + ("," if trailing and entries else "")
         doc.body[j] = new.rstrip()
     doc.save()
-    body = f"item {c.name} {sign}{text}" + (f" ({reason})" if reason else "")
+    from lib import magic   # an unidentified item's `(GM: true name)` stays out of public lines (Phase 15)
+    body = f"item {c.name} {sign}{magic.public(text)}" + (f" ({reason})" if reason else "")
     journal.log_delta(body)
+    if magic.has_gm(text):
+        journal.log_delta(f"item {c.name} {sign}{text}", gm=True)
     return f"[{body}]", {"name": c.name, "sign": sign, "item": text}
 
 
@@ -340,6 +343,56 @@ def coin(name, change):
     body = f"coin {c.name} {old}→{old + delta} {denom}"
     journal.log_delta(body)
     return f"[{body}]", {"name": c.name, "denom": denom, "from": old, "to": old + delta}
+
+
+def parse_cost(text):
+    """`2 gp`, `1 sp`, `2 gp/day`, `0` -> copper pieces (None when unreadable)."""
+    m = re.match(r"^\s*(\d+(?:\.\d+)?)\s*(pp|gp|ep|sp|cp)?\b", str(text or "").lower())
+    if not m:
+        return None
+    rate = {"pp": 1000, "gp": 100, "ep": 50, "sp": 10, "cp": 1}[m.group(2) or "gp"]
+    return int(round(float(m.group(1)) * rate))
+
+
+def fmt_cost(cp):
+    if cp % 100 == 0:
+        return f"{cp // 100} gp"
+    if cp % 10 == 0:
+        return f"{cp // 10} sp"
+    return f"{cp} cp"
+
+
+def purse(doc):
+    """Copper's worth of the coin in a file's `## Inventory` (the `Coin:` line, else the
+    first line naming coins)."""
+    span = doc.section("Inventory") if doc is not None else None
+    if span is None:
+        return 0
+    lines = [doc.body[j] for j in range(span[0] + 1, span[1])]
+    line = next((x for x in lines if re.match(r"^\s*-\s+Coin:", x)), None) or \
+        next((x for x in lines if re.search(r"\b\d+\s*(pp|gp|ep|sp|cp)\b", x)), "")
+    return sum(parse_cost(f"{n} {d}") for n, d in re.findall(r"\b(\d+)\s*(pp|gp|ep|sp|cp)\b", line.lower()))
+
+
+def pay(name, cp):
+    """Take `cp` copper's worth from a PC's coin (Phase 15: lifestyle, materials, wages):
+    in one denomination when the purse has it, else whole gold with the change back in
+    silver and copper. -> [lines]; raises InventoryError when they can't pay."""
+    if cp <= 0:
+        return []
+    exact = fmt_cost(cp).replace(" ", "")
+    try:
+        return [coin(name, "-" + exact)[0]]
+    except InventoryError:
+        pass
+    gold = -(-cp // 100)
+    lines = [coin(name, f"-{gold}gp")[0]]
+    change = gold * 100 - cp
+    if change // 10:
+        lines.append(coin(name, f"+{change // 10}sp")[0])
+    if change % 10:
+        lines.append(coin(name, f"+{change % 10}cp")[0])
+    return lines
 
 
 # ---------- resources ----------

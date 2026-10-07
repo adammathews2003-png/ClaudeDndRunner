@@ -477,7 +477,61 @@ def cmd_check(ctx):
     ctx.result = {"missing": s.missing, "fields": s.fields, "warnings": s.warnings}
 
 
+def file_card(doc):
+    """`pc card <pc>` for a written PC (no draft): the live numbers, magic items and
+    attunement, and the load under `encumbrance` (Phase 15)."""
+    from lib import creatures, encumbrance, turnstate
+    import magic
+    f = doc.front
+    c = creatures.get(str(f.get("name")))
+    name = f.get("name")
+    head = f"[CARD] {name} — {f.get('race', '?')} {f.get('class', '?')}"
+    head += f" ({f['subclass']})" if f.get("subclass") else ""
+    lines = [head + f" {f.get('level', '?')}"]
+    sc = f.get("scores") if isinstance(f.get("scores"), dict) else None
+    if sc:
+        lines.append(" | ".join(f"{a.upper()} {sc.get(a, 10)} ({sign(mod(int(sc.get(a, 10))))})" for a in ABBR))
+    hp = f.get("hp") if isinstance(f.get("hp"), dict) else {}
+    base_ac = f.get("ac")
+    ac = c.ac()
+    ac_txt = f"AC {ac}" + (f" ({base_ac} + items)" if isinstance(base_ac, int) and ac != base_ac else "")
+    speed = turnstate.speed_of(c)
+    lines.append(f"HP {hp.get('current', '?')}/{hp.get('max', '?')} · {ac_txt} · speed {speed}"
+                 + (f" (base {f.get('speed')})" if str(speed) != str(f.get("speed")) else "")
+                 + f" · prof {sign(int(f.get('prof') or 2))}")
+    try:
+        saves = [f"{a.upper()} {sign(c.save_bonus(a))}" for a in ABBR]
+        lines.append("Saves: " + ", ".join(saves))
+    except creatures.CreatureError:
+        pass
+    t = doc.table("Attacks")
+    for r in (t.rows if t else []):
+        try:
+            a = c.attack(r.get("name"))
+            lines.append(f"Attack: {a['name']} {sign(a['hit'])}, {a['damage']} {a['dtype']} ({a['range']})".rstrip())
+        except creatures.CreatureError:
+            lines.append(f"Attack: {r.get('name')} {r.get('hit')}, {r.get('damage')}")
+    lines += magic.card_lines(doc)
+    mode = encumbrance.mode()
+    if mode != "off":
+        st = encumbrance.status(doc)
+        lines.append(f"Load: load {st['load']:g}/{st['cap']} lb ({mode})" + (f" {st['tag']}" if st["tag"] else "")
+                     + (f" · not weighed: {', '.join(st['unknown'])}" if st["unknown"] else ""))
+    return lines
+
+
 def cmd_card(ctx):
+    if not draft_path(ctx.args.slug).exists():
+        try:
+            doc = pc_doc(ctx.args.slug)
+        except (PcError, campaign.CampaignError):
+            doc = None
+        if doc is not None:
+            lines = file_card(doc)
+            for line in lines:
+                ctx.emit(line)
+            ctx.result = {"lines": lines}
+            return
     d = load_draft(ctx.args.slug)
     s = chargen.derive(d)
     for line in chargen.card_lines(ctx.args.slug, d, s):

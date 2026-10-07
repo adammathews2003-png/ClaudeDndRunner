@@ -180,6 +180,13 @@ SETTINGS = {
     "social-wall": 3,               # off | <n>: failed tries before a new approach is easier
     "morale": "on",                 # on | off: foes check morale in combat
     "chases": "dmg",                # dmg | narrative
+    "inspiration": "advantage",     # advantage | reroll | off (Phase 15)
+    "downtime": "light",            # off | light | full
+    "weather": "off",               # off | on: rolled at dawn per climate
+    "encumbrance": "off",           # off | basic | variant
+    "renown": "off",                # off | party | per-pc
+    "lingering-injuries": "off",    # off | on
+    "upkeep": "off",                # off | on: lifestyle costs, crafting materials, hireling wages
 }
 
 

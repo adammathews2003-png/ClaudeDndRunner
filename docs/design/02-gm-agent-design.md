@@ -982,20 +982,24 @@ it on.
   `combat next` reminds the GM before each turn whose action could meet a trigger. A
   readied spell holds concentration until released.
 - **Magic items:** attunement (3 items, a short rest to attune), charges with their
-  recharge (rolled at dawn by the clock, with the "destroyed on a 1" roll where the
-  item has one), and identification over a short rest. An item's numbers (`+1 AC`,
+  recharge (rolled at dawn by the clock; the "destroyed on a 1" roll is made when the
+  last charge is spent, as the SRD says), and identification over a short rest. An item's numbers (`+1 AC`,
   `+1 saves`) feed the PC's derived stats while it's equipped (and attuned, if it
   needs to be).
 - **Downtime** (`downtime: off | light | full`): days between adventures spent on an
   activity with progress tracked (crafting at 5 gp of value per day, training 250
   days at 1 gp a day, research, recuperating, working a profession), a lifestyle cost
-  per day, and the clock moved by the days spent (with the world firing as usual).
+  per day (taken from the PC's coin only under `upkeep: on`, off by default like the
+  other bookkeeping; otherwise just stated), and the clock moved by the days spent (with
+  the world firing as usual).
   `full` adds campaign-supplied activity tables (crime, pit fights; carousing is its
   own setting, Phase 16) with their complications.
 - **Allied creatures:** familiars, animal companions, summons, mounts and hirelings
   are combatants on the party's side with a controller. Each acts on the turn the rules
   give it (its own initiative, or the controller's turn) and `combat next` names the
-  controlling player. Hirelings are NPCs with a wage and a loyalty that feeds morale.
+  controlling player. Hirelings are NPCs with a wage and a loyalty that feeds morale
+  (their morale save is DC 20 − loyalty; the only party-side morale check). Wages are
+  charged each day only under `upkeep: on`.
 - **Weather** (`weather: off | on`): rolled each dawn per the region's climate
   (temperature, wind, precipitation). Heavy rain or snow lightly obscures sight;
   strong wind gives disadvantage on ranged attacks and puts out open flames; extreme

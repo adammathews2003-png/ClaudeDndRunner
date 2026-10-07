@@ -851,7 +851,7 @@ status` shows `triggered`; `hazard breath Kael` with CON +1 → `holding breath 
 
 **Guards:** getting lost never moves the party along a route it didn't take; the
 social tool refuses only `--core`; flair is never shown to players and is logged
-before the result; morale never fires for the party side; traps never show their
+before the result; morale never fires for the party side (PCs and companions; Phase 15 hirelings check by loyalty); traps never show their
 `(GM)` details in player output; no straight-line teleport while lost (world frame
 travel only).
 
@@ -883,7 +883,7 @@ actions, companions, mounts), `/level-up` (attunement and magic items in the car
 second `--insp` errors; a readied action prints before the matching turn and clears
 at the owner's turn; a fourth attunement is refused; `charge` at 0 then dawn rolls
 the recharge; `downtime Kira craft "chain shirt" 10d --lifestyle modest` adds 50 gp
-of progress, spends 10 gp of lifestyle and moves the clock 10 days; a familiar
+of progress, spends 10 gp of lifestyle (under `upkeep: on`; by default the line only says so) and moves the clock 10 days; a familiar
 enters `combat start` with `ctrl Kira`; strong wind puts out a lit torch; Kira at
 STR 8 carrying 45 lb with `variant` shows `[enc]` and speed −10; renown 3 with the
 Red Ledger makes a wary member's DC table read as neutral; a mounted fight keeps the
@@ -1428,3 +1428,99 @@ Line references in this plan predate the move; search for the quoted heading.
 - Verified by `engine/tests/test_phase14.py` (43 tests: every Verify bullet and Guard,
   undo of every new mutating command, supplies-off foraging, lint, LF and CRLF trap
   lines, `campaign new --set social-wall=off`). Suite: 420 tests.
+
+## Phase 15 — completion notes (2026-10-07)
+
+- Items (all built): [x] (1) settings `inspiration`, `downtime`, `weather`, `encumbrance`,
+  `renown`, `lingering-injuries` (+ `upkeep`, below) in `campaign.SETTINGS`; [x] (2)
+  `engine/inspiration.py`: `inspire`, `--insp` on `atk`/`save`/`check` (social checks
+  too); [x] (3) `engine/ready.py`: `ready … | fire | drop`, `--spell`, the `combat next`
+  reminders and the lapse; [x] (4) `lib/magic.py` (tags, bonuses, SRD tags) +
+  `engine/magic.py` (`attune`, `unattune`, `charge`, `identify`, the clock's recharge),
+  `rest short --attune / --identify`, `srd item`, `pc card <pc>` for a written PC,
+  `data/srd/5e-SRD-Magic-Items.json` via `fetch_srd.py --only Magic-Items` (the same 5e-bits
+  source as the other SRD files; LICENSE.md regenerated); [x] (5) `engine/downtime.py`;
+  [x] (6)+(10) `engine/allies.py`: `companion add|drop|list`, `hire`, companions in
+  `combat start`/`next`/`end`, wages on the clock, hireling morale, `mount`/`dismount`,
+  the prone falls; [x] (7) `engine/weather.py`; [x] (8) `lib/encumbrance.py` (weights,
+  thresholds) wired into `turnstate.speed_of` (turn, move, chase), `travel`, `roll.py`, the
+  party line and `pc card`; [x] (9) `engine/renown.py` + `state/factions.md`, the shift in
+  `brief` and in `social.check` (the gap Phase 14 left); [x] (11) `engine/injury.py` + the
+  `consider:` line in `conditions_ext.after_hp`; [x] (12) skills `/gm` (an "Optional
+  subsystems" section + cheat sheet), `/combat` (readied actions, companions and
+  hirelings, mounts, inspiration/wind/load), `/level-up` (magic items and attunement in
+  `pc card`), `/campaign-new` (the new settings), `/travel` (the encumbered pace, weather).
+- **Defaults and the bookkeeping preference (c01465e):** a new setting **`upkeep: off |
+  on` (default off)** gates every coin charge over time: lifestyle costs, crafting
+  materials and training fees in `downtime`, and hireling wages on the clock. Off, the
+  line says what it would cost and nothing is taken; the Verify bullet's "spends 10 gp of
+  lifestyle" holds under `upkeep: on` (the test sets it; the Verify text says so).
+  `encumbrance`, `weather`, `renown` and `lingering-injuries` already defaulted off in 04
+  and stay off; weather snuffs torches and sets `environment:` only while on. Kept the
+  spec's gameplay defaults: `inspiration: advantage`, `downtime: light`, the attunement
+  limit, companions in combat, mounts. Magic-item recharge has no setting (it only touches
+  items tagged `recharge`).
+- **Spec fixes (docs updated):**
+  - Key clash: 04's scene key `weather:` is the setting's own key, and a campaign without
+    campaign.md (the POC) keeps its settings in current.md, so the rolled text would read
+    as the setting. The rolled weather is `weather-now:` (04, 06 fixed).
+  - Destroy roll: 06 had the clock make "the destroy roll at 0"; the SRD rolls the d20
+    when the last charge is spent, so `charge` does it then (02, 06 fixed).
+  - Hireling morale: 02/06 say loyalty feeds morale, the Phase 14 Guard says morale never
+    fires for the party side. Hirelings are the one party-side check: WIS save DC 20 −
+    loyalty (loyalty 10 → DC 10, the foes' number); PCs and companions never check (02,
+    06 and the Phase 14 Guard text fixed).
+  - `pc card` only read drafts; "pc card shows load" and "/level-up: magic items in the
+    card" need a written PC, so `pc card <pc>` without a draft prints the file's card.
+  - "Bracketed numbers feed `pc` derivation": they are applied live (lib/creatures.py: AC,
+    saves, the named weapon's attack/damage; the brief's AC; `combat start` seeds the row)
+    and the file's `ac:` stays the base, so equipping or unattuning never needs a
+    re-derive and can't be double-counted (04 says so).
+  - `attune` without `--during-rest` refuses and names the `rest short --attune …` that
+    does it (06 said only "it takes a short rest"). Attunement is checked before the rest
+    is applied. 06 had no syntax for identify-by-rest or the SRD tags: `rest short
+    --identify`, `srd item`.
+- Decisions where the spec was silent:
+  - `--insp` is spent after every refusal check (ammunition, reach), right before the
+    roll; under `reroll` the given d20 is the reroll (`undo` the first one). Inspiration
+    with disadvantage cancels as usual (and is still spent).
+  - Readied text sits in the `conditions` cell (commas → `;`), a held spell as `· held
+    <spell>` with `conc <spell> 2r` (long enough to reach the owner's next turn). `ready`
+    and `ctrl` are combat-only mirrors (`strip_mirrors`); `mounted on`/`ridden by` are not
+    (a rider stays mounted after the fight).
+  - Magic items: the tags are the first parenthesis holding a known tag; bonuses count
+    only on the `- Equipped:` line; an attack/damage bonus counts for the Attacks row the
+    item names, else for every attack; `overrides` win. Recharge times: dawn, dusk,
+    midnight, noon. `identify` keeps the item's own tags, else adds the SRD's.
+  - Downtime: one row per `activity subject`; a finished craft goes into the pack and its
+    row is removed; training adds a Features line; `full` complications are `(GM)` lines.
+    Each call advances the clock (`--no-clock` for parallel PCs). Under `upkeep: on` a
+    purse that can't cover the cost is refused up front (`inventory.purse`/`pay`, change
+    made in silver and copper).
+  - Companions keep the SRD AC; their position starts `?` like everyone's; HP goes back to
+    the Companions row at `combat end`. A `mount` companion of a mounted PC gets `ridden
+    by`; an in-combat `mount` moves the mount's row and init right after the rider.
+  - Weather is rolled once, for the last dawn crossed (not per day of a long skip); the
+    roll detail is a `(GM)` log line; climates have a base °F (06 lists them); outdoors =
+    not in a site of type building/dungeon/cave/… or tagged `indoors`/`underground`; the
+    Perception effects are notes on Perception checks (sight vs hearing can't be told).
+  - Encumbrance: aliases map common pack names (silk rope, hooded lantern, flask of oil,
+    rations) to SRD rows; an unknown entry weighs 0 and is listed on the card; `50 ft` is
+    a length, not a count. Travel scales only `--by foot`.
+  - Renown: `who` is `party` or the PC's first name; `notes` keeps the last reason; the
+    per-pc brief lists each PC whose standing shifts the attitude. The `no, and` hint
+    still lowers the NPC's own (unshifted) attitude.
+  - Injuries: `| roll | result | effect | cure |`, die = highest roll, `--roll N` for a
+    physical die; the result is appended to Features with `(injury)`.
+- Gaps left: forced movement of a mount isn't detected (the GM asks the DEX save); rider
+  and mount positions aren't synced (`pos` both); summons only via `companion add` (no
+  duration); one `weather-now` for the whole party while split; Large/Tiny carrying
+  capacity multipliers aren't applied; vehicles beyond the existing `travel --by` (cart /
+  boat HP and AC rows) aren't modelled; research/recuperate outcomes are the GM's; no
+  lint check for `## Companions`, `## Downtime` or `state/factions.md` rows.
+- Existing tests: none changed (the defaults keep every earlier output).
+- Verified by `engine/tests/test_phase15.py` (37 tests: every Verify bullet, undo of every
+  new mutating command, both Guards — the same command script with every subsystem
+  switched off by hand prints and writes exactly what the defaults do, and with renown,
+  injuries and basic encumbrance on but unused prints the same; no injury or downtime
+  table ships with the engine — plus an LF PC file). Suite: 457 tests.

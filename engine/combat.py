@@ -195,6 +195,10 @@ def start(inits=(), adds=(), surprised=(), frame=None, roller=None, openers=()):
     if missing:
         raise CombatError("players roll initiative: pass --init " + " ".join(f"{n}=N" for n in missing)
                           + " (or set dice-mode: gm-rolls-all)")
+    import allies   # Phase 15: the PCs' companions join on the party's side (`ctrl <PC>`)
+    comp_rows, comp_entries, follow = allies.combat_rows(rows, roller, init_given, used)
+    rows += comp_rows
+    entries += comp_entries
     pending_pos = []
     for name, n, where in _add_specs(adds):
         mon = srd.monster(name)
@@ -214,6 +218,7 @@ def start(inits=(), adds=(), surprised=(), frame=None, roller=None, openers=()):
         raise CombatError("combat start: nobody on stage")
     by_name = {norm_name(r["name"]): r for r in rows}
     ordered = [by_name[n] for n, _, _ in resolve.initiative_order(entries, rules_)]
+    ordered = allies.order(ordered, follow)
     site, area, lay = _party_layout(state)
     block = []
     if lay is not None:
@@ -404,7 +409,9 @@ def morale_check(state=None):
                 continue
             fired.add(tag)
             new.append((u, w, tag))
-    if not new:
+    import allies   # Phase 15: hirelings check too, against DC 20 − loyalty
+    hired = allies.hireling_morale(table, fired)
+    if not new and not hired:
         return []
     line = _MORALE + " " + " · ".join(sorted(fired))
     if j is None:
@@ -421,7 +428,7 @@ def morale_check(state=None):
         journal.log_delta(f"morale {tag}: WIS save DC 10", gm=True)
         out.append(f"[Morale ({w}): {u['name']} — WIS save DC 10 (gm.py save {u['save']} wis 10); "
                    f"fail → flee or surrender (gm.py cond {u['save']} +fled | +surrendered)]")
-    return out
+    return out + hired
 
 
 def next_turn():
@@ -454,6 +461,10 @@ def next_turn():
         lines += _end_of_round(state, round_no - 1, ended_conc, ended_other)
         table = state.table("Combatants")
     new_up = norm_name(table.rows[j]["name"])
+    import allies
+    import ready
+    ctl = allies.controller(table.rows[j])
+    reminders = ready.reminders(table, j)   # Phase 15: readied actions before every other turn
     i, _ = _heading_index(state)
     state.body[i] = f"## Combat — round {round_no} · up: {new_up}"
     budget = turnstate.reset(state, new_up)
@@ -466,9 +477,13 @@ def next_turn():
             pass
     import hazard   # held breath → choking → 0 HP (Phase 14)
     lines += hazard.expiry_lines(ended_other)
-    lines.insert(0, f"[round {round_no} · up: {new_up}]")
+    lines.insert(0, f"[round {round_no} · up: {new_up}" + (f" ({ctl}'s)" if ctl else "") + "]")
     note = _turn_note(table.rows[j])
     lines.insert(1, note or turnstate.turn_start_line(budget))
+    mount_note = allies.turn_note(table.rows[j])
+    if mount_note:
+        lines.insert(2, mount_note)
+    lines += ready.lapse(new_up) + reminders
     dying = conditions_ext.dying_prompt(new_up)
     if dying:
         lines.insert(2, dying)
@@ -581,6 +596,8 @@ def end(count=(), count_fled=False):
                     doc.set_front("status", "dead")
                     lines.append(f"[{name}: status dead]")
                 doc.save()
+        import allies
+        allies.write_back(r)   # a companion's HP back to its owner's Companions row (Phase 15)
         if r.get("side", "").strip().lower() == "foe":
             foes.append((name, ref, cell, gone))
             if gone == "surrendered":

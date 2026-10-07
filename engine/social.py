@@ -130,7 +130,7 @@ def _npc(name):
 # ---------- the check ----------
 
 def check(pc, skill, npc, ask, *, leverage=0, flair=0, pitch=None, appeal=None, grates=False,
-          why=None, goal=None, core=False, dc=None, d20=None, total=None, mode=None, roller=None):
+          why=None, goal=None, core=False, dc=None, d20=None, total=None, mode=None, roller=None, insp=False):
     if core:
         raise SocialError("core scenario (no roll)", output=[f"[social] {CORE}"])
     ask = (ask or "").strip().lower()
@@ -148,6 +148,11 @@ def check(pc, skill, npc, ask, *, leverage=0, flair=0, pitch=None, appeal=None, 
     who = creatures.get(pc, state)
     c, slug, short = _npc(npc)
     att = data.attitude(c.front.get("attitude-to-party"))
+    import renown   # Phase 15: faction standing shifts the attitude the table reads
+    base_att = att
+    shifted, why_shift = renown.shift(c.front, att, who.name)
+    att_txt = f"{att}→{shifted} ({why_shift})" if why_shift else att
+    att = data.attitude(shifted)
     if _setting("social-dcs") == "gm":
         if dc is None:
             raise SocialError("social-dcs: gm — give the starting DC with --dc N")
@@ -155,7 +160,7 @@ def check(pc, skill, npc, ask, *, leverage=0, flair=0, pitch=None, appeal=None, 
     else:
         base = dc if dc is not None else data.starting_dc(att, ask)
     sk = creatures.skill_key(skill)
-    head = f"[social] {who.name.split()[0]} {sk} vs {short} · {att} · {ask}: DC {base}"
+    head = f"[social] {who.name.split()[0]} {sk} vs {short} · {att_txt} · {ask}: DC {base}"
     parts = [f"leverage {leverage:+d}" if leverage else "leverage 0"]
     doc = _doc()
     t = _rows(doc)
@@ -203,11 +208,11 @@ def check(pc, skill, npc, ask, *, leverage=0, flair=0, pitch=None, appeal=None, 
         lines.append(f"  ask: {who.name.split()[0]} {sk} vs DC {final}" + (" with advantage" if adv else "")
                      + f" (then gm.py check {who.name.split()[0]} {sk} --vs {slug} --ask {ask} … <total>)")
         return lines, result
-    line, rd = roll.ability_check(pc, skill, final, mode=mode, d20=d20, total=total, roller=roller)
+    line, rd = roll.ability_check(pc, skill, final, mode=mode, d20=d20, total=total, roller=roller, insp=insp)
     lines.append(line)
     margin = rd["margin"] if rd["outcome"] == "SUCCESS" else -rd["margin"]
     res = data.tier(margin, eff)
-    tail = f" — consider: attitude {short} {data.worse(att)}" if res == "no, and" else ""
+    tail = f" — consider: attitude {short} {data.worse(base_att)}" if res == "no, and" else ""
     lines.append(f"[social] {res}{tail}")
     journal.log_delta(f"[social] {short}: {res}", gm=True)
     result.update({"tier": res, "outcome": rd["outcome"], "margin": margin})

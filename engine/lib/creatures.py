@@ -231,7 +231,15 @@ class Creature:
         if self._srd_only():
             return self.monster.save_bonus(ab)
         saves = [str(s).lower() for s in (self.front.get("saves") or [])]
-        return self.mod(ab) + (self.prof() if ab in saves else 0)
+        return self.mod(ab) + (self.prof() if ab in saves else 0) + self._magic("saves")
+
+    def _magic(self, key, attack=None):
+        """An equipped (and attuned) magic item's bonus (lib/magic.py, Phase 15); 0 for a
+        creature without a file or with the value in `overrides`."""
+        if self.doc is None or key in (self.front.get("overrides") or {}):
+            return 0
+        from . import magic
+        return magic.bonus(self.doc, key, attack)
 
     def skill_bonus(self, skill):
         """Skill total from `skills`, else its ability mod; a bare ability is an
@@ -267,7 +275,7 @@ class Creature:
         self.require_numbers()
         if self.monster is not None and "ac" not in self.front:
             return self.monster.ac
-        return int(self._need("ac"))
+        return int(self._need("ac")) + self._magic("ac")
 
     def max_hp(self):
         """Max HP from the file's `hp`, else the SRD average."""
@@ -350,7 +358,11 @@ class Creature:
                      row.get("damage", ""), re.I)
         if not m:
             raise CreatureError(f"{row.get('name')}: can't read damage {row.get('damage')!r}")
-        return {"name": row.get("name", ""), "hit": int(hit), "damage": m.group(1).replace(" ", ""),
+        damage = m.group(1).replace(" ", "")
+        plus_hit, plus_dmg = self._magic("attack", row.get("name", "")), self._magic("damage", row.get("name", ""))
+        if plus_dmg:   # a magic weapon's bonus (Phase 15)
+            damage += f"{plus_dmg:+d}"
+        return {"name": row.get("name", ""), "hit": int(hit) + plus_hit, "damage": damage,
                 "dtype": (m.group(2) or "").strip(), "range": row.get("range", "").strip(),
                 "notes": row.get("notes", "")}
 

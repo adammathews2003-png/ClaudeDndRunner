@@ -106,7 +106,9 @@ def light(name, source):
     body = (f"light {who} {label} · bright {b} ft, dim {b + dim} ft"
             + (f" · {gametime.fmt_delta(minutes)}" if track else " · not counted") + spent)
     journal.log_delta(body)
-    return [f"[{body}]"]
+    import weather
+    warn = weather.light_warning() if key in ("torch", "candle") else ""
+    return [f"[{body}]"] + ([warn] if warn else [])
 
 
 def tick_light(minutes, docs, old):

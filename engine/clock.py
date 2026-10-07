@@ -23,6 +23,9 @@ Advances `in-game-datetime` and reports everything it crossed:
 - Phase 14 (hazard.py): in extreme cold or heat (`environment:`), each hour crossed asks
   the PCs who aren't exempt for a CON save; `holding-breath` running out turns into
   `choking`, and `choking` running out drops the creature to 0 HP.
+- Phase 15: magic items recharge at their time (`recharge 1d6+1 dawn`, magic.py), the
+  weather is rolled at each dawn under `weather: on` (weather.py), and hireling wages
+  are charged each dawn under `upkeep: on` (allies.py).
 - Scenario `- CLOCK Day N HH:MM:` lines and `## Clocks` bullets that fall inside the
   window fire: printed in full and logged as `(GM)` lines. Whether a beat happens is
   the GM's call.
@@ -235,6 +238,23 @@ def _table_mechanics(old, new, w_old, w_new):
     return out
 
 
+def _phase15(old, new, w_old, w_new, roller):
+    """Phase 15 on the clock (world clock while split): magic items recharge at their
+    time (magic.py), the weather is rolled at dawn (`weather: on`), hireling wages are
+    charged each dawn (`upkeep: on`)."""
+    import allies
+    import magic
+    import weather
+    from lib import dice
+    roller = roller or dice.Roller()
+    if gametime.diff(w_old, w_new) <= 0:
+        return []
+    out = magic.dawn_lines(w_old, w_new, roller)
+    out += weather.dawn_lines(w_old, w_new, roller)
+    out += allies.wage_lines(w_old, w_new)
+    return out
+
+
 def _setting_on(key):
     return str(campaign.settings().get(key, campaign.SETTINGS.get(key, "on"))).strip().lower() != "off"
 
@@ -269,7 +289,7 @@ def clock_lines(state):
     return out
 
 
-def advance(spec, *, log_time=True):
+def advance(spec, *, log_time=True, roller=None):
     state = campaign.load_state()
     old = gametime.parse(state.front.get("in-game-datetime"))
     spec = spec.strip()
@@ -302,6 +322,7 @@ def advance(spec, *, log_time=True):
         lines += ["  " + x for x in hazard.expiry_lines([tuple(e.split()[:2]) for e in expired
                                                           if len(e.split()) > 1])]
     lines += _table_mechanics(old, new, w_old, w_new)
+    lines += _phase15(old, new, w_old, w_new, roller)
     fired, nxt = [], None
     for t, text, src in clock_lines(campaign.load_state()):
         if gametime.diff(w_old, t) > 0 and gametime.diff(t, w_new) >= 0:
@@ -343,7 +364,7 @@ def advance(spec, *, log_time=True):
 
 
 def cmd_clock(ctx):
-    lines, data = advance(" ".join(ctx.args.spec))
+    lines, data = advance(" ".join(ctx.args.spec), roller=ctx.roller)
     for line in lines:
         ctx.emit(line)
     ctx.result = data

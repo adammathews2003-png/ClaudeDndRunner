@@ -32,7 +32,7 @@ from lib.errors import ToolError
 import mutations
 
 INCAPACITATING = ("incapacitated", "paralyzed", "petrified", "stunned", "unconscious")
-_MIRROR = re.compile(r"^(conc|dying|exh)\b", re.I)
+_MIRROR = re.compile(r"^(conc|dying|exh|ready|ctrl)\b", re.I)   # ready/ctrl: Phase 15, combat only
 _DUR = re.compile(r"^(\d+)\s*([rmh])$", re.I)
 _NOTE_ON = re.compile(r"conc→([^;·]*)")
 _NOTE_SAVE = re.compile(r"conc-save (\d+)")
@@ -334,7 +334,11 @@ def after_save(name, ability, dc, outcome):
 
 
 def after_cond(name, cname):
-    """mutations.cond: an incapacitating condition ends concentration."""
+    """mutations.cond: an incapacitating condition ends concentration; prone on a rider
+    or a mount asks for the fall (allies.py, Phase 15)."""
+    if cname == "prone":
+        import allies
+        return allies.after_cond(name, cname)
     if cname not in INCAPACITATING:
         return []
     c = creature(name)
@@ -433,6 +437,8 @@ def after_hp(name, *, is_pc, op, cur, new, mx, taken, hp_lost=0, crit=False):
         lines += damage_line(name, cur, 0)
     if not is_pc:
         return lines
+    if _setting("lingering-injuries") == "on" and (crit or (cur > 0 and new == 0)):
+        lines.append(f"[consider: gm.py injury {name.split()[0]}]")   # Phase 15
     on, _, _ = resolve.death_saves()
     if not on:
         return lines

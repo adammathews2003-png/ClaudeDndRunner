@@ -23,6 +23,8 @@ saves past 8 hours (`--hours`). A failed navigation sends the party off course: 
 `party-location: "@lost"` where the wrong bearing led, and the next `travel` from there
 is straight-line cross-country to the named place (never along a route not taken).
 `travel-detail: summary` (the default) is the one-packet journey above.
+Phase 15: under `encumbrance: basic | variant` a PC slowed by their load sets the pace
+on foot (the time is scaled by base speed / their speed, with a note).
 """
 import math
 import re
@@ -264,6 +266,29 @@ def route(to, pace="normal", by="foot", overland=False, unlocked=False):
     return r
 
 
+def _encumbered(r, by):
+    """Phase 15 (`encumbrance: basic | variant`): a loaded walker slows the party on foot;
+    the trip takes base speed / their speed times as long (noted in the plan)."""
+    from lib import encumbrance
+    if encumbrance.mode() == "off" or by != "foot" or not r.get("minutes"):
+        return
+    worst = None
+    for d in campaign.scene_pcs():
+        base = int(str(d.front.get("speed") or 30).split()[0]) if str(d.front.get("speed") or "30").split()[0].isdigit() else 30
+        now = encumbrance.speed(base, d)
+        if now < base and (worst is None or now / base < worst[1] / worst[2]):
+            worst = (str(d.front.get("name")).split()[0], now, base)
+    if worst is None:
+        return
+    who, now, base = worst
+    if now <= 0:
+        raise TravelError(f"travel: {who} can't move under that load (speed 0): drop something first")
+    factor = base / now
+    r["minutes"] = geo.round_minutes(r["minutes"] * factor)
+    r["notes"].append(f"{who} is encumbered (speed {now} of {base} ft): the party keeps {who}'s pace "
+                      f"(×{factor:.3g} time)")
+
+
 def _head(r, pace, by, night, word="TRAVEL"):
     return (f"[{word}] {r['here']} → {r['loc']} · {geo.fmt_minutes(r['minutes'])} ({r['how']}) · {pace} pace"
             + (f" by {by}" if by != "foot" else " on foot") + (" · at night" if night else ""))
@@ -277,6 +302,7 @@ def travel(to, pace="normal", by="foot", night=False, overland=False, unlocked=F
     if state.section("Chase") is not None:
         raise TravelError("travel: a chase is running (chase end first)")
     r = route(to, pace, by, overland, unlocked)
+    _encumbered(r, by)
     roller = roller or dice.Roller()
     loc, minutes, site, src_site = r["loc"], r["minutes"], r["site"], r["src_site"]
     marched = hours if hours is not None else math.ceil(minutes / 60)
