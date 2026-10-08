@@ -41,7 +41,7 @@ the detailed version. Neither reaches the GM or costs a turn.
 | `!x` | X-card: the GM rewinds and steers away, no questions |
 | `/character …` · `/level-up` · `/map` | make or change a character · level up · show the map |
 | `/end-session` | wrap up and save |
-| `/execute-queue` | Discord: send everything waiting in the queue to the GM |
+| `/execute-queue` | Discord: send everything waiting in the queue to the GM; add it to a line (`I open the door /execute-queue`) to queue that line and send it all |
 | `/queue on\|off` | Discord: turn the queue on or off (or ask the GM: "OOC: turn the queue off") |
 | `/commands` | the detailed list |
 

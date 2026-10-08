@@ -31,16 +31,18 @@ skills say *when* to call a command, and the tools do the math and the file writ
 ## Session start & characters
 
 ### Session-start routine (run by `/gm`)
-1. **Roster:** "Who's at the table today?" Free text ("Alex is Kira, Sam's new,
+1. **Roster** (asked together with step 2 in one message, decided 2026-10-08: "Who's at
+   the table today, and has anything changed with your characters since last time?";
+   the answer to the second is usually no): free text ("Alex is Kira, Sam's new,
    Jo's out"). Each name is matched to a PC file:
    - **Present, known PC** → continue.
    - **Absent PC** → marked `present: false` for the session. They're run on their
      `autopilot` line (05 #12).
    - **New player / new PC** → the character intake loop (below). A pregen is
      offered as the fast path ("or play Kira or Kael, ready now").
-2. **Changes since last time:** one question to the whole table: "Anything change
-   with your characters between sessions? Purchases, gear swaps, retirements?" Each
-   answer goes through the same intake loop in *edit* mode, touching only what changed.
+2. **Changes since last time** (purchases, gear swaps, retirements) come from the same
+   answer; never a separate question. Each change goes through the same intake loop in
+   *edit* mode, touching only what changed. Nothing mentioned = no changes.
 3. **Pending level-ups** (from `level-pending` in a PC file) → the level-up flow
    (below), one PC at a time.
 4. **How to play** (the campaign's first session, and a new player joining later; see

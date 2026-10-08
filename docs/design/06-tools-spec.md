@@ -952,7 +952,9 @@ work the same way, so remote players can roll their own dice and say so.
   queue to the channel whenever it changes (`[queue · 2 waiting — /execute-queue sends
   them]` + one `[Qn user] …` line each; a burst of changes shares one post, and nothing
   posts if the queue was sent first). Any mapped player can type `/execute-queue` to
-  send everything waiting (⚑ lines too; honor system), and `/queue on|off` to switch
+  send everything waiting (⚑ lines too; honor system). It works anywhere in a message as
+  a word of its own: `I open the door /execute-queue` queues the line, then sends the
+  queue (an edit that adds it doesn't send). The host can do the same at the console. Players type `/queue on|off` to switch
   queue ↔ auto. Asking the GM works too ("OOC: turn the queue off"): it ends its reply
   with a hidden `<<QUEUE on|off>>` line and the client switches once the reply ends. A
   switch is posted to the channel. None of these reaches the GM or costs a turn.

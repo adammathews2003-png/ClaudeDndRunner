@@ -140,8 +140,9 @@ class InputState:
         talk = dbridge.TABLE_TALK.match(text)
         if talk:
             return ("local", "table-talk", talk.group(1).strip())
-        if dbridge.EXECUTE.match(text):
-            return ("local", "send", "")
+        rest, run = dbridge.split_execute(text)
+        if run:
+            return ("local", "send", rest)   # the rest (if any) joins the queue, then it all goes
         switch = dbridge.QUEUE_CMD.match(text)
         if switch:
             return ("local", "queue", switch.group(1).strip())
@@ -818,6 +819,12 @@ class Table:
                 if cmd == "quit":
                     break
                 if cmd == "send":
+                    sub = self.inp.handle(arg) if arg else ("skip",)
+                    if sub[0] == "send":
+                        self._echo_host(arg)
+                        b.host_line(arg, sub[1])         # one turn with what was waiting
+                    elif sub[0] == "local":
+                        self.render.notice(f"[{arg} isn't sent with /execute-queue]")
                     prompts = b.take(everything=True)
                     outbox.extend(prompts)
                     if not prompts:
@@ -831,9 +838,7 @@ class Table:
                 self.local_command(cmd, arg)
                 continue
             text = act[1]
-            typed = line.strip()
-            if b.on and not typed.startswith("!") and (not typed.startswith("/") or dbridge.ooc_only(typed) is not None):
-                b.post(f"> {typed}")             # the host's words (and OOC asides) reach the channel too
+            self._echo_host(line)
             if dbridge.XCARD.match(text):
                 outbox.appendleft(text)          # the X-card never waits
             else:
@@ -841,6 +846,12 @@ class Table:
         if task is not None:
             await task                           # let the GM finish the reply
         return await self.close()
+
+    def _echo_host(self, line):
+        """The host's words (and OOC asides) reach the channel too; `/` and `!` lines don't."""
+        typed = line.strip()
+        if self.bridge.on and not typed.startswith("!") and (not typed.startswith("/") or dbridge.ooc_only(typed) is not None):
+            self.bridge.post(f"> {typed}")
 
     def local_command(self, cmd, arg):
         if cmd == "commands":
@@ -897,6 +908,9 @@ class Table:
             except (EOFError, KeyboardInterrupt):
                 break
             act = inp.handle(line)
+            if act[:2] == ("local", "send") and act[2]:
+                self.render.notice("[the queue is for Discord players — sending your line]")
+                act = inp.handle(act[2])
             if act[0] == "skip":
                 continue
             if act[0] == "local":

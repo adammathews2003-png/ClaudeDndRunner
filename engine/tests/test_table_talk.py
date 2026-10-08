@@ -107,7 +107,32 @@ class ExecuteQueue(unittest.TestCase):
         self.assertEqual(b.io.posts, ["[queue empty]"])
 
     def test_host_types_it(self):
-        self.assertEqual(table.InputState(known=set()).handle("/execute-queue"), ("local", "send", ""))
+        inp = table.InputState(known=set())
+        self.assertEqual(inp.handle("/execute-queue"), ("local", "send", ""))
+        self.assertEqual(inp.handle("Bren: I shove him /execute-queue"), ("local", "send", "Bren: I shove him"))
+
+    def test_with_a_line_in_the_same_message(self):
+        """`/execute-queue` with a line sends that line too, in its place after what
+        was waiting (start, end or middle; one turn)."""
+        for text in ("I open the door /execute-queue", "/execute-queue I open the door",
+                     "I open /EXECUTE-QUEUE the door"):
+            b, _ = make("queue")
+            b.on_message(msg(1, "Kael: I watch the stairs", author="ada_lace"))
+            b.on_message(msg(2, text))
+            self.assertEqual(b.entries, [])
+            self.assertEqual(b.take_released(), ["Kael: I watch the stairs\nKira: I open the door"], text)
+        b, _ = make("queue")
+        b.on_message(msg(3, "I open the door /execute-queue"))      # the first line in the queue
+        self.assertEqual(b.take_released(), ["Kira: I open the door"])
+        flush(b)
+        self.assertIn((3, db.SENT), b.io.reactions)
+
+    def test_an_edit_never_sends(self):
+        b, _ = make("queue")
+        b.on_message(msg(1, "I wait"))
+        b.on_edit(1, "I wait /execute-queue")
+        self.assertEqual([e.prompt for e in b.entries], ["Kira: I wait"])
+        self.assertEqual(b.take_released(), [])
 
 
 class QueueSwitch(unittest.TestCase):

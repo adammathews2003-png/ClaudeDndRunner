@@ -41,7 +41,7 @@ XCARD = re.compile(r"^\s*!x(?![\w-])", re.I)        # brief.py's X-card test
 _SPEAKER = re.compile(r"^\s*([A-Z][\w'’-]*)\s*:\s*(.+)$", re.S)  # table._SPEAKER
 NO_PLAYER = {"", "-", "—", "(pregen)", "pregen", "none", "(none)"}   # campaign.NO_PLAYER
 TABLE_TALK = re.compile(r"^\s*/(?:table-talk|tt)(?![\w-])\s*(.*)$", re.I | re.S)
-EXECUTE = re.compile(r"^\s*/execute-queue\s*$", re.I)
+EXECUTE = re.compile(r"(?<!\S)/execute-queue(?!\S)", re.I)   # anywhere in a line, as a word
 QUEUE_CMD = re.compile(r"^\s*/queue(?![\w-])\s*(.*)$", re.I | re.S)
 QUEUE_SWITCH = {"on": "queue", "off": "auto"}       # `/queue on|off`, `<<QUEUE on|off>>`
 BACKOFF = (2, 4, 8, 16, 30, 60)
@@ -171,6 +171,16 @@ def player_pcs(camp):
             continue
         out.setdefault(player.lower(), []).append(name.split()[0])
     return out
+
+
+def split_execute(text):
+    """(the line without `/execute-queue`, whether it was there). `I open the door
+    /execute-queue` queues the line, then sends the queue."""
+    if not EXECUTE.search(text or ""):
+        return text, False
+    rest = EXECUTE.sub("", text)
+    rest = "\n".join(re.sub(r"[ \t]{2,}", " ", x).strip() for x in rest.splitlines())
+    return rest.strip(), True
 
 
 def ooc_only(text):
@@ -452,7 +462,13 @@ class Bridge:
                 self.ignored.add(m.author)
                 self._say(f"[discord: ignoring @{m.author} (not on the map)]")
             return None
-        text = (m.text or "").strip()
+        text, run = split_execute((m.text or "").strip())
+        e = self._line(m, text, player)
+        if run:
+            self.execute(m.author, m.id)   # after the line it came with joined the queue
+        return e
+
+    def _line(self, m, text, player):
         if not text or text.startswith(":"):
             return None                 # empty, or a client command: never from Discord
         talk = TABLE_TALK.match(text)
@@ -460,9 +476,6 @@ class Bridge:
             # chatter for the channel: never queued, never sent to the GM
             if talk.group(1).strip():
                 self._say(f"[table talk] {m.author}: {talk.group(1).strip()}")
-            return None
-        if EXECUTE.match(text):
-            self.execute(m.author, m.id)
             return None
         if player_commands.is_request(text):
             self.post(player_commands.DETAILED)    # answered here: no GM turn
@@ -489,7 +502,7 @@ class Bridge:
         if e is None or e.who == "host":
             return None
         player = self.cfg.users.get(e.who.lower(), e.who)
-        text = (text or "").strip()
+        text = split_execute((text or "").strip())[0]   # an edit never sends the queue
         if not text:
             return self.on_delete(msg_id)
         e.text = text

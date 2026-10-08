@@ -56,7 +56,8 @@ CHARACTERS AND SESSIONS
 
 DISCORD
 • Same as the console: start with your character's name, or just type if you play one PC.
-• /execute-queue     Send everything waiting in the queue to the GM now.
+• /execute-queue     Send everything waiting in the queue to the GM now. Add it to a line
+                     ("I open the door /execute-queue") to send that line along with it.
 • /queue on|off      Queue on: lines wait (the bot posts what's queued). Off: lines go to
                      the GM in batches as they come. Or ask the GM: "OOC: turn the queue off".
 • Edit or delete your message before it's sent and the queue follows.

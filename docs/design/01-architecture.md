@@ -151,8 +151,8 @@ location files: one source of truth.
 
 - **Session start:** `python engine/table.py` resumes or starts the session and sends
   `/gm`, which sets `in-session: true`; the SessionStart hook injects the
-  long brief (scene + recent log) → **session-start routine** (02): roster (who's
-  here; new PCs go through the intake loop) → changes since last time → pending
+  long brief (scene + recent log) → **session-start routine** (02): roster and
+  changes since last time, asked in one message (new PCs go through the intake loop) → pending
   level-ups → recap → play.
 - **During:** `session-current.md` grows as a turn-by-turn log (written by `gm.py`).
 - **Session end (a skill):** the GM writes the summary and does the world tick; then

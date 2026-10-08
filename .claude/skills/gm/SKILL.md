@@ -52,7 +52,11 @@ arithmetic and the bookkeeping.
    `rules/mechanics/time-loop.md`) and follow it. No `campaign.md`, or no `mechanics:` →
    nothing to read; move on without a word about it. Your first words to the table are
    the greeting.
-2. **Roster:** ask "Who's at the table today?" People answer with **player names or PC
+2. **Roster and changes, one question:** ask both in a single message, e.g. "Who's at the
+   table today, and has anything changed with your characters since last time (new gear,
+   purchases, tweaks)? 'No changes' is fine." Never ask the changes question separately
+   or again. (The campaign's first session, with nothing to have changed yet: ask only
+   who's here.) People answer with **player names or PC
    names**. Pass their answer straight to `pc roster --present A,B`: it takes either, and
    a player name marks every PC whose `player:` is that player (the brief's party line
    shows `Grusk (Adam)`). **Don't ask who plays what when the roster already resolved
@@ -64,8 +68,8 @@ arithmetic and the bookkeeping.
    `character` skill yourself with their words (offer a pregen as the fast path).
    Never tell them to type a command. Absent PCs → `pc roster --absent Name` (they run on
    their `autopilot` line).
-3. **Changes since last time:** one question to the table ("Anything change with your
-   characters between sessions?"). Each answer → the `character` skill in edit mode.
+3. **Changes since last time** come from that same answer: each change mentioned → the
+   `character` skill in edit mode. No mention, "no", "same as before" → no changes; go on.
 4. **Pending level-ups** (`level-pending` in a PC file, or the brief's party line) →
    the `/level-up` skill, one PC at a time.
    **Content boundaries.** If the brief says `Table: boundaries not asked yet`, ask once,
