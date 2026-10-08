@@ -829,6 +829,11 @@ python engine/table.py [--campaign poc] [--new] [--model <id>] [--gm-view]
 | A neutral activity line while tools run: `The GM consults their notes…` (no tool names, no counts) | Thinking |
 | Client notices (`[saved]`, connection errors, in generic wording) | Hook-injected context (the brief), system messages, subagent activity |
 
+**Player commands** (decided 2026-10-08; `engine/player_commands.py`): when the table
+opens, the client prints a short list of everything players can type (and posts it to
+the channel when Discord is on). `/commands` or `/help`, at the console or on Discord,
+shows the detailed list. Both are answered by the client, never by the GM.
+
 **Input conventions**
 - Prefix with the speaking PC, `Kira: I check the trapdoor` (05 #10). `:as Kira`
   sets a default prefix for lines typed without one. Unprefixed lines with no default
@@ -943,6 +948,22 @@ work the same way, so remote players can roll their own dice and say so.
   **auto mode** they go like any other line, each as its own prompt (decided 2026-10-07:
   auto holds nothing back; switching to auto releases any ⚑ lines). `:` client commands typed on Discord are ignored.
 - `:discord queue|auto|off` at the terminal switches mode mid-session.
+- **Player-side queue control** (decided 2026-10-08): in queue mode the bot posts the
+  queue to the channel whenever it changes (`[queue · 2 waiting — /execute-queue sends
+  them]` + one `[Qn user] …` line each; a burst of changes shares one post, and nothing
+  posts if the queue was sent first). Any mapped player can type `/execute-queue` to
+  send everything waiting (⚑ lines too; honor system), and `/queue on|off` to switch
+  queue ↔ auto. Asking the GM works too ("OOC: turn the queue off"): it ends its reply
+  with a hidden `<<QUEUE on|off>>` line and the client switches once the reply ends. A
+  switch is posted to the channel. None of these reaches the GM or costs a turn.
+- **`/table-talk …`** (`/tt`): chat among the players. From Discord it is shown on the
+  host's terminal (`[table talk] sam: …`) and nothing else; from the console it is posted
+  to the channel as `> (table talk) …`. Never queued, never sent to the GM.
+- **OOC asides**: a whole line out of character (`/ooc …`, `OOC: …`, `(OOC: …)`,
+  `[ooc …]`, `((…))`) reaches the GM as `(Sam, OOC) …` from Discord or `(OOC) …` from
+  the console (never under the `:as` speaker), as an ordinary line (not ⚑). An aside
+  inside an action line goes as typed. The GM answers asides in parentheses at the
+  bottom of its reply (02 → Out of character).
 - Discord text gets no extra permissions: it reaches the GM as player speech and goes
   through the same PreToolUse gate as everything else.
 - If the connection drops: `[discord: disconnected — retrying]`, then reconnect with
@@ -989,7 +1010,8 @@ section was silent:
    `export DND_DISCORD_TOKEN=…` (the variable wins).
 6. `python engine/table.py --campaign <name> --discord queue`. Players type plain
    text in the channel; a `/…` line they type is sent as an ordinary message (the bot
-   registers no Discord slash commands), which the bridge flags ⚑ for the host.
+   registers no Discord slash commands), which the bridge flags ⚑ for the host in queue
+   mode until the host or a player's `/execute-queue` sends it.
 
 **Out of scope for v1:** private per-player messages (a split group's scene sent only
 to its own players), voice, and dice-roller bots (players report their rolls as text).

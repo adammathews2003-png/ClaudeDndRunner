@@ -27,6 +27,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import player_commands
+
 TOKEN_ENV = "DND_DISCORD_TOKEN"
 TOKEN_FILE = Path(__file__).resolve().parents[1] / ".local" / "discord-token"   # git-ignored
 MODES = ("off", "queue", "auto")
@@ -38,6 +40,10 @@ OPEN_POST, CLOSED_POST = "[the table is open]", "[the table is closed]"
 XCARD = re.compile(r"^\s*!x(?![\w-])", re.I)        # brief.py's X-card test
 _SPEAKER = re.compile(r"^\s*([A-Z][\w'’-]*)\s*:\s*(.+)$", re.S)  # table._SPEAKER
 NO_PLAYER = {"", "-", "—", "(pregen)", "pregen", "none", "(none)"}   # campaign.NO_PLAYER
+TABLE_TALK = re.compile(r"^\s*/(?:table-talk|tt)(?![\w-])\s*(.*)$", re.I | re.S)
+EXECUTE = re.compile(r"^\s*/execute-queue\s*$", re.I)
+QUEUE_CMD = re.compile(r"^\s*/queue(?![\w-])\s*(.*)$", re.I | re.S)
+QUEUE_SWITCH = {"on": "queue", "off": "auto"}       # `/queue on|off`, `<<QUEUE on|off>>`
 BACKOFF = (2, 4, 8, 16, 30, 60)
 
 
@@ -167,10 +173,35 @@ def player_pcs(camp):
     return out
 
 
+def ooc_only(text):
+    """What a line says when the whole line is out of character (`/ooc …`, `OOC: …`,
+    `(OOC: …)`, `[ooc …]`, `((…))`), else None. A line with an OOC aside inside an
+    action (`Kira: I climb (OOC: how long is the rope?)`) isn't one: it goes as typed."""
+    t = (text or "").strip()
+    m = re.match(r"/ooc(?![\w-])\s*(.*)$", t, re.I | re.S)
+    if m:
+        return m.group(1).strip()
+    if t.startswith("((") and t.endswith("))") and "))" not in t[2:-2]:
+        return t[2:-2].strip()
+    pair = {"(": ")", "[": "]"}
+    if t[:1] in pair and t.endswith(pair[t[0]]) and pair[t[0]] not in t[1:-1]:
+        m = re.match(r"ooc\b\s*[:\-–—]?\s*(.*)$", t[1:-1].strip(), re.I | re.S)
+        if m:
+            return m.group(1).strip()
+    m = re.match(r"ooc\b\s*[:\-–—]?\s*(.*)$", t, re.I | re.S)
+    if m:
+        return m.group(1).strip()
+    return None
+
+
 def speaker_line(text, player, pcs):
-    """A Discord line as the GM gets it: `Kira: …` stays; an unprefixed line from a
-    player with exactly one PC speaks for that PC; anything else is table talk,
-    labelled with the player so the GM knows who asked."""
+    """A Discord line as the GM gets it: a whole-line OOC aside is `(Sam, OOC) …`;
+    `Kira: …` stays; an unprefixed line from a player with exactly one PC speaks for
+    that PC; anything else is table talk, labelled with the player so the GM knows who
+    asked."""
+    ooc = ooc_only(text)
+    if ooc is not None:
+        return f"({player}, OOC) {ooc}"
     if _SPEAKER.match(text):
         return text
     mine = pcs.get((player or "").lower(), [])
@@ -322,6 +353,7 @@ class Bridge:
         self.users = users
         self.entries = []
         self.urgent = []            # (prompt, msg_id): X-cards, sent before anything else
+        self.released = []          # prompts a player sent with /execute-queue
         self.ignored = set()
         self.posts = Posts()
         self.outbox = []            # ("post", text) | ("react", msg_id, emoji)
@@ -349,6 +381,20 @@ class Bridge:
         if self._out_event is not None:
             self._out_event.set()
 
+    def _echo_queue(self):
+        """Queue mode: post the queue to the channel. Changes made before the post goes
+        out share one post (it's written when it is sent)."""
+        if self.mode == "queue" and ("queue",) not in self.outbox:
+            self._queue_out("queue")
+
+    def queue_post(self):
+        """The channel's view of the queue, or None when it's empty."""
+        if not self.entries:
+            return None
+        k = len(self.entries)
+        head = f"[queue · {k} waiting — /execute-queue sends {'it' if k == 1 else 'them'}]"
+        return "\n".join([head] + [e.show() for e in self.entries])
+
     def _add(self, who, text, prompt, msg_id=None, flagged=False, own=False):
         if not self.entries:
             self._next = 1
@@ -368,6 +414,8 @@ class Bridge:
         return None
 
     def _resolve_discord(self, text, player):
+        if ooc_only(text) is not None:
+            return speaker_line(text, player, self.pcs()), False, False   # `/ooc …` is a line, not a command
         if text.startswith("/"):
             # a slash command waits for the host (⚑) only in queue mode; auto sends it
             return self.interpret(text), self.mode != "auto", True
@@ -407,6 +455,23 @@ class Bridge:
         text = (m.text or "").strip()
         if not text or text.startswith(":"):
             return None                 # empty, or a client command: never from Discord
+        talk = TABLE_TALK.match(text)
+        if talk:
+            # chatter for the channel: never queued, never sent to the GM
+            if talk.group(1).strip():
+                self._say(f"[table talk] {m.author}: {talk.group(1).strip()}")
+            return None
+        if EXECUTE.match(text):
+            self.execute(m.author, m.id)
+            return None
+        if player_commands.is_request(text):
+            self.post(player_commands.DETAILED)    # answered here: no GM turn
+            return None
+        switch = QUEUE_CMD.match(text)
+        if switch:
+            self._say(f"[discord: @{m.author} typed {text}]")
+            self._say(self.switch_queue(switch.group(1)))
+            return None
         if XCARD.match(text):
             self.urgent.append(("!x", m.id))
             self._say("[discord: X-card — sent at once]")
@@ -415,6 +480,7 @@ class Bridge:
         prompt, flagged, own = self._resolve_discord(text, player)
         e = self._add(m.author, text, prompt, m.id, flagged, own)
         self._say(e.show())
+        self._echo_queue()
         self.wake()
         return e
 
@@ -430,6 +496,7 @@ class Bridge:
         e.prompt, e.flagged, e.own = self._resolve_discord(text, player)
         e.edited = True
         self._say(e.show())
+        self._echo_queue()
         return e
 
     def on_delete(self, msg_id):
@@ -438,6 +505,7 @@ class Bridge:
             return None
         self.entries.remove(e)
         self._say(f"[Q{e.n} {e.who}] deleted on Discord — dropped")
+        self._echo_queue()
         return e
 
     # -- the host --
@@ -472,6 +540,7 @@ class Bridge:
             e.prompt, e.flagged, e.own = self._resolve_discord(text, self.cfg.users.get(e.who.lower(), e.who))
             if e.msg_id is not None:
                 self._queue_out("react", e.msg_id, EDITED)
+        self._echo_queue()
         return e.show()
 
     def drop(self, n):
@@ -481,6 +550,7 @@ class Bridge:
         self.entries.remove(e)
         if e.msg_id is not None:
             self._queue_out("react", e.msg_id, DROPPED)
+        self._echo_queue()
         return f"[dropped Q{n}]"
 
     def clear(self):
@@ -490,6 +560,8 @@ class Bridge:
                 self._queue_out("react", e.msg_id, DROPPED)
         self.entries = []
         self.force = False
+        if self.mode == "queue" and k:
+            self._queue_out("post", "[queue cleared]")
         return f"[queue cleared — {k} dropped]"
 
     def set_mode(self, mode):
@@ -505,6 +577,11 @@ class Bridge:
         elif mode == "off" and was != "off":
             self._queue_out("post", CLOSED_POST)
             self.posts = Posts()
+        if {was, mode} == {"queue", "auto"}:
+            self._queue_out("post", "[queue on — lines wait; /execute-queue sends them]" if mode == "queue"
+                            else "[queue off — lines go to the GM as they come]")
+        if mode == "queue" and was != "queue":
+            self._echo_queue()
         if mode == "auto":
             for e in self.entries:
                 e.flagged = False       # auto holds nothing back, slash commands included
@@ -512,6 +589,36 @@ class Bridge:
         self.wake()
         extra = f" — {len(self.entries)} queued (:q, :send)" if self.entries else ""
         return f"[discord: {mode}]{extra}"
+
+    def switch_queue(self, arg):
+        """`/queue on|off` from the channel or `<<QUEUE on|off>>` from the GM: queue
+        mode on, or off (auto: lines go in batches). Discord itself stays connected."""
+        word = (arg or "").strip().lower()
+        want = QUEUE_SWITCH.get(word)
+        if want is None:
+            return f"[discord: queue {'on' if self.mode == 'queue' else 'off'} — /queue on|off]"
+        if want == self.mode:
+            return f"[discord: the queue is already {word}]"
+        return self.set_mode(want)
+
+    def execute(self, who, msg_id=None):
+        """`/execute-queue` from the channel: everything queued (⚑ lines too) goes to
+        the GM once the reply in progress, if any, ends."""
+        prompts = self.take(everything=True)
+        if not prompts:
+            self._say(f"[discord: @{who} ran /execute-queue — the queue is empty]")
+            self._queue_out("post", "[queue empty]")
+            return []
+        self.released.extend(prompts)
+        self._say(f"[discord: @{who} ran /execute-queue — sending]")
+        if msg_id is not None:
+            self._queue_out("react", msg_id, SENT)
+        self.wake()
+        return prompts
+
+    def take_released(self):
+        out, self.released = self.released, []
+        return out
 
     # -- submitting --
     def take_urgent(self):
@@ -586,7 +693,11 @@ class Bridge:
         while self.outbox and getattr(self.io, "ready", False):
             item = self.outbox.pop(0)
             try:
-                if item[0] == "post":
+                if item[0] == "queue":
+                    text = self.queue_post()
+                    for c in chunks(text) if text else ():
+                        await self.io.post(c)
+                elif item[0] == "post":
                     await self.io.post(item[1])
                 else:
                     await self.io.react(item[1], item[2])

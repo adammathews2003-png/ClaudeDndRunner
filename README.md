@@ -23,6 +23,92 @@ every write goes through the engine (`engine/gm.py`).
 - Needs Python 3.10+; `pip install claude-agent-sdk` for `table.py` only. Trust this folder
   in Claude Code once (open `claude` here and accept) so the allowlist applies.
 
+## Player commands
+
+When the table opens, the console prints the short list below (and posts it to Discord
+when the bridge is on). Type `/commands` (or `/help`) at the console or on Discord for
+the detailed version. Neither reaches the GM or costs a turn.
+
+| type | what it does |
+|---|---|
+| `Kira: I check the trapdoor` | act or speak as your character; add `rolled 16` to roll ahead |
+| no name | table talk to the GM: questions, "what do I see?" |
+| `Kira: I climb (OOC: how long is our rope?)` | an out-of-character aside with an action: the GM narrates first, then answers in `(…)` at the bottom |
+| `(OOC: can we break at 9?)` · `OOC: …` · `/ooc …` · `[ooc …]` · `((…))` | a whole line out of character: answered in `(…)`, the story doesn't move |
+| `/table-talk …` (`/tt …`) | chat with the other players; the GM never sees it |
+| `/overrule …` | retcon something, or add a table rule (honor system) |
+| `/spoilers …` | ask about the secrets behind the screen, or a "what if" |
+| `!x` | X-card: the GM rewinds and steers away, no questions |
+| `/character …` · `/level-up` · `/map` | make or change a character · level up · show the map |
+| `/end-session` | wrap up and save |
+| `/execute-queue` | Discord: send everything waiting in the queue to the GM |
+| `/queue on\|off` | Discord: turn the queue on or off (or ask the GM: "OOC: turn the queue off") |
+| `/commands` | the detailed list |
+
+Host console only: `:as Kira` (default speaker), `:q` / `:send` (or an empty Enter) /
+`:edit n text` / `:drop n` / `:clear` (the queue), `:discord queue|auto|off`,
+`:gm-view on|off`, `:quit`.
+
+## Discord setup
+
+Remote players can join through one Discord channel: they type there and read the
+narration there, while the person running `table.py` stays the host. One-time setup:
+
+1. **Install the library** into the Python that runs the table:
+   `pip install discord.py` (2.x). Without it the table runs normally, console only.
+2. **Create the bot.** Go to <https://discord.com/developers/applications> →
+   **New Application** → name it → **Bot** in the sidebar. Click **Reset Token** and copy
+   the token (you see it once). On the same page, under *Privileged Gateway Intents*,
+   turn on **Message Content Intent** and save. Without it the bot can't read messages.
+3. **Invite it to your server.** **OAuth2 → URL Generator**: tick the `bot` scope, then
+   the permissions **View Channels**, **Send Messages**, **Read Message History** and
+   **Add Reactions**. Open the generated URL, pick your server, authorize. (You need
+   Manage Server on that server.)
+4. **Get the channel id.** In Discord: **User Settings → Advanced → Developer Mode** on.
+   Right-click the channel the game will use → **Copy Channel ID**. If the channel is
+   private, add the bot to it (channel settings → Permissions).
+5. **Store the token** (never in a campaign file, never committed). Either paste it as
+   the only line of `.local/discord-token` in this folder (git-ignored; create the
+   folder), or set it in the shell that starts the table:
+   PowerShell `$env:DND_DISCORD_TOKEN = "…"`, bash `export DND_DISCORD_TOKEN=…`
+   (the variable wins). The client removes it from the environment so the GM's
+   session never sees it.
+6. **Write `campaigns/<name>/discord.md`** with the channel and who's who:
+   ```markdown
+   ---
+   discord: queue          # off | queue | auto
+   channel: 123456789012345678
+   debounce: 4             # auto mode: seconds of quiet before a batch is sent
+   ---
+   | discord user | player |
+   |--------------|--------|
+   | sam_the_bard | Sam    |
+   ```
+   `discord user` is the Discord **username** (not the display name; right-click a
+   member → Copy User ID also works). `player` matches the `player:` on that person's
+   PC sheet, so a player with one PC can type without the name prefix. A row added
+   while the table runs counts from that person's next message.
+7. **Start the table:** `python engine/table.py --campaign <name>` (uses `discord:` from
+   the file) or `--discord queue|auto` for one run. The terminal says
+   `[discord: connected — queue mode]` and the channel gets `[the table is open]` and
+   the command list.
+
+**Queue vs auto.** In **queue** mode Discord lines wait in a numbered queue; the bot
+posts what's waiting, and the host (an empty Enter or `:send`) or any player
+(`/execute-queue`) sends it as one turn. In **auto** mode lines go to the GM in batches:
+those posted while the GM is replying go when it finishes, otherwise after `debounce`
+seconds of quiet. Switch any time: `/queue on|off` on Discord, `:discord queue|auto` at
+the console, or just ask the GM ("OOC: turn the queue off"). The host's own typed lines
+never queue; they go straight to the GM and are echoed to the channel. `!x` always
+skips the queue. Reactions on Discord: ✅ sent, 🗑️ dropped, ✏️ edited by the host.
+
+**Troubleshooting.** `login failed` → the token is wrong or was reset (step 2/5).
+`turn on the bot's Message Content intent` → step 2. `can't see the channel` → wrong
+id, or the bot lacks access to a private channel (step 4). `ignoring @name (not on the
+map)` → add their username to `discord.md` (step 6). Errors are logged, token scrubbed,
+to `campaigns/<name>/.gm/client.log`. More detail: `docs/design/06-tools-spec.md` →
+Discord bridge.
+
 ## Build phases
 
 Status and notes: `docs/build/README.md`. Done: design, POC content, tools (Phases 1–7),

@@ -247,7 +247,7 @@ class Auto(unittest.TestCase):
         b.on_message(msg(1, "hello?"))
         self.assertEqual(b.entries, [])
         flush(b)
-        self.assertEqual(b.io.posts, [db.CLOSED_POST])
+        self.assertEqual(b.io.posts, ["[queue off — lines go to the GM as they come]", db.CLOSED_POST])
         b.set_mode("queue")
         flush(b)
         self.assertEqual(b.io.posts[-1], db.OPEN_POST)
@@ -599,7 +599,7 @@ class Guards(unittest.TestCase):
         src = (TOOLS / "discord_bridge.py").read_text(encoding="utf-8")
         top = [l for l in src.splitlines() if re.match(r"^(import|from) ", l)]
         self.assertFalse([l for l in top if "discord" in l], top)
-        self.assertTrue(all(re.match(r"^(import (asyncio|os|re|time)|from (dataclasses|pathlib) import)", l) for l in top), top)
+        self.assertTrue(all(re.match(r"^(import (asyncio|os|re|time|player_commands)|from (dataclasses|pathlib) import)", l) for l in top), top)
         tsrc = (TOOLS / "table.py").read_text(encoding="utf-8")
         self.assertNotRegex(tsrc, r"(?m)^\s*import discord\b")
 

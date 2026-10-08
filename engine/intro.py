@@ -195,9 +195,12 @@ def how_to_play(for_pc=None):
                    "The number on the die or the total, either is fine, and don't worry about naming the "
                    "right skill. If you might have advantage, roll two dice and give both.")
     out.append("[HOW TO PLAY] Ask anything: what your character sees, knows or remembers, and how a rule "
-               "works. Questions about your own character always get a straight answer.")
+               "works. Questions about your own character always get a straight answer. Out of character, wrap it: "
+               "\"Kira: I climb (OOC: how long is our rope?)\" or a whole line \"(OOC: …)\". /commands lists everything "
+               "you can type.")
     if _discord_on():
-        out.append("[HOW TO PLAY] On Discord it's the same: start with your character's name.")
+        out.append("[HOW TO PLAY] On Discord it's the same: start with your character's name; /table-talk is chat I never see, "
+                   "and /execute-queue sends what's waiting.")
     return out
 
 

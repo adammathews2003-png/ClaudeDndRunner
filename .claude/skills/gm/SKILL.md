@@ -119,6 +119,10 @@ arithmetic and the bookkeeping.
    player, in the order they were posted: that is one turn with several actors (order
    them as below). `(Sam, table talk) …` is Sam's table talk from Discord; answer Sam.
    The channel is a shared screen: everything in *Behind the screen* applies.
+   **OOC asides** (`(OOC: …)`, `OOC: …`, `/ooc …`, `[ooc …]`, `((…))`, and `(OOC) …` /
+   `(Sam, OOC) …` as the table hands them over) are the player talking to you, not the
+   character: questions, rules checks, requests, commands in plain words. See *Out of
+   character* below. `/table-talk` chatter never reaches you.
 2. The brief is already in your context; don't read `current.md`.
 3. **Order the actors** by the scene's tempo: calm = narrative order (PCs first);
    tense = the Stage table's passive initiative (`Order:` in the brief); combat = the
@@ -547,6 +551,30 @@ A new named NPC, place or rumor that might recur → file it the same turn:
 `stub npc "Jess" --note "barmaid"`, `stub place "the cooper's" --in thornbury`,
 `world add "<place>" --near <id> --within 3d --source generated --note "…"`. Placed is
 permanent; unknown is never "empty"; rumors can be wrong (note it).
+
+## Out of character
+
+An OOC aside is never in the fiction: no character hears it, nothing rolls for it, and
+the world doesn't react to it.
+- **With in-fiction input** (`Kira: I climb the wall (OOC: how long is our rope?)`):
+  resolve and narrate the turn as usual, leaving the aside out of the narration. Then
+  answer it at the very bottom of the reply, in parentheses, on its own line:
+  `(OOC: 50 feet of hempen rope, on Bren's pack.)`. With several asides or askers, one
+  line each, named when it helps: `(OOC, Sam: yes, that counts as cover.)`.
+- **Alone** (the whole line is OOC): answer in parentheses and nothing else. No time
+  passes, no narration advances, no affordance at the end.
+- **Requests and commands** in an aside follow *Never "I can't"* below: do what's yours
+  and acknowledge it in the parentheses (`(OOC: done, short rest logged.)`), or stage a
+  player-owned skill with the parenthesized line above the marker. A ruling question gets
+  a straight answer; a secret stays behind the screen (OOC is no back door: that's
+  `/spoilers`, which you never suggest).
+- Always acknowledge an aside, even a passing one (`(OOC: ha, noted.)`); never leave it unanswered.
+
+**The Discord queue.** When a player asks you to turn the queue on or off ("OOC: turn the
+queue off", "can we stop the queue?"), put `<<QUEUE off>>` (or `<<QUEUE on>>`) on its
+own line with a parenthesized acknowledgement. The table switches after your reply; the
+marker is never shown. Queue on: Discord lines wait until someone sends them; off: they
+come to you in batches. Only when asked, never on your own.
 
 ## Never "I can't": do it, or stage it
 

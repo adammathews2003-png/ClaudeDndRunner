@@ -20,8 +20,11 @@ inside dnd-adventure/, and Skill pass; anything else is denied silently and logg
 
 Input: `Kira: I check the trapdoor` speaks as Kira; `:as Kira` sets a default speaker;
 `/<skill>` (a skill under .claude/skills) and `!` lines pass straight through (`!brief`);
-any other `/…` is sent to the GM to interpret (it does the thing in play or stages the
-real command); `:quit`, `:as <PC>`, `:gm-view on|off` are local and never sent.
+a whole-line OOC aside (`/ooc …`, `OOC: …`, `(OOC: …)`) goes as `(OOC) …`; any other
+`/…` is sent to the GM to interpret (it does the thing in play or stages the real
+command); `:quit`, `:as <PC>`, `:gm-view on|off`, `/table-talk …` (chat, posted to
+Discord only) and `/commands` (engine/player_commands.py; the short list prints when the
+table opens) are local and never sent.
 
 Staged commands: a GM reply line `<<STAGE /end-session>>` is never printed; after the
 reply the client asks `Run /end-session? [y/N]` and on yes sends it exactly as if typed.
@@ -46,7 +49,9 @@ numbered queue; an empty Enter or `:send` submits it as one prompt (`:q`, `:edit
 text`, `:drop n`, `:clear`).
 Auto mode: lines go in batches (while the GM replies, then after `debounce` seconds of
 quiet). `!x` jumps the queue; slash commands from Discord wait for the host (⚑) in queue mode only;
-`:discord queue|auto|off` switches. The bot token is read only from DND_DISCORD_TOKEN
+`:discord queue|auto|off` switches. From the channel: `/execute-queue` sends the queue,
+`/queue on|off` (or the GM's `<<QUEUE on|off>>` line, when a player asks it) switches
+queue ↔ auto, and in queue mode the bot posts what's queued. The bot token is read only from DND_DISCORD_TOKEN
 (and removed from the environment); a missing token, package or channel prints one
 notice and the table runs as before.
 """
@@ -61,6 +66,7 @@ import threading
 from pathlib import Path
 
 import discord_bridge as dbridge
+import player_commands
 
 ROOT = Path(__file__).resolve().parents[1]   # dnd-adventure/
 ACTIVITY = "The GM consults their notes…"
@@ -86,6 +92,7 @@ _SPEAKER = re.compile(r"^\s*([A-Z][\w'’-]*)\s*:\s*(.+)$")
 _FENCE = re.compile(r"^\s*(```|~~~)[\w-]*\s*$")
 _END = re.compile(r"<<\s*END\s+TABLE\s*>>", re.I)
 _STAGE = re.compile(r"<<\s*STAGE\s+(/[^<>\n]+?)\s*>>", re.I)
+_QUEUE = re.compile(r"<<\s*QUEUE\s+(on|off)\s*>>", re.I)
 BUILTIN_COMMANDS = {"compact", "context"}   # Claude Code commands that work at the table
 INTERPRET = ("[table: a player typed `{text}`, which isn't a table command. Work out what they "
              "want. If it is something you run in play, do it. If it maps to a skill the "
@@ -130,6 +137,19 @@ class InputState:
             return ("local", cmd, arg.strip())
         if text.startswith("!"):
             return ("send", text)
+        talk = dbridge.TABLE_TALK.match(text)
+        if talk:
+            return ("local", "table-talk", talk.group(1).strip())
+        if dbridge.EXECUTE.match(text):
+            return ("local", "send", "")
+        switch = dbridge.QUEUE_CMD.match(text)
+        if switch:
+            return ("local", "queue", switch.group(1).strip())
+        if player_commands.is_request(text):
+            return ("local", "commands", "")
+        ooc = dbridge.ooc_only(text)
+        if ooc is not None:
+            return ("send", f"(OOC) {ooc}")   # never under the :as speaker
         if text.startswith("/"):
             name = text[1:].split(None, 1)[0].lower() if len(text) > 1 else ""
             if name in self.known:
@@ -166,6 +186,7 @@ class Renderer:
         self.activity_shown = False
         self.staged = []        # `/command …` lines the GM staged this turn
         self.closing = False    # the GM sent <<END TABLE>> (the session is archived)
+        self.queue_switch = None  # "on" | "off": the GM sent <<QUEUE on|off>> this turn
         self.tee = None         # tee(kind, arg): what was shown, for the Discord bridge
 
     def _emit(self, kind, arg=None):
@@ -206,6 +227,12 @@ class Renderer:
                 self.staged.append(cmd)
         if _STAGE.search(line):
             line = _STAGE.sub("", line)
+            if not line.strip():
+                return
+        m = _QUEUE.search(line)
+        if m:
+            self.queue_switch = m.group(1).lower()
+            line = _QUEUE.sub("", line)
             if not line.strip():
                 return
         while True:
@@ -664,6 +691,7 @@ class Table:
         self.public = Renderer(out=_Null(), color=False)
         self.public.tee = b.feed
         b.post(dbridge.OPEN_POST)
+        b.post(player_commands.SHORT)
         loop = asyncio.get_running_loop()
         self._tasks = [loop.create_task(b.connect_loop()), loop.create_task(b.sender())]
         self.render.notice(f"[discord: connecting — {b.mode} mode; :discord queue|auto|off, :q, :send]")
@@ -718,6 +746,12 @@ class Table:
             return [b.clear()]
         if cmd == "discord":
             return [b.set_mode(arg) if arg else f"[discord: {b.mode}]"]
+        if cmd == "queue":
+            return [b.switch_queue(arg)]
+        if cmd == "table-talk":
+            if arg and b.on:
+                b.post(f"> (table talk) {arg}")
+            return []
         return None
 
     async def run_bridged(self, first=()):
@@ -736,6 +770,7 @@ class Table:
                 urgent = b.take_urgent()
                 if urgent:
                     outbox.extendleft(reversed(urgent))
+                outbox.extend(b.take_released())     # a player's /execute-queue
                 if not outbox and b.due():
                     outbox.extend(b.take(everything=False))
                 if outbox:
@@ -755,6 +790,9 @@ class Table:
                 b.busy = False
                 if self.render.closing:
                     break
+                if self.render.queue_switch:
+                    self.render.notice(b.switch_queue(self.render.queue_switch))
+                    self.render.queue_switch = None
                 if self.render.staged:
                     confirm = self._ask(self.render.staged.pop(0))
                 continue
@@ -793,8 +831,9 @@ class Table:
                 self.local_command(cmd, arg)
                 continue
             text = act[1]
-            if b.on and not line.lstrip().startswith(("/", "!")):
-                b.post(f"> {line.strip()}")      # the host's words reach the channel too
+            typed = line.strip()
+            if b.on and not typed.startswith("!") and (not typed.startswith("/") or dbridge.ooc_only(typed) is not None):
+                b.post(f"> {typed}")             # the host's words (and OOC asides) reach the channel too
             if dbridge.XCARD.match(text):
                 outbox.appendleft(text)          # the X-card never waits
             else:
@@ -804,7 +843,17 @@ class Table:
         return await self.close()
 
     def local_command(self, cmd, arg):
-        if cmd == "gm-view":
+        if cmd == "commands":
+            for line in player_commands.DETAILED.splitlines():
+                self.render.notice(line)
+            if self.bridge is not None and self.bridge.on:
+                self.bridge.post(player_commands.DETAILED)
+        elif cmd == "table-talk":
+            if not arg:
+                self.render.notice("[/table-talk <message> — chat the GM never sees]")
+        elif cmd in ("queue", "send"):
+            self.render.notice("[the queue is for Discord players — :discord queue starts the bridge]")
+        elif cmd == "gm-view":
             self.gm_view = arg.lower() != "off"
             self.render.notice(f"[gm-view {'on' if self.gm_view else 'off'}]")
         elif cmd == "as":
@@ -818,6 +867,8 @@ class Table:
     async def run(self):
         print(f"{BOLD}The table is open ({self.camp.name}).{RESET} "
               "Speak as `Name: …`; `:as Name`, `:gm-view on|off`, `:quit`.")
+        for line in player_commands.SHORT.splitlines():
+            self.render.notice(line)
         try:
             await self.connect()
         except Exception as e:  # noqa: BLE001
@@ -863,6 +914,9 @@ class Table:
                 self.local_command(cmd, arg)
                 continue
             await self.send(act[1])
+            if self.render.queue_switch:
+                self.render.queue_switch = None
+                self.render.notice("[the queue is for Discord players — :discord queue starts the bridge]")
             await self.confirm_staged()
             if self.render.closing:
                 break

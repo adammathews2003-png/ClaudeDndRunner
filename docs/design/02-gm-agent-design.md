@@ -1106,7 +1106,19 @@ target), `atk` rolls the crit die instead of just doubling the dice:
 
 **Discord** (Phase 17) is about the table client, not the GM: see 06 → Table client →
 Discord bridge. The GM treats a line from Discord exactly like a typed line. The channel
-counts as a shared screen, so everything in *Behind the screen* applies to it.
+counts as a shared screen, so everything in *Behind the screen* applies to it. When a
+player asks to turn the Discord queue on or off, the GM ends its reply with
+`<<QUEUE on|off>>` (never shown; the client switches).
+
+**Out of character** (decided 2026-10-08). `(OOC: …)`, `OOC: …`, `/ooc …`, `[ooc …]` and
+`((…))` mark the player talking to the GM, not the character: a question, a rules check,
+a request or a command in plain words. Nothing in the fiction hears it or reacts to it,
+and it never prompts a check. With in-fiction input on the same line or turn, the GM
+resolves and narrates the turn first, then answers each aside at the very bottom, in
+parentheses on its own line (`(OOC: 50 feet of rope, on Bren's pack.)`). A whole-line
+aside gets only the parenthesized answer: the story doesn't move. Requests follow
+*Never "I can't"* (do it and acknowledge it, or stage it). Every aside is acknowledged.
+`/table-talk` lines are chat among the players and never reach the GM.
 
 ## Spatial model (theater of the mind, backed by coordinates)
 
