@@ -2,7 +2,8 @@
 → Session start; 04 → Campaign file `## Why you're here`).
 
 `intro` prints the title card (block letters; "Our tale begins" for the campaign's first
-session, "Our tale continues" after that) for the GM to paste in a code block, then GM-only
+session, "Our tale continues" after that; skipped at the first session once `session start`'s
+campaign-start block has shown it) for the GM to paste in a code block, then GM-only
 bracket lines:
 - `[INTRO first|resume · session N]`
 - `[PREMISE] …`: the player-safe premise (campaign.md, else the active scenario)
@@ -10,6 +11,7 @@ bracket lines:
   (else the active scenario) holds `- ` bullets: one bullet is the reason; several are
   options the players choose from; none means the GM invents 2–4 that fit the premise
   and the opening and asks "Why are you here?". A `Chosen: …` line is the answer.
+- `[PARTY TIES] …` (first session, two or more PCs): ask how the characters know each other.
 - `[TELL THE TABLE] …` (after the INTRO line; first session only, while `social-wall` is on; Phase 14): the
   one plain-words mention that repeated tries with an NPC can get easier.
 `intro --why "<text>"` records the answer as that `Chosen:` line (the section is created
@@ -147,6 +149,14 @@ def _given():
     return False
 
 
+def _curtain_raised():
+    p = campaign.session_log_path()
+    try:
+        return "[intro] curtain raised" in p.read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
 def _example_pc(want=None):
     pcs = [d for d in campaign.pcs() if d.front.get("present") is not False]
     if want:
@@ -183,7 +193,7 @@ def how_to_play(for_pc=None):
             out.append(f"[HOW TO PLAY for {who}] On Discord it's the same: start with your character's name.")
         return out
     out = ["[HOW TO PLAY] (say it in your own table voice once the characters are settled, before the "
-           "title card: six lines at most, one example each)",
+           "premise and the first scene: six lines at most, one example each)",
            f"[HOW TO PLAY] Speak as your character: start the line with their name, \"{who}: I check the "
            "trapdoor.\" Your own name works too if you play one character. A line with no name is table "
            "talk: questions for me, or chatter among yourselves.",
@@ -230,10 +240,14 @@ def lines():
     if first and not _given():   # the how-to-play talk, once per campaign (Phase 16)
         out += how_to_play()
         _log_given()
-    out += banner.card(title(), "Our tale begins" if first else "Our tale continues")
+    if not (first and _curtain_raised()):   # campaign start already showed it (session start)
+        out += banner.card(title(), "Our tale begins" if first else "Our tale continues")
     out.append(f"[INTRO {'first' if first else 'resume'} · session {n + 1}]")
     if first:
         out += tell_the_table()
+        if len(campaign.pcs()) > 1:
+            out.append("[PARTY TIES] ask with the why: how do your characters know each other? "
+                       "(record anything that sticks in the PC files' notes)")
     import split
     resume = split.resume_line()
     if resume:

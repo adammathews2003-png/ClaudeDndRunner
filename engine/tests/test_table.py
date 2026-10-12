@@ -189,3 +189,27 @@ class Guards(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Resume(unittest.TestCase):
+    """A never-played campaign never resumes a saved conversation (2026-10-11)."""
+    def test_unplayed_campaign_starts_fresh(self):
+        import argparse
+        with tempfile.TemporaryDirectory() as d:
+            camp = Path(d)
+            (camp / ".gm").mkdir()
+            (camp / "sessions").mkdir()
+            (camp / ".gm" / "session-id").write_text("abc\n", encoding="utf-8")
+            log = camp / "sessions" / "session-current.md"
+            log.write_text("# Session log\n\n(no turns yet — campaign not started)\n", encoding="utf-8")
+            args = argparse.Namespace(campaign=str(camp), new=False, model=None, gm_view=False)
+            t = table.Table(args, token="")
+            self.assertIsNone(t.saved_session())                        # wiped back to unplayed
+            log.write_text("# Session log\n\n[turn 1]\n  - session start\n", encoding="utf-8")
+            self.assertEqual(t.saved_session(), "abc")                  # mid-session: resume
+            log.write_text("# Session log\n\n(no turns yet — new session)\n", encoding="utf-8")
+            (camp / "sessions" / "history").mkdir()
+            (camp / "sessions" / "history" / "session-01.md").write_text("# s1\n", encoding="utf-8")
+            self.assertEqual(t.saved_session(), "abc")                  # played before: resume as ever
+            args.new = True
+            self.assertIsNone(t.saved_session())

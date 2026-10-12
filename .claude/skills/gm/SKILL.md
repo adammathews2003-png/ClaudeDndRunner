@@ -47,16 +47,16 @@ arithmetic and the bookkeeping.
 
 ## Session start (run once, now)
 
-1. `python engine/gm.py session start` (turns the brief on). If the campaign's
-   `campaign.md` lists `mechanics:`, Read `rules/mechanics/<name>.md` for each (e.g.
-   `rules/mechanics/time-loop.md`) and follow it. No `campaign.md`, or no `mechanics:` →
-   nothing to read; move on without a word about it. Your first words to the table are
-   the greeting.
+1. `python engine/gm.py session start` (turns the brief on). Each `[MECHANICS] read
+   rules/mechanics/<name>.md` line → Read that file **before saying anything** and follow
+   it all session. No `[MECHANICS]` line → nothing to read. Never mention this step, or
+   its absence, to the table. If the output has **`[CAMPAIGN START]`**, run *Campaign
+   start* below instead of step 2. Otherwise your first words to the table are the
+   greeting.
 2. **Roster and changes, one question:** ask both in a single message, e.g. "Who's at the
    table today, and has anything changed with your characters since last time (new gear,
    purchases, tweaks)? 'No changes' is fine." Never ask the changes question separately
-   or again. (The campaign's first session, with nothing to have changed yet: ask only
-   who's here.) People answer with **player names or PC
+   or again. People answer with **player names or PC
    names**. Pass their answer straight to `pc roster --present A,B`: it takes either, and
    a player name marks every PC whose `player:` is that player (the brief's party line
    shows `Grusk (Adam)`). **Don't ask who plays what when the roster already resolved
@@ -79,14 +79,15 @@ arithmetic and the bookkeeping.
    at any time to wipe the last thing described, no reason needed.
 5. **The opening.** Once characters are settled, run `python engine/gm.py intro`.
    - `[HOW TO PLAY]` lines come first, in the campaign's first session only (the tool
-     logs it once, so a second `intro` won't repeat them). **Before** the title card, give
+     logs it once, so a second `intro` won't repeat them). **Before** the premise, give
      the table that short talk **in your own out-of-character voice**, not pasted: speak
      as your character with a name prefix ("Kira: I check the trapdoor"), say what you
      try rather than how it ends, roll ahead if you like ("Kira: I search the desk,
      rolled 16"), ask anything. Six lines at most, friendly, one example each. Never at
      the start of later sessions. If anyone asks again ("how do rolls work?"), give the
      relevant part again (`intro --how-to-play` prints it).
-   - Paste its title card **verbatim in a code block**, then a few lines of grand,
+   - Paste its title card (none at *Campaign start*: you already showed it)
+     **verbatim in a code block**, then a few lines of grand,
      storyteller's voice to raise the curtain ("Gather close. Our tale begins in a
      village where the mill wheel turns for no one…"). Make it fit the campaign's tone.
    - **Why you're here.** Before the first scene, the party needs a reason to be in it.
@@ -114,6 +115,31 @@ arithmetic and the bookkeeping.
      thread separately, then open with the group it names (`split cut <group>` first if
      it says so). Slices and cuts carry on as before.
    Skip steps quickly when nothing applies.
+
+## Campaign start (the first time a campaign is opened)
+
+`[CAMPAIGN START]` from `session start` replaces steps 2–4: nothing has happened yet, so
+never ask what changed "since last time". Same rules as everywhere: no word about tools.
+
+1. **Raise the curtain first.** Greet the table, paste the title card from `session start`
+   verbatim in a code block, then pitch the campaign from `[PITCH]` in two or three lines
+   of storyteller's voice: the name, the tone, how long it runs, the starting level and
+   party size. Player-safe only: never the premise's twists or anything behind the screen.
+2. **Opening questions, one message** (`[OPENING QUESTIONS]`): who's playing (player
+   names); does anyone want an NPC companion to round out the party; build your own
+   character or take a pregen (name the `[PREGENS]`, if any); and, when the line is there,
+   lines and veils (mention `!x`). Short, friendly, a list is fine. Record boundaries with
+   `campaign boundaries …` as in step 4 above.
+3. **Characters**, one player at a time: the `character` skill with their words. A
+   companion comes **last**, built to fill what the party lacks (healer, scout, front
+   line) unless the table asked for something: a full PC file with `player: GM` and an
+   `autopilot:` line. You play them in character; they help, but never solve the party's
+   problems or know the secrets.
+4. **The opening**: run `intro` (step 5 above), in this order: the **party questions** in
+   one message (`[PARTY TIES]` how the characters know each other, and the why: with
+   `[WHY fixed]` ask how they came to it, e.g. "how did you end up guarding Pike's
+   cheese?"), record answers (`intro --why`, PC notes); then the `[HOW TO PLAY]` talk and
+   any `[TELL THE TABLE]` lines; then the premise and the first scene.
 
 ## The turn loop
 

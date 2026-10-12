@@ -54,6 +54,52 @@ class Intro(CampaignCase):
         self.assertIn("[INTRO resume · session 2]", lines)
 
 
+class CampaignStart(CampaignCase):
+    """`session start` at the campaign's first opening (02 → Campaign start, 2026-10-11)."""
+    def campaign_md(self, extra=""):
+        self.path("campaign.md").write_text(
+            "---\nname: The Still Hour\ntone: comedic\nlength: 3-5 sessions\nstart-level: 3\n"
+            f"players: up to 4\nmechanics: [time-loop]\n{extra}---\n\n# The Still Hour\n\n"
+            "## Premise (player-safe)\nA day that repeats.\n", encoding="utf-8")
+
+    def test_first_opening_block(self):
+        self.campaign_md()
+        code, lines = run_main(["session", "start"])
+        self.assertEqual(code, 0, lines)
+        self.assertIn("[MECHANICS] read rules/mechanics/time-loop.md now and follow it all session", lines)
+        self.assertTrue(any(x.startswith("[CAMPAIGN START]") for x in lines))
+        self.assertTrue(any("Our tale begins" in x for x in lines))
+        self.assertIn("[PITCH] The Still Hour · comedic · 3-5 sessions · level 3 · up to 4 players", lines)
+        self.assertTrue(any(x.startswith("[PREGENS] ") and "Kira" in x for x in lines))
+        self.assertTrue(any("NPC companion" in x for x in lines if x.startswith("[OPENING QUESTIONS]")))
+        self.assertTrue(any("lines and veils" in x for x in lines))
+        log = self.path("sessions/session-current.md").read_text(encoding="utf-8")
+        self.assertIn("[intro] curtain raised", log)
+        intro = run_main(["intro"])[1]                                   # card already shown
+        self.assertFalse(any("Our tale begins" in x for x in intro))
+        self.assertTrue(any(x.startswith("[PARTY TIES]") for x in intro))
+        again = run_main(["session", "start"])[1]                        # how-to-play given: no block
+        self.assertFalse(any(x.startswith("[CAMPAIGN START]") for x in again))
+        self.assertIn("[MECHANICS] read rules/mechanics/time-loop.md now and follow it all session", again)
+
+    def test_boundaries_asked_and_unknown_mechanic(self):
+        self.campaign_md("lines: []\nveils: []\n")
+        _edit(self.path("campaign.md"), lambda t: t.replace("[time-loop]", "[time-loop, heists]"))
+        lines = run_main(["session", "start"])[1]
+        self.assertFalse(any("lines and veils" in x for x in lines))
+        self.assertIn("[MECHANICS] heists: no rules/mechanics/heists.md; run it from campaign.md", lines)
+
+    def test_later_sessions_and_no_campaign_md(self):
+        lines = run_main(["session", "start"])[1]                        # poc: no campaign.md
+        self.assertFalse(any(x.startswith("[MECHANICS]") for x in lines))
+        self.assertTrue(any(x.startswith("[CAMPAIGN START]") for x in lines))
+        (self.camp / "sessions" / "history").mkdir(exist_ok=True)
+        (self.camp / "sessions" / "history" / "session-01.md").write_text("# s1\n", encoding="utf-8")
+        lines = run_main(["session", "start"])[1]
+        self.assertFalse(any(x.startswith(("[CAMPAIGN START]", "[PITCH]")) for x in lines))
+        self.assertTrue(any("Our tale continues" in x for x in run_main(["intro"])[1]))
+
+
 class Map(CampaignCase):
     def test_calm_room_sketch_is_big_and_saves_nothing(self):
         before = self.path("state/current.md").read_text(encoding="utf-8")

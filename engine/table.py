@@ -10,7 +10,9 @@ tool results, thinking, hook-injected context and system messages never reach th
 screen. While tools run, one neutral line appears per turn: `The GM consults their
 notes…`. `--gm-view` shows everything (building and debugging; honor system).
 
-Session: resumed from `<campaign>/.gm/session-id` unless `--new`; then `/gm` is sent
+Session: resumed from `<campaign>/.gm/session-id` unless `--new` or the campaign was never
+played (no session history, no turn in the log: a fresh start never inherits a discarded
+attempt's conversation); then `/gm` is sent
 (when the skill exists). Auto-memory is off for the session (play must not be recorded
 into memories). Permissions: a PreToolUse hook gates **every** tool call (Claude Code
 auto-approves read-only shell commands, so the allowlist alone isn't deny-by-default):
@@ -466,9 +468,23 @@ class Table:
     def _sid_path(self):
         return self.camp / ".gm" / "session-id"
 
+    def unplayed(self):
+        """True for a campaign never played: no session history and no turn in the log.
+        Its saved conversation (if any) is a discarded attempt, so it is never resumed."""
+        hist = self.camp / "sessions" / "history"
+        if hist.is_dir() and any(hist.glob("session-*.md")):
+            return False
+        log = self.camp / "sessions" / "session-current.md"
+        try:
+            return not re.search(r"^\[turn \d+\]", log.read_text(encoding="utf-8"), re.M)
+        except OSError:
+            return True
+
     def saved_session(self):
         p = self._sid_path()
-        return p.read_text(encoding="utf-8").strip() if p.exists() and not self.args.new else None
+        if self.args.new or not p.exists() or self.unplayed():
+            return None
+        return p.read_text(encoding="utf-8").strip() or None
 
     def save_session(self, sid):
         if sid and sid != self.session_id:

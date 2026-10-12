@@ -36,9 +36,11 @@ permissions, the `table.py` client, and the GM skills in `.claude/skills/`.
 | 15 | 2g | Optional subsystems: inspiration, readied actions, magic items, downtime, companions, weather, encumbrance, renown, mounts, injuries | [x] 2026-10-07 |
 | 16 | 2h | Table extras: pre-rolls + first-session how-to-play talk, carousing (`carouse`, `table import`, starter table), critical hit die | [x] 2026-10-07 |
 | 17 | 2i | Discord bridge in `table.py`: queue and auto modes, channel output, player map | [x] 2026-10-07 (live Discord check pending) |
+| 18 | 2j | Proficiencies (armor/weapons/tools, skill profs + expertise), languages, feats; every creation choice offered; GM-built PCs confirmed; `pc migrate` | [ ] planned 2026-10-11 |
 
 Tick a phase here when its verification checklist in `plan.md` passes. Phases 1→7 are
 sequential; 8 can wait indefinitely; 9 needs 1–7; 11 needs 7 and 9; 10 needs 9 and 11; 12 needs 9; 13 needs 12; 14 needs 13 (exhaustion, light); 15 needs 13 and
 the social DCs from 14 for renown, otherwise its items stand alone. 16 needs 13 (death
 saves for the crit die's `kill`, `lines:` for carousing), except its pre-roll item, which
-needs nothing and can be built any time. 17 needs only 5.
+needs nothing and can be built any time. 17 needs only 5. 18 needs 6 (character tools)
+and 15 (downtime `train`).

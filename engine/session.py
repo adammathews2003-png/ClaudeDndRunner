@@ -2,7 +2,13 @@
 `gm.py session archive`; 04 → Session log, Table rules; 01 → Session lifecycle; 05 #4;
 plan.md Phase 7 item 5).
 
-`start` sets `in-session: true` (turns the brief hook on; `/gm` runs it).
+`start` sets `in-session: true` (turns the brief hook on; `/gm` runs it). It prints a
+`[MECHANICS] read rules/mechanics/<name>.md` line for each `mechanics:` entry in campaign.md,
+every session. At the campaign's first start (no session history, how-to-play not yet given)
+it also prints the campaign-start block (02 → Campaign start, decided 2026-10-11): `[CAMPAIGN
+START]`, the title card ("Our tale begins", logged as `[intro] curtain raised` so `intro`
+doesn't repeat it), `[PITCH]` (name, tone, length, level, party size), `[PREGENS]` (unclaimed
+PCs) and the `[OPENING QUESTIONS]` the GM asks in one message instead of the roster check.
 
 `archive` is the mechanics of `/end-session`:
 1. a full `lint` (refuses on errors unless `--force`),
@@ -55,7 +61,66 @@ def start():
     line = split.resume_line()
     if line:
         out.append(line)
+    out += mechanics_lines()
+    if is_campaign_start():
+        out += campaign_start_lines()
     return out, {}
+
+
+def mechanics_lines():
+    """`[MECHANICS] read rules/mechanics/<name>.md` per campaign.md `mechanics:` entry."""
+    p = campaign.campaign_doc_path()
+    if not p.exists():
+        return []
+    names = md.load(p).front.get("mechanics") or []
+    if isinstance(names, str):
+        names = [x.strip() for x in names.strip("[]").split(",")]
+    out = []
+    rules_dir = Path(__file__).resolve().parent.parent / "rules" / "mechanics"
+    for name in (str(x).strip() for x in names):
+        if not name:
+            continue
+        f = rules_dir / f"{name}.md"
+        out.append(f"[MECHANICS] read rules/mechanics/{name}.md now and follow it all session"
+                   if f.exists() else f"[MECHANICS] {name}: no rules/mechanics/{name}.md; run it from campaign.md")
+    return out
+
+
+def is_campaign_start():
+    """The campaign's first session, before the how-to-play talk: no history yet."""
+    import intro
+    return intro.sessions_played() == 0 and not intro._given()
+
+
+CURTAIN = "[intro] curtain raised"
+
+
+def campaign_start_lines():
+    import intro
+    from lib import banner
+    out = ["[CAMPAIGN START] first time this campaign is opened: run the gm skill's Campaign start, "
+           "not the roster check (no \"since last time\": nothing has happened yet)"]
+    out += banner.card(intro.title(), "Our tale begins")
+    log = campaign.session_log_path()
+    if not log.exists() or CURTAIN not in log.read_text(encoding="utf-8"):
+        journal.log_delta(CURTAIN)
+    p = campaign.campaign_doc_path()
+    front = md.load(p).front if p.exists() else {}
+    bits = [str(front.get("name") or intro.title())]
+    for key, fmt in (("tone", "{}"), ("length", "{}"), ("start-level", "level {}"), ("players", "{} players")):
+        if front.get(key) not in (None, ""):
+            bits.append(fmt.format(front[key]))
+    out.append("[PITCH] " + " · ".join(bits))
+    pregens = [str(d.front.get("name")) for d in campaign.pcs() if not campaign.player_of(d)]
+    if pregens:
+        out.append("[PREGENS] " + ", ".join(pregens))
+    out.append("[OPENING QUESTIONS] (one message) who's playing (player names) · anyone want an NPC "
+               "companion to round out the party? · build your own character or take a pregen?")
+    bf = campaign.boundaries_front()
+    if "lines" not in bf and "veils" not in bf:
+        out.append("[OPENING QUESTIONS] + lines and veils: anything you never want in the game, or want "
+                   "kept off screen? (`campaign boundaries ...`; `!x` any time)")
+    return out
 
 
 def _history_dir():

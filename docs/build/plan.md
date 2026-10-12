@@ -971,6 +971,151 @@ in a private test server.
 no permissions (Discord text is a player prompt); if the bridge fails, the terminal
 table keeps running.
 
+## Phase 18 — Proficiencies, languages, feats and full character choices (2j)
+
+*Planned 2026-10-11, not built.* **Goal:** a PC file records everything the character is
+proficient in and speaks, the numbers recompute exactly from it, tool checks work, and
+character creation puts **every** choice in front of the player, or, when the GM builds,
+shows every pick it made and asks before writing.
+
+**Why (what's broken today, from a 2026-10-11 survey):** chargen computes armor, weapon
+and tool proficiencies in memory (`chargen.py:310-361`) but never saves them; languages
+are read nowhere; `skills:` holds totals only, so `draft_from_file` (`pc.py:199-212`)
+guesses proficiency back from thresholds; `check Kira "thieves' tools"` fails as an
+unknown skill (`creatures.py:244-260`); only the first skill-choice block is used
+(bard instruments, monk tool, dwarf tool trait ignored, `chargen.py:341`); a non-SRD
+class's `skills=` picks are dropped (`if pc:`); `fighting-style` isn't read back, so
+Archery's +2 is lost on re-derive; race `starting_proficiencies` is dead code (racial
+proficiencies come from Traits in this data).
+
+**Read first:** `rules/feats.md` (format and Credits); 04 → PC file (530-642); 06 → Character tools (718-796); 02 → Character
+intake loop; `engine/lib/chargen.py` (`derive`, `_attack`, the proficiency set);
+`engine/pc.py` (`apply_sets`, `draft_from_file`, `update_file`, `plan`, `cmd_levelup`);
+`engine/lib/creatures.py` (`skill_bonus`, `save_bonus`); `engine/roll.py`
+(`ability_check`, `--rolled-as`); `.claude/skills/character/SKILL.md`,
+`.claude/skills/level-up/SKILL.md`; SRD keys: Classes `proficiencies` /
+`proficiency_choices`, Races `languages` / `language_options`, Traits `proficiencies` /
+`proficiency_choices` / `language_options`, Backgrounds `starting_proficiencies` /
+`language_options`, Proficiencies.json `type`.
+
+**File format (04 → PC file), new frontmatter keys:**
+```yaml
+skill-profs: [stealth, perception, acrobatics]   # the source of truth for skills
+expertise: [stealth, perception]                  # skills or tools, doubled prof
+skills: {stealth: 7, perception: 5, …}            # unchanged meaning: derived totals,
+                                                  # now every proficient skill (readers untouched)
+proficiencies:
+  armor: [light]
+  weapons: [simple, hand crossbow, longsword, rapier, shortsword]
+  tools: [thieves' tools]                         # incl. instruments, gaming sets, vehicles
+languages: [common, elvish, halfling]
+feats: [Skilled]                                  # name; effects summarised in Features
+grants: ["feat Skilled: skill athletics", "feat Skilled: tool smith's tools"]
+                                                  # extra profs/languages/saves from non-SRD
+                                                  # sources (feats, custom backgrounds,
+                                                  # training), each tagged with its source
+```
+`overrides` still wins over every derived key. Languages come from a fixed list of the
+standard and exotic languages in SRD 5.1 (there is no Languages JSON), kept in
+`chargen.py`.
+
+**Build:**
+1. **Chargen, every source, every choice.** One function walks race, subrace, Traits,
+   class (all `proficiency_choices` blocks, nested choices included), subclass,
+   background and feats, and returns (a) fixed grants and (b) **open choices**:
+   `{key, from: source, choose: n, options: […]}`. Choice keys: `skills`, `race-skills`,
+   `tools` (class/race tool or instrument picks), `languages` (race/subrace/background
+   `language_options`), `background-skills` / `background-tools` / `background-languages`
+   (for a non-SRD background, the GM supplies what it grants from model knowledge; only
+   acolyte is in the data), `feat` + `feat-grants` (see 3). Existing picks
+   (`fighting-style`, `cantrips`, `spells`, `expertise`, `asi`, `race-cantrip`,
+   `ability-bonuses`) join the same list, so there's **one** "Choices still open" section.
+   Fix the bugs above on the way (non-SRD class skills kept, all choice blocks,
+   `fighting-style` written to and read from the file).
+2. **`pc check` output** gains `Choices still open:` with each choice's options, and
+   `Proficiencies:` / `Languages:` / `Feats:` lines in the derived summary. **`pc write`
+   refuses while a choice is open**, like a missing required field.
+3. **Feats.** At creation: variant human / custom lineage (offered whenever the race
+   allows it; not SRD, recorded like other non-SRD content) and any ASI levels at or
+   below the starting level ("ASI or feat" each). At level-up the existing `asi` choice
+   becomes "ASI **or** feat". A feat is `feat="<name>"`, plus `feat-grants="skill
+   athletics, tool smith's tools, save con, language elvish, str+1"` for anything it
+   grants that changes numbers; each grant lands in `grants:` tagged with the feat, and
+   a one-line summary goes in `## Features & abilities`. **Feat index:**
+   `rules/feats.md` (added 2026-10-11; credited to Cheeky Kokako's "The Complete Feat",
+   our own condensed wording): every published 5e feat with source, prerequisite, `asi`
+   and machine-readable `grants` tokens (`skill:N`, `tool:<name>`, `language:N`,
+   `armor:heavy`, `save:asi`, `expertise:1`, …). Chargen parses it: a picked feat's
+   fixed grants apply automatically, its `asi` and `N`-choices become open choices, its
+   prerequisite is checked (race, score, proficiency, level, `4th`) with a warning, and
+   setting-tied feats (Dragonlance, Planescape, Eberron, Strixhaven, Plane Shift, [U])
+   need the GM's yes. Feat options shown to a player come from this file, filtered by
+   prerequisite. A feat not in it falls back to `feat-grants`. The full effect is still
+   the GM's one-line summary in Features (no rules text in the repo; only Grappler is SRD).
+4. **Exact recompute.** `draft_from_file` reads `skill-profs`, `expertise`,
+   `proficiencies`, `languages`, `feats`, `grants`, `fighting-style` instead of guessing
+   from totals; level-up and `pc edit` re-derive from them (prof bonus rises → every
+   total moves correctly; an ASI to DEX moves every DEX skill and attack).
+5. **Play time.** `creatures.tool_bonus(pc, tool, ability)` = ability mod + prof if the
+   tool is in `proficiencies.tools` (+prof again with expertise); `check Kira "thieves'
+   tools" 12 [--ability dex]` and `--rolled-as` accept any tool name (default ability per
+   tool kind: thieves' tools and instruments DEX, artisan's tools INT unless the GM
+   passes one). Unknown names suggest the closest skill or tool instead of a bare error.
+   `pc card` / the file card shows proficiencies, languages and feats. Wearing armor the
+   PC isn't proficient in (equipment change, `pc edit`) warns with the rule (disadvantage
+   on STR/DEX checks, saves and attacks; no spellcasting).
+6. **Downtime `train`** adds a real entry: a tool or language → `grants:` (`"trained:
+   tool …"`) plus the Features line it writes today.
+7. **Migration: `gm.py pc migrate [<pc>|--all]`.** Fills the new keys from what's known:
+   `skill-profs`/`expertise` from today's threshold inference, proficiencies and languages
+   from SRD class/race/subrace/Traits, and anything noted in the body (e.g. Kael's "Heavy
+   armor proficiency (Life Domain)", Grusk's outlander Survival). What it can't settle
+   (custom backgrounds, a human's bonus language) becomes `choices-pending:` in the PC
+   file; the next session start's step 4 asks the player, like `level-pending`. Run on
+   `campaigns/{dryrun,dryrun-split,poc}` and the test fixtures; lint warns on a PC
+   without `languages`/`proficiencies` ("run pc migrate").
+
+**Character skill (`.claude/skills/character/SKILL.md`) and 02 → Character intake:**
+- **Player builds.** After race/class/background are known, the GM puts **every** open
+  choice from `pc check` to the player in one grouped message, with the options listed:
+  skills (class, race, background), tools and instruments, languages, feats (variant
+  human, ASI-or-feat levels), fighting style, cantrips and spells, expertise. It may
+  suggest a pick for each ("Perception fits a scout"), but never fills one silently.
+- **GM builds** ("you build it", "surprise me", the NPC companion at campaign start,
+  "something quick"). The GM makes every pick itself, then shows the **whole** result
+  before writing: race, class, subclass, background, ability scores (and the method),
+  HP, AC, skills (marking expertise), saves, armor/weapon/tool proficiencies,
+  languages, feats, fighting style, spells, equipment, and a line of flavour. Then
+  "Okay, or change anything?" `pc write` only after a yes; any change goes back through
+  `pc check`.
+- The level-up skill gets the same rule for "ASI or feat" and any new proficiency or
+  language choice.
+
+**Verify:** a high-elf rogue 3 draft lists choices for 4 class skills, 1 extra
+language and expertise ×2, and refuses `pc write` until each is made; a bard draft
+lists the 3 instruments; a monk draft lists its tool; a dwarf draft lists the tool-trait
+pick; a human draft lists the bonus language; a non-SRD background asks for its grants;
+variant human lists a feat, and its options come from `rules/feats.md` filtered by
+prerequisite (a dwarf sees Dwarven Fortitude, an elf doesn't); picking Resilient opens
+an ability choice and adds that save; Skilled opens 3 skill-or-tool picks; Heavily
+Armored warns without medium armor proficiency; every `rules/feats.md` row parses (a
+test walks the table); written files carry `skill-profs`, `expertise`,
+`proficiencies`, `languages`, `feats`, `grants` and `fighting-style`; a round trip
+(`pc edit` with no change) leaves the file byte-identical; level 4→5 raises every
+proficient skill, save and attack by 1 with no guessing; a DEX ASI moves every DEX
+skill and attack; Archery's +2 survives a re-derive; `check Kira "thieves' tools" 12`
+adds DEX + prof (+ expertise if listed), and a non-proficient PC adds DEX only; a
+feat with `feat-grants="save con"` adds CON save proficiency; `train` with a language
+adds it; `pc migrate` on the dryrun PCs fills the keys, keeps every existing total
+identical, and lists `choices-pending` for what it couldn't infer; lint warns on an
+unmigrated PC. Update the tests that pin the old shape (`test_pc.py:49`,
+`test_md.py:50`).
+
+**Guards:** totals in `skills:` stay readable by every current caller (no play-time
+code changes beyond `tool_bonus`); `overrides` always wins; no non-SRD text in the
+repo (feats and backgrounds are names plus the GM's one-line summaries); migration
+never changes a number the player already has without saying so.
+
 ## Phase 10 — Verification sweep and dry-run readiness (README Phase 3)
 
 1. **Anti-pattern grep** over `engine/` and `.claude/` for everything in 0.8; all empty.

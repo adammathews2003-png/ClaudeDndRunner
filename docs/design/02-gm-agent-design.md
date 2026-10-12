@@ -53,6 +53,27 @@ skills say *when* to call a command, and the tools do the math and the file writ
 Steps 1–4 are skipped quickly when nothing applies ("Same table as last time, no
 changes" → straight to the recap). Each step is a short exchange, not a form.
 
+**Mechanics** (every session): `session start` prints `[MECHANICS] read
+rules/mechanics/<name>.md` for each campaign `mechanics:` entry, and the GM reads them
+before saying anything. The tool decides, so the model can't conclude "none" by mistake.
+
+### Campaign start (decided 2026-10-11)
+
+The first time a campaign is opened (no session history, how-to-play not yet given),
+`session start` prints `[CAMPAIGN START]` and the routine above is replaced. Nothing has
+happened yet, so there is no "since last time".
+1. **Curtain first:** the title card (shown here, so `intro` skips it), then a short
+   player-safe pitch from `[PITCH]`: name, tone, length, starting level, party size.
+2. **Opening questions, one message:** who's playing; does anyone want an NPC companion
+   to round out the party; build your own or take a pregen (`[PREGENS]`); lines and veils
+   if not yet asked.
+3. **Characters**, one player at a time; the companion last, built to fill the party's
+   gaps (a PC file with `player: GM` and an `autopilot:` line, played by the GM in
+   character, never solving problems or knowing secrets).
+4. **Party questions** in one message: how the characters know each other
+   (`[PARTY TIES]` from `intro`) and why they're here; then how to play; then the premise
+   and the first scene.
+
 ### How to play (decided 2026-10-07; built with Phase 16)
 
 After character creation and before the curtain goes up, the GM gives the table a short
